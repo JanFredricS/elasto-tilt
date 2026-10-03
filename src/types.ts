@@ -45,6 +45,7 @@ export interface GameRenderer {
 }
 export interface UICallbacks {
   start(): void; selectLevel(index: number): void; restart(): void;
+  menu(): void;
   pause(): void; resume(): void; enableMotion(): Promise<string>;
   calibrate(): void; brake(pressed: boolean): void; tilt(value: number): void;
   debug(enabled: boolean): void;
