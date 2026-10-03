@@ -65,6 +65,7 @@ async function boot() {
     debug: enabled => { debug = enabled; },
   });
   load(0, 'menu');
+  document.querySelector('#loading')?.remove();
   document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
   window.addEventListener('blur', pause);
   window.addEventListener('resize', () => renderer.resize());

@@ -11,6 +11,7 @@ A mobile-first, side-view bicycle physics puzzle game. Tilt the visible world th
 - Bicycle chassis, two jointed wheels, explicit vulnerable helmet, credible wheel braking. No automatic attachment to arbitrary surfaces. Designed lips/cradles support wheel catches.
 - Swings use constraints; lengths and damping vary response. Mass alone is not the explanation for different swing periods.
 - Time puzzle uses explicit route-space travel, not screen direction or wheel spin. Bicycle remains live, selected environment objects follow reversible trajectories. Apples persist. Time controlled kinematic colliders are intentionally authored rather than arbitrary negative-time physics.
+- Reviewed temporal implementation keeps a reversible target separate from bounded collider motion: platforms may finish catching up after the rider stops. This deliberate safety tradeoff avoids discarding travel at high rider speed. Saturated endpoints do not store excess travel.
 
 ## Campaign
 1. Newton’s Orchard: gentle gravity steering, brakes, apples, exit.

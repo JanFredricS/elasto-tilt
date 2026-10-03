@@ -59,21 +59,33 @@ it.each([
   let state = game.snapshot();
   let lastX = state.bike.x;
   let crossedGardenGap = false;
+  let brakeApplied = false;
+  let atticWeightMoved = false;
+  let invertedWeightRose = false;
   for (let step = 0; step < 120 * 40 && state.status === 'playing'; step++) {
     const velocity = (state.bike.x - lastX) * 120;
     lastX = state.bike.x;
     const target = clamp((1.6 - velocity) * gain, -0.25, 0.48);
-    state = game.step(1 / 120, { tilt: clamp((target - state.worldAngle) * 8, -1, 1), brake: false });
+    const brake = level.id === 'one-wheel-wonder' && state.bike.x > 7.3 && state.bike.x < 9.3;
+    brakeApplied ||= brake;
+    state = game.step(1 / 120, { tilt: clamp((target - state.worldAngle) * 8, -1, 1), brake });
     if (level.id === 'hanging-garden' && state.bike.x > 6.2 && state.bike.x < 9.0 && state.bike.y > -1)
       crossedGardenGap = true;
+    atticWeightMoved ||= level.id === 'newtons-attic' &&
+      (state.bodies.find((body) => body.id === 'attic-weight')?.x ?? 0) > 4.7;
+    invertedWeightRose ||= level.id === 'contrary-conservatory' &&
+      (state.bodies.find((body) => body.id === 'contrary-weight')?.y ?? 0) > 5.5;
   }
   game.destroy();
   expect(state.status).toBe('complete');
   expect(state.collected).toHaveLength(level.apples.length);
   if (level.id === 'hanging-garden') expect(crossedGardenGap).toBe(true);
+  if (level.id === 'one-wheel-wonder') expect(brakeApplied).toBe(true);
+  if (level.id === 'newtons-attic') expect(atticWeightMoved).toBe(true);
+  if (level.id === 'contrary-conservatory') expect(invertedWeightRose).toBe(true);
 });
 
-it('replays the Gravity Engine swing, wall turn, ceiling apple and exit', async () => {
+it('replays the Gravity Engine swing, wall turn, wall apple and exit', async () => {
   const game = await createPhysics();
   const level = levels[8];
   game.load(level);

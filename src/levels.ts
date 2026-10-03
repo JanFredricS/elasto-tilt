@@ -40,8 +40,8 @@ export const levels: Level[] = [
   },
   {
     id: 'one-wheel-wonder', name: 'One Wheel Wonder', subtitle: 'A pause at the lip',
-    mechanic: 'Brake a wheel on a broad ledge, pivot, and settle on the upper terrace.',
-    hint: 'Try a quarter turn to make the low wall a gentle landing, then brake at its lip.',
+    mechanic: 'A short ramp and narrow lip let you practice controlling wheel speed.',
+    hint: 'Roll up the ramp and use the brake near the lip to settle on the upper terrace.',
     spawn: point(0, 0.7), bounds: box(-3, -3, 18, 9),
     surfaces: [
       ground('wonder-start', 2.5, -0.35, 8),
@@ -56,8 +56,8 @@ export const levels: Level[] = [
   },
   {
     id: 'hanging-garden', name: 'The Hanging Garden', subtitle: 'A moving place to land',
-    mechanic: 'Transfer from the approach ledge onto a broad swing over a gap.',
-    hint: 'Brake at the edge, wait for the swing beneath the wheels, then release across.',
+    mechanic: 'Cross the gap on a broad swing and land on the far floor.',
+    hint: 'Roll gently onto the swing; brake if you need to adjust your timing.',
     spawn: point(0, 0.7), bounds: box(-3, -5, 19, 10),
     surfaces: [
       ground('garden-left', 2.1, -0.35, 7.2),
@@ -107,8 +107,8 @@ export const levels: Level[] = [
   },
   {
     id: 'newtons-attic', name: "Newton’s Attic", subtitle: 'A weight on the way',
-    mechanic: 'A movable weight and a narrow bridge change the route.',
-    hint: 'Move the loose box onto the bridge, then let the bicycle follow at a slower angle.',
+    mechanic: 'A loose ball can be nudged along the narrow static bridge.',
+    hint: 'Nudge the loose ball aside, then follow the narrow bridge to the next apple.',
     spawn: point(0, 0.7), bounds: box(-3, -4, 19, 9),
     surfaces: [
       ground('attic-left', 2.6, -0.35, 8.2),
@@ -152,7 +152,7 @@ export const levels: Level[] = [
   },
   {
     id: 'gravity-engine', name: 'The Gravity Engine', subtitle: 'Bring the skills together',
-    mechanic: 'Combine a ledge, a swing transfer, a wall ride, and careful braking.',
+    mechanic: 'Cross a swing gap, then turn along a curved wall to reach the upper exit.',
     hint: 'Use the swing to cross the center, then turn the far wall into a landing.',
     spawn: point(0, 0.7), bounds: box(-3, -5, 23, 11),
     surfaces: [
@@ -171,22 +171,19 @@ export const levels: Level[] = [
   },
   {
     id: 'clockwork-apple', name: 'The Clockwork Apple', subtitle: 'A path that remembers',
-    mechanic: 'Travel along the static lower route to move the lift; double back to reverse it.',
-    hint: 'Ride right to lift the clock platform, collect the high apple, then ride left to bring it down for the final crossing.',
-    spawn: point(0, 0.7), bounds: box(-3, -4, 21, 10),
+    mechanic: 'Ride right to raise the moving floor, then reverse it to return to the door.',
+    hint: 'The lift follows your distance from the start. Ride right for the high apple, then ride left to lower it and return.',
+    spawn: point(0, 0.7), bounds: box(-3, -5, 13, 8),
     surfaces: [
-      ground('clock-route', 2.7, -0.35, 8.4),
-      ground('clock-high', 11.2, 4.2, 5.3),
-      ground('clock-exit', 16.6, -0.35, 5.5),
-      ground('clock-gate', 13.9, 1.5, 0.55, 3.7),
-      hazard('clock-gap', 10.4, -3.1, 7.0, 0.35),
+      ground('clock-start', 1.1, -0.35, 6.8),
+      ground('clock-end', 9.1, -1.6, 2.6),
+      hazard('clock-pit', 6.6, -4.0, 7.4, 0.35),
     ],
     timePlatforms: [
-      { id: 'clock-lift', from: point(7.1, 0.35), to: point(9.1, 3.65), w: 3.2, h: 0.42 },
-      { id: 'clock-bridge', from: point(10.7, 0.35), to: point(12.9, 3.65), w: 3.0, h: 0.42 },
+      { id: 'clock-lift', from: point(6.8, -1.8), to: point(6.8, 2.2), w: 5.8, h: 0.42 },
     ],
-    timeAxis: point(1, 0), timeTravel: 10,
-    apples: [apple('clock-a', 3.0, 0.9), apple('clock-b', 10.5, 5.25), apple('clock-c', 16.5, 0.9)],
-    exit: point(18.1, 0.75), difficulty: 10, accent: '#e9b85c',
+    timeAxis: point(1, 0), timeTravel: 12,
+    apples: [apple('clock-a', 2.6, 0.9), apple('clock-b', 8.1, 2.65)],
+    exit: point(-0.8, 0.75), difficulty: 10, accent: '#e9b85c',
   },
 ];

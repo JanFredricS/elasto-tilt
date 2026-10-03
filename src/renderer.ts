@@ -338,7 +338,7 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
     resize,
     destroy() {
       observer.disconnect();
-      app.destroy(true, { children: true });
+      app.destroy(true, { children: true, context: true });
     },
   };
 }

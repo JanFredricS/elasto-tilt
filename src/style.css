@@ -29,6 +29,7 @@ button:focus-visible { outline: 3px solid #f47a49; outline-offset: 3px; }
 .game-canvas { display: block; width: 100%; height: 100%; }
 
 .game-ui { pointer-events: none; user-select: none; -webkit-user-select: none; }
+.game-ui:focus { outline: none; }
 .game-ui button, .menu-overlay, .state-overlay, .control-dock, .utility-bar, .hud-actions { pointer-events: auto; }
 .ui-grain { display: none; }
 
@@ -87,6 +88,7 @@ button:focus-visible { outline: 3px solid #f47a49; outline-offset: 3px; }
 .debug-panel { position: absolute; z-index: 8; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 12px; padding: 7px 12px; border: 1px solid rgba(23,63,69,.16); border-radius: 7px; color: #173f45; background: rgba(255,250,240,.92); font: 10px/1.25 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
 .debug-panel b { font-size: 9px; letter-spacing: .1em; }
 .debug-on .hud-stats { visibility: hidden; }
+@media (max-width: 1080px) { .debug-on .hud-brand { visibility: hidden; } }
 
 .menu-overlay, .state-overlay { position: absolute; z-index: 10; inset: 0; display: grid; place-items: center; background: rgba(20,47,51,.44); backdrop-filter: blur(9px); pointer-events: auto; }
 .menu-overlay { padding: 22px; }
@@ -195,7 +197,7 @@ button:focus-visible { outline: 3px solid #f47a49; outline-offset: 3px; }
   .level-banner { top: 62px; }
   .level-banner-name { font-size: 17px; }
   .timeline { top: 62px; }
-  .utility-bar { top: 62px; right: max(12px, env(safe-area-inset-right)); }
+  .utility-bar { top: 106px; right: max(12px, env(safe-area-inset-right)); left: auto; bottom: auto; width: auto; transform: none; align-items: flex-end; }
   .tilt-button { width: 62px; height: 55px; }
   .brake-button { width: 79px; height: 79px; }
   .control-arrow { height: 26px; font-size: 27px; }
