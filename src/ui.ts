@@ -1,3 +1,4 @@
+import { createDisplayMode } from './display-mode';
 import type { GameUI, Level, UICallbacks, UIState } from './types';
 
 const safe = (value: number, fallback = 0) => Number.isFinite(value) ? value : fallback;
@@ -72,6 +73,7 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
         <button type="button" class="text-btn" data-action="survey" aria-label="View whole map" aria-pressed="false">MAP</button>
         <button type="button" class="text-btn" data-action="motion">ENABLE MOTION</button>
         <button type="button" class="text-btn" data-action="calibrate">CALIBRATE</button>
+        <button type="button" class="text-btn" data-action="screen" hidden>SCREEN</button>
         <button type="button" class="text-btn debug-toggle" data-action="debug">FPS</button>
       </div>
     </div>
@@ -112,6 +114,7 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
     </section>
   `;
 
+  const displayMode = createDisplayMode(host, callbacks);
   const get = (name: string) => host.querySelector<HTMLElement>(`[data-ui="${name}"]`)!;
   const menu = get('menu');
   const stateOverlay = get('state-overlay');
@@ -371,11 +374,13 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
       else if (!playing) host.querySelector<HTMLButtonElement>('[data-action="state-primary"]')?.focus();
       else host.focus();
     }
+    displayMode.update(state.status);
   }
 
   return {
     update,
     destroy() {
+      displayMode.destroy();
       releaseAll();
       abort.abort();
       window.clearTimeout(toastTimer);

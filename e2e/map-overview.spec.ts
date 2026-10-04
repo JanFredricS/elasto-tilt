@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 
+test.use({ hasTouch: true });
+
 for (const [width, height] of [[390, 844], [844, 390], [1280, 800]]) {
   test(`whole-map view pauses the ride and returns safely at ${width}×${height}`, async ({ page }) => {
     await page.setViewportSize({ width, height });

@@ -257,3 +257,27 @@ button:focus-visible { outline: 3px solid #cc6258; outline-offset: 3px; }
   .horizon-gauge { top: calc(var(--orientation-top) + 12px); width: 62px; }
   .level-banner { top: calc(var(--orientation-top) + 15px); max-width: 250px; }
 }
+
+/* Input capability, rather than window width, distinguishes desktop controls. */
+@media (hover: hover) and (pointer: fine) {
+  .control-dock, [data-action="motion"], [data-action="calibrate"] { display: none !important; }
+  .control-hint { display: block; }
+}
+@media (hover: none), (pointer: coarse) {
+  .control-hint { display: none; }
+}
+.screen-guide { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: max(18px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); background: radial-gradient(ellipse at 80% 10%, #fff8eb, #f1eee5); color: #173f45; touch-action: pan-y; overflow-y: auto; }
+.screen-guide-card { width: min(100%, 540px); text-align: center; }
+.screen-guide h2 { font: 32px/1.1 Georgia, serif; margin: 8px 0 12px; }
+.screen-guide p { font-size: 15px; line-height: 1.45; margin: 10px auto 16px; }
+.screen-guide .primary-btn { margin: 0 auto; min-height: 46px; padding: 10px 24px; }
+.screen-swipe { display: block; font-size: 32px; color: #bc675a; }
+.screen-guide .screen-install { font-size: 12px; max-width: 430px; margin-bottom: 0; }
+/* Keep native scroll space after dismissing the guide so Safari can stay compact. */
+html.iphone-screen-scroll, html.iphone-screen-scroll body { height: calc(100lvh + 180px); overflow-y: auto; overscroll-behavior-y: auto; }
+html.iphone-screen-scroll #app { position: fixed; top: 0; left: 0; touch-action: none; }
+@media (max-height: 360px) {
+  .screen-guide h2 { font-size: 25px; }
+  .screen-swipe { display: none; }
+  .screen-guide p { margin: 8px auto; }
+}
