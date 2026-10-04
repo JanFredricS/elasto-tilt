@@ -7,7 +7,7 @@ This replaces the short original routes. Coordinates are metres, positive y up. 
 | Newton’s Orchard | Climb to a 4 m terrace, descend into a hollow, reach the far hill, brake and return home. | 5 | 98 m / 45 s |
 | One Wheel Wonder | Brake the rear wheel against a gold stop and pivot up to the high apple; descend into the deep bowl, climb the far bank and return. | 6 | 58 s |
 | The Hanging Garden | Upper garden, compact suspended crossing, sunken orchard, then cross the moving deck again on the return. | 5 | 98 m / 49 s |
-| The Pendulum Mill | Two compact decks of different suspension lengths, curved mill wall, long overhead return. | 6 | 103 m / 53 s |
+| The Pendulum Mill | Call, board and brake on two compact cradles across moderate gaps, then climb the curved mill wall and return overhead. | 6 | 104 m / 77 s |
 | The Room on Its Side | Sunken floor around a central divider, rounded end wall, ceiling journey home. | 6 | 92 m / 46 s |
 | Newton’s Attic | Ramped ridge and loose weights; return past the home door to collect a storage-pocket apple, then reverse again. | 6 | 102 m / 69 s |
 | Escher’s Orchard | Lower gallery → east wall → roof → west wall → top of the former entry ceiling → inner-room reversal. | 8 | 111 m / 75 s |
