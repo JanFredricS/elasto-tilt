@@ -91,16 +91,18 @@ export async function createPhysics(): Promise<PhysicsGame> {
       renderBodies.push({ body, view: { id: prop.id, w: prop.w, h: prop.h, shape: prop.shape, kind: 'prop', inverted: prop.inverted } });
     }
     for (const swing of next.swings ?? []) {
+      // A damped pendulum can fall below Rapier’s sleep-speed threshold before
+      // reaching equilibrium. Keep swings responsive while a player waits on a bank.
       const rotation = swing.angle ?? 0;
       const anchor = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(swing.anchor.x, swing.anchor.y));
       // Put the centre of mass at the seat and the local joint at the end of
       // its suspension. Rotate the initial seat position as well as its body.
       const body = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(
         swing.anchor.x + Math.sin(rotation) * swing.length, swing.anchor.y - Math.cos(rotation) * swing.length)
-        .setRotation(rotation).setAngularDamping(swing.damping ?? .18)
+        .setRotation(rotation).setCanSleep(false).setAngularDamping(swing.damping ?? .18)
         .setLinearDamping(swing.damping ?? .18).setCcdEnabled(true));
       register(RAPIER.ColliderDesc.cuboid(swing.width / 2, .12)
-        .setMass(3).setFriction(1.5).setCollisionGroups(ENV_GROUP), body, { kind: 'environment', id: swing.id });
+        .setMass(swing.mass ?? 3).setFriction(1.5).setCollisionGroups(ENV_GROUP), body, { kind: 'environment', id: swing.id });
       world.createImpulseJoint(RAPIER.JointData.revolute({ x: 0, y: 0 }, { x: 0, y: swing.length }), anchor, body, true);
       renderBodies.push({ body, view: { id: swing.id, w: swing.width, h: .24, shape: 'box', kind: 'swing' } });
     }

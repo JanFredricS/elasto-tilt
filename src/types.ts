@@ -3,7 +3,7 @@ export interface Vec { x: number; y: number }
 export interface Surface extends Vec { id: string; w: number; h: number; angle?: number; kind?: 'ground' | 'hazard' | 'cradle' }
 export interface Apple extends Vec { id: string }
 export interface Prop extends Vec { id: string; shape: 'box' | 'ball'; w: number; h: number; inverted?: boolean }
-export interface Swing { id: string; anchor: Vec; length: number; width: number; damping?: number; angle?: number }
+export interface Swing { id: string; anchor: Vec; length: number; width: number; damping?: number; angle?: number; mass?: number }
 export interface TimePlatform { id: string; from: Vec; to: Vec; w: number; h: number }
 export interface Portal extends Vec { id: string; target: Vec; rotation: number; radius: number }
 /** Visual guidance only. Angles are map-space radians: 0 points right, positive turns counterclockwise. */
