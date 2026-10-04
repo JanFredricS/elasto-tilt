@@ -19,6 +19,7 @@ export async function createPhysics(): Promise<PhysicsGame> {
   let level: Level;
   let frame: RAPIER.RigidBody;
   let wheels: RAPIER.RigidBody[] = [];
+  let brakeAngles: number[] | undefined;
   let bikeColliders: RAPIER.Collider[] = [];
   let renderBodies: RenderBody[] = [];
   let temporal: { body: RAPIER.RigidBody; from: Vec; to: Vec; lastTravel: number }[] = [];
@@ -50,7 +51,7 @@ export async function createPhysics(): Promise<PhysicsGame> {
     angle = next.initialAngle ?? 0; elapsed = phase = direction = physicsMs = 0;
     clock = new RouteClock(); previousSupport = undefined;
     status = 'playing'; collected = new Set(); tags = new Map();
-    wheels = []; bikeColliders = []; renderBodies = []; temporal = [];
+    wheels = []; brakeAngles = undefined; bikeColliders = []; renderBodies = []; temporal = [];
     world = new RAPIER.World({ x: GRAVITY * Math.sin(angle), y: -GRAVITY * Math.cos(angle) });
     world.numSolverIterations = 8;
     queue = new RAPIER.EventQueue(true);
@@ -90,13 +91,18 @@ export async function createPhysics(): Promise<PhysicsGame> {
       renderBodies.push({ body, view: { id: prop.id, w: prop.w, h: prop.h, shape: prop.shape, kind: 'prop', inverted: prop.inverted } });
     }
     for (const swing of next.swings ?? []) {
+      const rotation = swing.angle ?? 0;
       const anchor = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(swing.anchor.x, swing.anchor.y));
-      const body = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(swing.anchor.x, swing.anchor.y)
-        .setRotation(swing.angle ?? 0).setAngularDamping(swing.damping ?? .18).setCcdEnabled(true));
-      register(RAPIER.ColliderDesc.cuboid(swing.width / 2, .12).setTranslation(0, -swing.length)
+      // Put the centre of mass at the seat and the local joint at the end of
+      // its suspension. Rotate the initial seat position as well as its body.
+      const body = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(
+        swing.anchor.x + Math.sin(rotation) * swing.length, swing.anchor.y - Math.cos(rotation) * swing.length)
+        .setRotation(rotation).setAngularDamping(swing.damping ?? .18)
+        .setLinearDamping(swing.damping ?? .18).setCcdEnabled(true));
+      register(RAPIER.ColliderDesc.cuboid(swing.width / 2, .12)
         .setMass(3).setFriction(1.5).setCollisionGroups(ENV_GROUP), body, { kind: 'environment', id: swing.id });
-      world.createImpulseJoint(RAPIER.JointData.revolute({ x: 0, y: 0 }, { x: 0, y: 0 }), anchor, body, true);
-      renderBodies.push({ body, offset: { x: 0, y: -swing.length }, view: { id: swing.id, w: swing.width, h: .24, shape: 'box', kind: 'swing' } });
+      world.createImpulseJoint(RAPIER.JointData.revolute({ x: 0, y: 0 }, { x: 0, y: swing.length }), anchor, body, true);
+      renderBodies.push({ body, view: { id: swing.id, w: swing.width, h: .24, shape: 'box', kind: 'swing' } });
     }
     for (const platform of next.timePlatforms ?? []) {
       const body = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(platform.from.x, platform.from.y));
@@ -125,11 +131,23 @@ export async function createPhysics(): Promise<PhysicsGame> {
     }
     world.timestep = dt;
     frame.resetTorques(false);
-    for (const wheel of wheels) {
+    if (controls.brake && !brakeAngles) brakeAngles = wheels.map(wheel => wheel.rotation() - frame.rotation());
+    if (!controls.brake) brakeAngles = undefined;
+    const brakeLimit = (frame.mass() + wheels.reduce((sum, wheel) => sum + wheel.mass(), 0)) * GRAVITY * .34 * 2;
+    for (const [index, wheel] of wheels.entries()) {
       wheel.resetTorques(false);
-      if (controls.brake) {
-        // Finite equal/opposite resistance; never overwrite angular velocity.
-        const torque = clamp((frame.angvel() - wheel.angvel()) * .65, -4, 4);
+      if (brakeAngles) {
+        // Finite brake-pad torque locks the wheel to the frame, not the world.
+        // Inertia-aware damping stops relative spin without timestep-dependent
+        // overshoot; a soft position correction prevents downhill creep.
+        const relativeSpeed = wheel.angvel() - frame.angvel();
+        const delta = wheel.rotation() - frame.rotation() - brakeAngles[index];
+        const error = Math.atan2(Math.sin(delta), Math.cos(delta));
+        const inverseInertia = wheel.effectiveWorldInvInertia() + frame.effectiveWorldInvInertia();
+        const desiredTorque = inverseInertia > 0 ? (-relativeSpeed - .15 * error / dt) / (inverseInertia * dt) : 0;
+        const torque = clamp(desiredTorque, -brakeLimit, brakeLimit);
+        // A slipping pad cannot wind up a spring around a spinning wheel.
+        if (Math.abs(desiredTorque) > brakeLimit) brakeAngles[index] = wheel.rotation() - frame.rotation();
         wheel.addTorque(torque, true); frame.addTorque(-torque, true);
       }
     }

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createInput, screenBank } from '../src/input';
+import { bankOffset, createInput, screenBank } from '../src/input';
 import type { InputController } from '../src/types';
 
 class Surface extends EventTarget {
@@ -18,6 +18,22 @@ function settle(input: InputController) { for (let i = 0; i < 120; i++) input.re
 beforeEach(() => { surface = new Surface(); documentSurface = new Surface(); vi.stubGlobal('window', surface); vi.stubGlobal('document', documentSurface); });
 afterEach(() => { controllers.splice(0).forEach(c => c.destroy()); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 describe('shared keyboard, touch, and calibrated motion command', () => {
+  it('has an odd monotonic curve, precise neutral steering, and accessible full inversion', () => {
+    expect(bankOffset(.75)).toBe(0);
+    expect(bankOffset(-.75)).toBe(-0);
+    expect(bankOffset(10) * 180 / Math.PI).toBeCloseTo(11.734, 3);
+    expect(bankOffset(30) * 180 / Math.PI).toBeCloseTo(51.961, 3);
+    expect(bankOffset(45) * 180 / Math.PI).toBeCloseTo(110.786, 3);
+    expect(bankOffset(75)).toBe(2 * Math.PI);
+    expect(bankOffset(-75)).toBe(-2 * Math.PI);
+    expect(bankOffset(80)).toBe(2 * Math.PI);
+    expect(bankOffset(NaN)).toBe(0);
+    for (let bank = 1; bank <= 75; bank++) {
+      expect(bankOffset(bank)).toBeGreaterThan(bankOffset(bank - 1));
+      expect(bankOffset(-bank)).toBe(-bankOffset(bank));
+    }
+    expect(bankOffset(55) - bankOffset(50)).toBeGreaterThan(3 * (bankOffset(10) - bankOffset(5)));
+  });
   it('maps arrows / A D and space, prevents scrolling, and releases on blur', () => {
     const input = controller();
     expect(event('keydown', { code: 'ArrowRight' }).defaultPrevented).toBe(true);
@@ -42,7 +58,7 @@ describe('shared keyboard, touch, and calibrated motion command', () => {
     event('deviceorientation', { beta: 0, gamma: 12 }); expect(settle(input).worldAngle).toBe(0);
     event('deviceorientation', { beta: 0, gamma: 12.5 }); expect(settle(input).worldAngle).toBe(0);
     event('deviceorientation', { beta: 0, gamma: 22 });
-    const held = settle(input); expect(held.tilt).toBe(0); expect(held.worldAngle).toBeCloseTo(27.75 * Math.PI / 180, 5);
+    const held = settle(input); expect(held.tilt).toBe(0); expect(held.worldAngle).toBeCloseTo(11.734156 * Math.PI / 180, 5);
     for (let i = 0; i < 60; i++) {
       event('deviceorientation', { beta: 0, gamma: 22 });
       expect(settle(input).worldAngle).toBeCloseTo(held.worldAngle!, 5);
@@ -53,10 +69,45 @@ describe('shared keyboard, touch, and calibrated motion command', () => {
     const input = controller(); await input.enableMotion();
     surface.screen.orientation.angle = 90; surface.screen.orientation.dispatchEvent(new Event('change'));
     event('deviceorientation', { beta: 70, gamma: 0 }); expect(settle(input).worldAngle).toBe(0);
-    event('deviceorientation', { beta: 48, gamma: 0 }); expect(settle(input).worldAngle).toBeCloseTo(-63.75 * Math.PI / 180, 5);
+    event('deviceorientation', { beta: 48, gamma: 0 }); expect(settle(input).worldAngle).toBeCloseTo(-32.086810 * Math.PI / 180, 5);
     surface.DeviceOrientationEvent = { requestPermission: async () => 'denied' };
     expect(await input.enableMotion()).toContain('denied');
     event('keydown', { code: 'KeyD' }); expect(settle(input).tilt).toBeCloseTo(1, 5);
+  });
+  it.each([-2, -1, 1, 2])('calibrates at %s full turns without commanding another revolution', async turns => {
+    const input = controller(), angle = turns * 2 * Math.PI;
+    input.read(.01, angle); await input.enableMotion();
+    event('deviceorientation', { beta: 0, gamma: 10 });
+    expect(settle(input).worldAngle).toBe(angle);
+    input.calibrate();
+    expect(input.read(1 / 120, angle).worldAngle).toBe(angle);
+    expect(settle(input).worldAngle).toBe(angle);
+  });
+  it.each([-1, 1])('calibrates to the nearest flat turn in direction %s', async sign => {
+    const input = controller(), flat = sign * 2 * Math.PI, actual = flat + sign * .4;
+    input.read(.01, actual); await input.enableMotion();
+    event('deviceorientation', { beta: 0, gamma: 10 });
+    input.calibrate();
+    let previousDistance = Math.abs(actual - flat);
+    for (let i = 0; i < 120; i++) {
+      const target = input.read(1 / 120, actual).worldAngle!;
+      const distance = (target - flat) * sign;
+      expect(distance).toBeGreaterThanOrEqual(0);
+      expect(distance).toBeLessThanOrEqual(previousDistance);
+      previousDistance = distance;
+    }
+    expect(previousDistance).toBeLessThan(.00001);
+  });
+  it('starts calibration from the actual world angle when the sensor target is ahead', async () => {
+    const input = controller(); await input.enableMotion();
+    event('deviceorientation', { beta: 0, gamma: 0 });
+    event('deviceorientation', { beta: 0, gamma: 75 });
+    expect(settle(input).worldAngle).toBeCloseTo(2 * Math.PI, 5);
+    input.read(0, .3); input.calibrate();
+    expect(input.read(0, .3).worldAngle).toBe(.3);
+    const first = input.read(1 / 120, .3).worldAngle!;
+    expect(first).toBeGreaterThan(0); expect(first).toBeLessThan(.3);
+    expect(settle(input).worldAngle).toBeCloseTo(0, 5);
   });
   it('detaches listeners on destroy and ignores null sensor samples', async () => {
     const input = controller(); await input.enableMotion();
@@ -93,10 +144,10 @@ describe('shared keyboard, touch, and calibrated motion command', () => {
     expect(screenBank(89, 80, 0)).toBeCloseTo(screenBank(91, -80, 0));
   });
 
-  it('caps full phone bank at half a turn and permits touch override without snapping back', async () => {
+  it('caps full phone bank at a full turn and permits touch override without snapping back', async () => {
     const input = controller(); await input.enableMotion();
     event('deviceorientation', { beta: 0, gamma: 0 });
-    event('deviceorientation', { beta: 0, gamma: 80 }); expect(settle(input).worldAngle).toBeCloseTo(Math.PI, 5);
+    event('deviceorientation', { beta: 0, gamma: 80 }); expect(settle(input).worldAngle).toBeCloseTo(2 * Math.PI, 5);
     input.setTouchTilt(1); expect(settle(input).tilt).toBeCloseTo(1, 5);
     input.read(.01, 4); input.setTouchTilt(0);
     expect(settle(input).worldAngle).toBeCloseTo(4, 5);

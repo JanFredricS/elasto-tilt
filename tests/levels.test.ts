@@ -132,30 +132,23 @@ describe('authored campaign', () => {
     }
   });
 
-  it('gives Orchard a continuous short roll with both apples before the exit', () => {
+  it('spreads Orchard objectives through hills and a hollow, with a return door', () => {
     const orchard = levels[0];
-    const floor = orchard.surfaces[0];
-    expect(floor.x - floor.w / 2).toBeLessThan(orchard.spawn.x - 1.04);
-    expect(floor.x + floor.w / 2).toBeGreaterThan(orchard.exit.x + 1.04);
-    expect(orchard.apples.every((item) => item.x > orchard.spawn.x && item.x < orchard.exit.x))
-      .toBe(true);
-    expect(orchard.apples.every((item) => Math.abs(item.y - 0.9) < 0.01)).toBe(true);
+    expect(orchard.apples.length).toBeGreaterThanOrEqual(5);
+    expect(Math.max(...orchard.apples.map(a => a.x)) - orchard.spawn.x).toBeGreaterThan(40);
+    expect(Math.max(...orchard.apples.map(a => a.y)) - Math.min(...orchard.apples.map(a => a.y))).toBeGreaterThan(4);
+    expect(orchard.exit.x).toBeLessThan(orchard.spawn.x);
   });
 
-  it('uses continuous, playable wall and ceiling surfaces in Escher’s Orchard', () => {
+  it('puts Escher objectives around nested rooms and on both sides of the shared gallery', () => {
     const escher = levels[6];
-    expect(escher.portals).toBeUndefined();
-    const floor = escher.surfaces.find((item) => item.id === 'escher-floor')!;
-    const wall = escher.surfaces.find((item) => item.id === 'escher-right-wall')!;
-    const ceiling = escher.surfaces.find((item) => item.id === 'escher-ceiling')!;
-    expect(floor.x + floor.w / 2).toBeGreaterThan(12);
-    expect(wall.x - wall.w / 2).toBeCloseTo(16, 1);
-    expect(ceiling.y - ceiling.h / 2).toBeCloseTo(10, 1);
-    expect(escher.surfaces.filter((item) => item.id.startsWith('escher-lower-turn-'))).toHaveLength(4);
-    expect(escher.surfaces.filter((item) => item.id.startsWith('escher-upper-turn-'))).toHaveLength(4);
-    expect(escher.apples.some((item) => item.x < wall.x && item.x > wall.x - 1.5 && item.y > 3)).toBe(true);
-    expect(escher.apples.some((item) => item.y < ceiling.y && item.y > ceiling.y - 1.5)).toBe(true);
-    expect(escher.exit.y).toBeGreaterThan(escher.spawn.y + 7);
+    const shared = escher.surfaces.find(s => s.id === 'escher-shared-floor-ceiling')!;
+    expect(escher.apples.filter(a => a.x > shared.x - shared.w / 2 && a.x < shared.x + shared.w / 2 && a.y < shared.y)).toHaveLength(2);
+    expect(escher.apples.some(a => a.y > shared.y && a.y < shared.y + 2)).toBe(true);
+    expect(escher.apples.some(a => a.x < 2 && a.y > 8)).toBe(true);
+    expect(escher.apples.some(a => a.x > 30 && a.y > 8)).toBe(true);
+    expect(escher.apples.some(a => a.y > 16)).toBe(true);
+    expect(escher.exit.y).toBeGreaterThan(shared.y);
   });
 
   it('has a moving clockwork lift and a return route after the high apple', () => {

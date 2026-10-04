@@ -45,14 +45,22 @@ function local(origin: Vec, angle: number, x: number, y: number): Vec {
 }
 
 function drawWheel(g: Graphics): void {
-  ellipsePath(g, 0, 0, 0.345, 0.345, 48).fill(C.inkDeep);
-  ellipsePath(g, 0, 0, 0.275, 0.275, 48).fill(C.ivory);
-  ellipsePath(g, 0, 0, 0.268, 0.268, 48).stroke({ color: C.orange, width: 0.035 });
-  for (let n = 0; n < 10; n++) {
-    const a = n * TAU / 10;
-    line(g, { x: 0, y: 0 }, { x: Math.cos(a) * 0.255, y: Math.sin(a) * 0.255 }, C.inkLight, 0.012, .72);
+  // Machined rim, narrow sidewall and crossed spokes: a small technical object,
+  // with enough contrast to read at phone scale without a heavy cartoon outline.
+  ellipsePath(g, 0, 0, .34, .34, 64).fill(0x162a32);
+  ellipsePath(g, 0, 0, .317, .317, 64).stroke({ color: 0x52656c, width: .009 });
+  ellipsePath(g, 0, 0, .286, .286, 64).fill(C.ivory).stroke({ color: 0xa4b4b7, width: .019 });
+  ellipsePath(g, 0, 0, .272, .272, 64).stroke({ color: 0x294650, width: .009 });
+  for (let n = 0; n < 16; n++) {
+    const a = n * TAU / 16;
+    const offset = n % 2 ? .55 : -.55;
+    line(g, { x: Math.cos(a + offset) * .043, y: Math.sin(a + offset) * .043 },
+      { x: Math.cos(a) * .268, y: Math.sin(a) * .268 }, 0x7a9199, .007, .72);
   }
-  circle(g, 0, 0, 0.052, C.orange);
+  ellipsePath(g, 0, 0, .089, .089, 64).stroke({ color: 0x93a8aa, width: .009 });
+  ellipsePath(g, 0, 0, .041, .041, 64).fill(0x24434d);
+  ellipsePath(g, 0, 0, .019, .019, 64).fill(0xe7eeea);
+  line(g, { x: .289, y: -.025 }, { x: .289, y: .025 }, C.orange, .018);
 }
 
 function drawApple(g: Graphics, x: number, y: number): void {
@@ -89,7 +97,8 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
   const bikeFrame = new Graphics();
   const helmet = new Graphics();
   const exit = new Graphics();
-  world.addChild(architecture, terrain, ornaments, appleLayer, dynamic, bikeWheels, bikeFrame, helmet, exit);
+  const location = new Graphics();
+  world.addChild(architecture, terrain, ornaments, appleLayer, dynamic, bikeWheels, bikeFrame, helmet, exit, location);
   app.stage.addChild(world);
 
   let level: Level | undefined;
@@ -100,6 +109,7 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
   let cameraReady = false;
   let scale = 48;
   let elapsed = 0;
+  let surveying = false;
   const wheelViews = [new Graphics(), new Graphics()];
   for (const wheel of wheelViews) {
     drawWheel(wheel);
@@ -114,8 +124,12 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
     const sceneWidth = portrait ? 9.4 : 15.5;
     const sceneHeight = portrait ? 13.8 : 9.1;
     scale = clamp(Math.min(w / sceneWidth, h / sceneHeight), 26, 88);
+    if (surveying && level) {
+      const span = { x: level.bounds.max.x - level.bounds.min.x, y: level.bounds.max.y - level.bounds.min.y };
+      scale = Math.min((w - 36) / span.x, Math.max(80, h - (portrait ? 260 : 170)) / span.y);
+    }
     world.scale.set(scale, -scale);
-    world.position.set(w / 2, h / 2 + (portrait ? -0.16 * h : 0));
+    world.position.set(w / 2, surveying ? h / 2 + 12 : h / 2 + (portrait ? -0.16 * h : 0));
   }
 
   function load(nextLevel: Level): void {
@@ -135,21 +149,28 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
     appleLayer.removeChildren().forEach(child => child.destroy());
     appleViews = new Map();
 
-    // Sparse architectural traces stay behind the playable geometry and never resemble a route.
+    // Keep most of the air clear: terrain and moving objects are the puzzle.
     const { min, max } = nextLevel.bounds;
     architecture.rect(min.x - 2, min.y - 2, max.x - min.x + 4, max.y - min.y + 4)
       .fill({ color: C.ivory, alpha: .001 });
-    const spacing = 4;
+    const spacing = 8;
     for (let x = Math.floor(min.x / spacing) * spacing; x < max.x; x += spacing) {
-      line(architecture, { x, y: min.y }, { x, y: max.y }, C.ghost, .012, .17);
+      line(architecture, { x, y: min.y }, { x, y: max.y }, C.ghost, .010, .12);
     }
     for (let y = Math.floor(min.y / spacing) * spacing; y < max.y; y += spacing) {
-      line(architecture, { x: min.x, y }, { x: max.x, y }, C.ghost, .012, .17);
+      line(architecture, { x: min.x, y }, { x: max.x, y }, C.ghost, .010, .12);
     }
 
     for (const surface of nextLevel.surfaces) {
       const piece = new Graphics();
       const fill = surface.kind === 'hazard' ? C.red : C.ink;
+      if (nextLevel.id === 'eschers-orchard' && surface.kind !== 'hazard') {
+        // A shallow cut-stone extrusion makes overlapping galleries legible.
+        // Every solid top is still an actual collider; the offset is only a bevel.
+        const l = -surface.w / 2, r = surface.w / 2, b = -surface.h / 2;
+        piece.poly([l, b, r, b, r + .23, b - .23, l + .23, b - .23]).fill(0x729094);
+        piece.poly([r, b, r, surface.h / 2, r + .23, surface.h / 2 - .23, r + .23, b - .23]).fill(0xa2b4b2);
+      }
       piece.rect(-surface.w / 2, -surface.h / 2, surface.w, surface.h).fill(fill);
       piece.rect(-surface.w / 2, surface.h / 2 - Math.min(.075, surface.h / 3), surface.w, Math.min(.075, surface.h / 3))
         .fill(surface.kind === 'hazard' ? C.orange : C.inkLight);
@@ -189,19 +210,6 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
       line(ornaments, platform.from, platform.to, C.rope, .018, .34);
       circle(ornaments, platform.from.x, platform.from.y, .04, C.rope);
       circle(ornaments, platform.to.x, platform.to.y, .04, C.rope);
-    }
-    if (nextLevel.id === 'eschers-orchard') {
-      // Pale impossible stairs sit well behind the actual dark colliders.
-      const x0 = min.x + 1.4;
-      const y0 = max.y - 1.7;
-      for (let index = 0; index < 5; index++) {
-        const x = x0 + index * .48;
-        const y = y0 - index * .48;
-        line(architecture, { x, y }, { x: x + .5, y }, C.rope, .025, .25);
-        line(architecture, { x: x + .5, y }, { x: x + .5, y: y - .3 }, C.rope, .025, .25);
-        line(architecture, { x: x + .5, y: y - .3 }, { x: x + .12, y: y - .3 }, C.rope, .025, .25);
-      }
-      line(architecture, { x: x0 + 2.45, y: y0 - 2.7 }, { x: x0 + 2.9, y: y0 + .42 }, C.rope, .02, .17);
     }
     resize();
   }
@@ -270,38 +278,66 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
       wheelViews[index].position.set(wheel.x, wheel.y);
       wheelViews[index].rotation = wheel.angle;
     });
-    const crank = local(frame, frame.angle, -.02, -.035);
-    const seat = local(frame, frame.angle, -.31, .36);
-    const headTube = local(frame, frame.angle, .42, .39);
-    const handle = local(frame, frame.angle, .51, .49);
-    const saddleL = local(frame, frame.angle, -.47, .37);
-    const saddleR = local(frame, frame.angle, -.19, .37);
-    // The bicycle's double triangles stay tied to simulated hubs and remain clear at phone scale.
-    for (const [a, b] of [[rear, seat], [seat, crank], [crank, rear], [seat, headTube], [headTube, crank], [headTube, front]] as [Vec, Vec][]) {
-      line(bikeFrame, a, b, C.orange, .052);
+    bikeFrame.position.set(frame.x, frame.y);
+    bikeFrame.rotation = frame.angle;
+    const hub = (wheel: BodyView): Vec => ({
+      x: (wheel.x - frame.x) * axis.x + (wheel.y - frame.y) * axis.y,
+      y: -(wheel.x - frame.x) * axis.y + (wheel.y - frame.y) * axis.x,
+    });
+    const r = hub(rear), f = hub(front);
+    const crank = { x: -.09, y: -.25 }, seat = { x: -.31, y: .10 };
+    const headTube = { x: .39, y: .16 }, handle = { x: .48, y: .31 };
+    // Far leg sits behind the frame. Filled jersey/shorts and articulated limbs
+    // replace the stick figure; the crouch stays within the real head hitbox.
+    line(bikeFrame, { x: -.27, y: .24 }, { x: -.42, y: -.015 }, 0x547079, .091);
+    line(bikeFrame, { x: -.42, y: -.015 }, { x: -.20, y: -.31 }, 0x9baead, .06);
+    line(bikeFrame, { x: -.23, y: -.32 }, { x: -.10, y: -.34 }, 0x243c46, .045);
+    // Paired chain stays, sculpted tubes, dark carbon fork and metal fittings.
+    line(bikeFrame, r, crank, 0x879da1, .028);
+    line(bikeFrame, { x: r.x, y: r.y + .025 }, { x: crank.x, y: crank.y + .035 }, 0x3e565e, .013);
+    for (const [a, b, width] of [[r, seat, .030], [seat, crank, .046], [crank, headTube, .060],
+      [seat, headTube, .045]] as [Vec, Vec, number][]) {
+      line(bikeFrame, a, b, 0xb84f38, width + .015);
+      line(bikeFrame, { x: a.x, y: a.y + .009 }, { x: b.x, y: b.y + .009 }, 0xf5855f, width);
+      line(bikeFrame, { x: a.x, y: a.y + .022 }, { x: b.x, y: b.y + .022 }, 0xffc2a5, .009, .85);
     }
-    line(bikeFrame, saddleL, saddleR, C.inkDeep, .075);
-    line(bikeFrame, headTube, handle, C.inkDeep, .046);
-    line(bikeFrame, handle, local(frame, frame.angle, .63, .49), C.inkDeep, .055);
-    circle(bikeFrame, crank.x, crank.y, .078, C.inkDeep, C.orange, .018);
-    const pedal = local(frame, frame.angle, -.01, -.19);
-    line(bikeFrame, crank, pedal, C.inkDeep, .035);
-
-    // Warm rider silhouette. The helmet is drawn at the physics head collider.
-    const hip = local(frame, frame.angle, -.27, .48);
-    const shoulder = local(frame, frame.angle, .05, .67);
-    const elbow = local(frame, frame.angle, .27, .49);
-    line(bikeFrame, hip, shoulder, C.inkDeep, .105);
-    line(bikeFrame, shoulder, elbow, C.inkDeep, .064);
-    line(bikeFrame, elbow, handle, C.inkDeep, .055);
-    line(bikeFrame, hip, local(frame, frame.angle, -.03, .16), C.inkDeep, .078);
-    line(bikeFrame, local(frame, frame.angle, -.03, .16), pedal, C.inkDeep, .057);
+    line(bikeFrame, headTube, f, 0x1c3641, .049);
+    line(bikeFrame, { x: .43, y: .09 }, { x: .50, y: -.09 }, 0xa5b5b8, .025);
+    line(bikeFrame, seat, { x: -.36, y: .24 }, 0x566c76, .028);
+    bikeFrame.moveTo(-.51, .255).bezierCurveTo(-.47, .29, -.29, .28, -.22, .25, .999)
+      .lineTo(-.23, .22).lineTo(-.48, .22).closePath().fill(0x19323e);
+    line(bikeFrame, headTube, handle, 0x92a7aa, .025);
+    line(bikeFrame, { x: .43, y: .32 }, { x: .60, y: .33 }, 0x1b3540, .028);
+    line(bikeFrame, { x: .55, y: .33 }, { x: .64, y: .32 }, 0x172c34, .046);
+    bikeFrame.moveTo(.58, .30).bezierCurveTo(.71, .13, .60, .01, .51, .02, .999)
+      .stroke({ color: 0x3c5861, width: .010 });
+    circle(bikeFrame, crank.x, crank.y, .070, 0x1a3540, 0x9daeb0, .012);
+    line(bikeFrame, crank, { x: .035, y: -.32 }, 0x9caeb0, .022);
+    line(bikeFrame, { x: -.02, y: -.34 }, { x: .12, y: -.34 }, 0x203b45, .025);
+    // Tailored jersey with a shoulder panel, then the near leg and gloved arm.
+    bikeFrame.moveTo(-.37, .26).bezierCurveTo(-.32, .45, -.19, .59, -.045, .60, .999)
+      .bezierCurveTo(.04, .60, .09, .53, .05, .47, .999).lineTo(-.20, .26)
+      .closePath().fill(0x315f70);
+    bikeFrame.moveTo(-.31, .39).bezierCurveTo(-.22, .51, -.11, .57, -.04, .56, .999)
+      .lineTo(.017, .50).lineTo(-.23, .32).closePath().fill(0xeff1e9);
+    line(bikeFrame, { x: -.29, y: .38 }, { x: -.12, y: .49 }, 0xf28c64, .035);
+    line(bikeFrame, { x: -.27, y: .27 }, { x: -.06, y: .06 }, 0x203b48, .13);
+    line(bikeFrame, { x: -.06, y: .06 }, { x: .02, y: -.24 }, 0xb3c2bd, .063);
+    line(bikeFrame, { x: .02, y: -.27 }, { x: .145, y: -.30 }, 0x203b48, .05);
+    line(bikeFrame, { x: -.01, y: .51 }, { x: .24, y: .31 }, 0x355e70, .078);
+    line(bikeFrame, { x: .24, y: .31 }, handle, 0xb3c2bd, .052);
+    circle(bikeFrame, handle.x, handle.y, .039, 0x203b48);
     if (head) {
-      const headRadius = Math.max(.17, Math.min(.27, head.w / 2));
-      ellipsePath(helmet, 0, 0, headRadius, headRadius, 48).fill(C.orange);
-      helmet.arc(0, 0, .205, -.12, 2.68).stroke({ color: C.inkDeep, width: .036 });
-      ellipsePath(helmet, .11, -.037, .105, .04, 24).fill(C.inkDeep);
-      ellipsePath(helmet, .055, -.035, .021, .021, 20).fill(C.inkDeep);
+      // Smooth helmet shell follows the .21 m collision circle. No features
+      // outside it imply extra clearance around the vulnerable head.
+      ellipsePath(helmet, 0, 0, .205, .205, 64).fill(0x203b48);
+      helmet.moveTo(-.197, -.015).bezierCurveTo(-.22, .21, .10, .27, .197, .055, .999)
+        .bezierCurveTo(.09, .005, -.055, -.025, -.197, -.015, .999).fill(0xf4f1e5);
+      helmet.moveTo(-.165, .085).bezierCurveTo(-.08, .20, .075, .185, .15, .085, .999)
+        .stroke({ color: 0xf18a63, width: .030, cap: 'round' });
+      helmet.moveTo(.025, -.030).lineTo(.173, .018).lineTo(.183, -.058)
+        .lineTo(.070, -.11).closePath().fill(0x72989f);
+      line(helmet, { x: -.11, y: -.044 }, { x: -.025, y: -.16 }, 0xa4b9b5, .018);
       helmet.position.set(head.x, head.y);
       helmet.rotation = head.angle;
     }
@@ -318,15 +354,22 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
       camera.x += (finite(state.bike.x, camera.x) - camera.x) * follow;
       camera.y += (finite(state.bike.y, camera.y) - camera.y) * follow;
     }
-    world.pivot.set(camera.x, camera.y);
-    world.rotation = finite(state.worldAngle);
+    world.pivot.set(surveying ? (level.bounds.min.x + level.bounds.max.x) / 2 : camera.x,
+      surveying ? (level.bounds.min.y + level.bounds.max.y) / 2 : camera.y);
+    world.rotation = surveying ? 0 : finite(state.worldAngle);
     for (const [id, graphic] of appleViews) {
       graphic.visible = !state.collected.includes(id);
-      if (graphic.visible) graphic.scale.set(1 + Math.sin(elapsed * 3.2 + graphic.x) * .035);
+      if (graphic.visible) graphic.scale.set(surveying ? Math.max(1, 10 / scale) : 1 + Math.sin(elapsed * 3.2 + graphic.x) * .035);
     }
     exit.alpha = state.status === 'complete' ? 1 : .84 + .14 * Math.sin(elapsed * 2.5);
     drawDynamic(state);
     drawBike(state);
+    location.clear();
+    if (surveying) {
+      const r = 5 / scale;
+      location.circle(state.bike.x, state.bike.y, r * 1.8).fill({ color: C.ivory, alpha: .95 });
+      location.circle(state.bike.x, state.bike.y, r).fill(C.orange).stroke({ color: C.inkDeep, width: 1 / scale });
+    }
   }
 
   resize();
@@ -335,6 +378,7 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
   return {
     load,
     render,
+    overview(enabled) { surveying = enabled; cameraReady = false; resize(); },
     resize,
     destroy() {
       observer.disconnect();

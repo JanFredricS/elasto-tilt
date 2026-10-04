@@ -1,4 +1,6 @@
-# Physics slice — final review disposition
+# Physics slice — review history and current residuals
+
+The cycle details below record the initial implementation. The current curved controls, stronger brakes, effective pendulum damping and nearest-flat calibration are described in [control-redesign.md](control-redesign.md) and their v2 review reports. Historical carry measurements remain examples of the preserved defect, not newly measured v2 values.
 
 Two fresh-context Astra-low reviews were performed: `review-physics-1.md` and `review-physics-2.md`.
 

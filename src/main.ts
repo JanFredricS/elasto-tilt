@@ -4,7 +4,7 @@ import { createInput } from './input';
 import { createRenderer } from './renderer';
 import { createUI } from './ui';
 import { levels } from './levels';
-import type { Snapshot, UIState } from './types';
+import type { Controls, Snapshot, UIState } from './types';
 
 const FIXED_DT = 1 / 120;
 const SAVE_KEY = 'newtons-ride.progress.v1';
@@ -22,6 +22,8 @@ async function boot() {
     if (saved && Number.isInteger(saved.unlocked)) unlocked = Math.max(1, Math.min(levels.length, saved.unlocked));
   } catch { /* Private mode or malformed saves should not prevent play. */ }
   let status: UIState['status'] = 'menu';
+  let surveying = false;
+  let developmentPilot: ((state: Snapshot) => Controls) | undefined;
   let debug = new URLSearchParams(location.search).has('debug');
   let accumulator = 0;
   let last = performance.now();
@@ -30,6 +32,9 @@ async function boot() {
   let ui: ReturnType<typeof createUI>;
 
   function load(index: number, nextStatus: UIState['status'] = 'playing') {
+    developmentPilot = undefined;
+    surveying = false;
+    renderer.overview(false);
     levelIndex = Math.max(0, Math.min(levels.length - 1, index));
     input.reset(levels[levelIndex].initialAngle ?? 0);
     physics.load(levels[levelIndex]);
@@ -42,6 +47,8 @@ async function boot() {
   function pause() {
     if (status === 'playing') {
       status = 'paused';
+      surveying = false;
+      renderer.overview(false);
       input.reset(renderState.worldAngle);
       accumulator = 0;
     }
@@ -52,6 +59,13 @@ async function boot() {
     input.reset(renderState.worldAngle);
     last = performance.now();
   }
+  function survey() {
+    if (status !== 'playing') return;
+    surveying = !surveying;
+    renderer.overview(surveying);
+    input.reset(renderState.worldAngle);
+    accumulator = 0;
+  }
   ui = createUI(document.querySelector<HTMLElement>('#ui')!, levels, {
     start: () => load(levelIndex),
     selectLevel: index => { if (index >= 0 && index < unlocked) load(index); },
@@ -60,9 +74,10 @@ async function boot() {
     pause, resume,
     enableMotion: async () => input.enableMotion(),
     calibrate: () => input.calibrate(),
-    brake: pressed => input.setBrake(status === 'playing' && pressed),
-    tilt: value => input.setTouchTilt(status === 'playing' ? value : 0),
+    brake: pressed => input.setBrake(status === 'playing' && !surveying && pressed),
+    tilt: value => input.setTouchTilt(status === 'playing' && !surveying ? value : 0),
     debug: enabled => { debug = enabled; },
+    survey,
   });
   load(0, 'menu');
   document.querySelector('#loading')?.remove();
@@ -74,6 +89,7 @@ async function boot() {
     if (event.code === 'Escape') { event.preventDefault(); status === 'paused' ? resume() : pause(); }
     if (event.code === 'KeyR' && status !== 'menu') load(levelIndex);
     if (event.code === 'KeyF') debug = !debug;
+    if (event.code === 'KeyM' && !event.repeat) survey();
   });
 
   function frame(now: number) {
@@ -81,10 +97,11 @@ async function boot() {
     last = now;
     if (elapsed > 0 && elapsed < 0.1) frameMs += (elapsed * 1000 - frameMs) * 0.08;
     const controls = input.read(elapsed, renderState.worldAngle);
-    if (status === 'playing') {
+    if (status === 'playing' && !surveying) {
       accumulator = Math.min(accumulator + elapsed, FIXED_DT * 8);
       while (accumulator >= FIXED_DT) {
-        renderState = physics.step(FIXED_DT, controls);
+        renderState = physics.step(FIXED_DT,
+          import.meta.env.DEV && developmentPilot ? developmentPilot(renderState) : controls);
         accumulator -= FIXED_DT;
         if (renderState.status !== 'playing') {
           status = renderState.status;
@@ -105,6 +122,7 @@ async function boot() {
       status, fps: Math.round(1000 / frameMs), frameMs, physicsMs: renderState.physicsMs,
       worldAngle: renderState.worldAngle, timeline: renderState.timeline,
       timeDirection: renderState.timeDirection, inputMode: input.mode, debug,
+      surveying,
     });
     requestAnimationFrame(frame);
   }
@@ -118,6 +136,7 @@ async function boot() {
       load: (index: number) => load(index),
       tilt: (value: number) => input.setTouchTilt(value),
       brake: (value: boolean) => input.setBrake(value),
+      drive: (pilot?: (state: Snapshot) => Controls) => { developmentPilot = pilot; },
       pause, resume,
     } });
   }

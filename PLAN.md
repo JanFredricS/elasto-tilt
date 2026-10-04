@@ -5,7 +5,7 @@ A mobile-first, side-view bicycle physics puzzle game. Tilt the visible world th
 
 ## Controls and simulation contract
 - Landscape-first, responsive portrait fallback. Phone orientation permission through a deliberate button, calibration, dead zone, smoothing, keyboard and touch fallback.
-- Updated after physical-phone feedback: phone bank commands a calibrated absolute world angle (3× response, capped at ±180° from the calibrated anchor); a steady phone holds that angle. Keyboard/touch buttons retain angular-rate control. Calibration sets a flat horizon. Rotated gravity explicitly wakes sleeping dynamic bodies.
+- Updated after physical-phone feedback: phone bank commands a calibrated absolute world angle through a progressive linear/cubic curve (gentle centre; ±360° at ±75° of bank); a steady phone holds that angle. Keyboard/touch buttons retain angular-rate control. Calibration sets a flat horizon. Rotated gravity explicitly wakes sleeping dynamic bodies.
 - Stable map-space terrain, rotating gravity and matching rendered world transform. HUD remains upright. This is gravity manipulation, not centrifugal physics.
 - Fixed physics timestep, bounded catch-up, pause on hidden tab, bounded pixel ratio, FPS/frame-time/physics debug overlay.
 - Bicycle chassis, two jointed wheels, explicit vulnerable helmet, credible wheel braking. No automatic attachment to arbitrary surfaces. Designed lips/cradles support wheel catches.
@@ -19,11 +19,13 @@ A mobile-first, side-view bicycle physics puzzle game. Tilt the visible world th
 3. The Hanging Garden: swing approach and wheel transfer.
 4. The Pendulum Mill: short/long swings and timing.
 5. The Room on Its Side: quarter/full turns and ceiling routes.
-6. Newton’s Attic: movable weights and bridge mechanisms.
-7. Escher’s Orchard: clear playable geometry inside impossible stair imagery, rotated room connections.
-8. The Contrary Conservatory: visually marked inverted gravity objects/zones.
+6. Newton’s Attic: ramped ridges, loose weights, a storage-pocket apple beyond the home door.
+7. Escher’s Orchard: nested galleries and a four-face spiral. Traverse below a shared slab, rotate through 360°, ride on its top, then reverse inside the inner room.
+8. The Contrary Conservatory: inverted objects beside a floor/wall/ceiling route with a final roof-pocket reversal.
 9. The Gravity Engine: compound gravity, swing, and ledge challenges.
 10. The Clockwork Apple: forward/backward travel advances/reverses selected moving platforms; temporal motion must be required to reach an apple/exit.
+
+All ten routes were redesigned after player feedback: 5–8 apples, 74–119 m demonstrated travel, and controlled solution replays of roughly 45–81 seconds. Early maps use substantial hills, hollows and return journeys. Compact swing decks are 2.7–2.8 m wide; removal experiments make all four demonstrated crossings fail. MAP/M pauses the ride and shows the full route. These are replay measurements, not minimum completion times.
 
 ## Stack
 TypeScript, Vite, PixiJS rendering, Rapier 2D physics. HTML/CSS UI. Local persistence and data-driven maps. No backend needed for offline gameplay; Supabase is a later optional cloud-save/account service. Server validation is required before competitive leaderboards.
@@ -46,7 +48,7 @@ Slice A — Astra: physics and controller core in src/physics.ts and src/input.t
 
 Slice B — Sol 6: crisp graphics and user interface in src/renderer.ts, src/ui.ts, src/style.css; world rotation and camera, clear gameplay objects, minimal decoration, accessible menus, calibration status, map selection, pause/retry, FPS overlay UI.
 
-Slice C — Sol 6: maps and gameplay verification in src/levels.ts and tests/levels*; craft progressive maps with visible intended solutions, include Escher and Clockwork; avoid marking an unplayed map as validated. Root wires game lifecycle and persistence.
+Slice C — initial Sol 6, followed by two Astra redesign agents: maps and gameplay verification in src/levels.ts and tests/levels*; craft progressive maps with visible intended solutions, include Escher and Clockwork; avoid marking an unplayed map as validated. Root wires game lifecycle and persistence.
 
 ## Review protocol
 Advance independent adversarial review by Sol 6 (requested Sol 6.1 is unavailable). Adjust this plan before implementers start. After each slice, a new context Astra-low agent reviews files and tests without implementation history. Findings go to owner; allow two fix/review cycles maximum, then record remaining issues explicitly and proceed. Do not conceal unresolved defects. Separate Sol gameplay tester exercises actual built game and map routes, with automation where possible. A device simulator cannot prove physical IMU feel or actual phone performance.
@@ -62,4 +64,4 @@ Advance independent adversarial review by Sol 6 (requested Sol 6.1 is unavailabl
 - Record two review/fix cycles per slice or explicitly note clean review/no further fix required.
 
 ## Delivery
-Playable local web app and saved source, plan, review records, map validation, README. Initialize Git and create/push a private GitHub repository if authenticated. Current gh authentication is invalid; continue all local work and attempt authorized alternate GitHub access without exposing credentials. Do not claim remote repository exists without confirmation.
+Playable web game in the user-authorized public repository https://github.com/JanFredricS/elasto-tilt. Every main push runs tests/build and publishes to https://janfredrics.github.io/elasto-tilt/. Verify the deployed version and public browser after changes. Keep current route evidence in docs/maps.md, controls in docs/control-redesign.md, and residuals in docs/DELIVERY.md.

@@ -2,13 +2,11 @@ import type { InputController } from './types';
 
 const clamp = (value: number) => Math.max(-1, Math.min(1, value));
 const radians = Math.PI / 180;
-const BANK_GAIN = 3;
 const DEAD_ZONE = .75;
+const FULL_BANK = 75;
 
 /** Project gravity onto the screen's horizontal axis. Unlike raw Euler angles,
  * this remains continuous when beta/gamma change representation near upright.
- * Three degrees of world rotation per degree of bank gives access to ceilings
- * without requiring the player to turn the phone upside down.
  */
 export function screenBank(beta: number, gamma: number, screenAngle: number): number {
   const b = beta * radians, g = gamma * radians, s = screenAngle * radians;
@@ -16,9 +14,12 @@ export function screenBank(beta: number, gamma: number, screenAngle: number): nu
   const deviceY = -Math.sin(b);
   return Math.asin(clamp(deviceX * Math.cos(s) - deviceY * Math.sin(s))) / radians;
 }
-function bankOffset(delta: number) {
-  const bank = Math.sign(delta) * Math.max(0, Math.abs(delta) - DEAD_ZONE);
-  return Math.max(-Math.PI, Math.min(Math.PI, bank * BANK_GAIN * radians));
+export function bankOffset(delta: number) {
+  if (!Number.isFinite(delta)) return 0;
+  const x = Math.min(1, Math.max(0, Math.abs(delta) - DEAD_ZONE) / (FULL_BANK - DEAD_ZONE));
+  // Gentle precision near neutral, progressively stronger steering toward a
+  // ceiling. This odd, monotonic curve reaches a full turn at 75° of bank.
+  return Math.sign(delta) * 2 * Math.PI * (.25 * x + .75 * x * x * x);
 }
 
 /** Phone pose controls an angle; held keys/buttons control rotation speed. */
@@ -45,8 +46,10 @@ export function createInput(): InputController {
   const blur = () => reset();
   const calibrate = () => {
     baseline = raw;
-    // Explicit calibration makes the comfortable holding position a flat world.
-    anchor = 0;
+    // Flatten by the nearest equivalent turn, preserving full-turn progress.
+    // Start smoothing at the actual pose, not a sensor target still catching up.
+    anchor = Math.round(currentAngle / (2 * Math.PI)) * 2 * Math.PI;
+    smoothedAngle = currentAngle;
     smoothedRate = 0;
     manualOverride = false;
   };

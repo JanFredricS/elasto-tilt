@@ -29,9 +29,10 @@ With the development server running, use `pnpm test:browser` for the Chrome/Chro
 
 ## Controls
 
-- **Phone:** enable motion while holding the device comfortably. Your bank angle sets the world angle: hold the phone still and the world stops rotating. The response is amplified 3× so ceilings are reachable with a comfortable tilt. Calibrate sets the current holding position to a flat world. Keyboard/touch buttons still rotate while held.
-- **Keyboard:** left/right arrows or A/D tilt; Space brakes; R restarts; Escape pauses/resumes; F toggles the FPS overlay.
-- **Touch fallback:** hold the direction buttons to rotate the world; hold Brake to resist wheel rotation.
+- **Phone:** enable motion while holding the device comfortably. Your bank angle sets the world angle: hold the phone still and the world stops rotating. A progressive curve gives gentle precision near neutral and stronger rotation farther out: about 12° of world rotation at 10° of phone bank, 52° at 30°, a ceiling at about 56°, and a full turn at 75°. Calibrate sets the current holding position to a flat world. Keyboard/touch buttons still rotate while held.
+- **Keyboard:** left/right arrows or A/D tilt; Space brakes; R restarts; Escape pauses/resumes; F toggles the FPS overlay; M opens the whole-map view and pauses the ride.
+- **Touch fallback:** hold the direction buttons to rotate the world; hold Brake to lock the wheels relative to the frame. Hard braking at speed can pitch the bike.
+- **MAP:** inspect the complete route, remaining apples, and your position while physics is paused; tap RIDE to continue.
 - Collect every apple before reaching the exit. A helmet hit ends the attempt.
 
 Progress saves locally on the current browser. There is no account or server requirement. The game pauses when the tab loses focus. The development build exposes `window.__NEWTON__` for diagnostics and map testing; production builds do not expose it.
@@ -42,10 +43,10 @@ Progress saves locally on the current browser. There is no account or server req
 - [Advance adversarial review](docs/advance-review.md)
 - [Map routes and validation](docs/maps.md)
 - [Implementation and review record](docs/implementation-log.md)
-- [Independent gameplay validation](docs/gameplay-validation.md)
+- [Independent gameplay validation](docs/gameplay-v2.md)
 - Slice reviews and residual issues are recorded in `docs/`.
 
-The Escher map uses readable planar collision geometry. Selected final-map objects follow a reversible authored timeline while the bicycle remains live. This is not arbitrary backwards rigid-body simulation.
+The ten redesigned routes span 74–119 metres in successful controlled replays, lasting roughly 45–81 seconds. They include rolling terraces, return detours, compact pendulums, and nested galleries. The Escher map turns through all four gravity faces and returns onto the floor that was previously the entry ceiling, using readable planar collision geometry. Selected final-map objects follow a reversible authored timeline while the bicycle remains live. This is not arbitrary backwards rigid-body simulation.
 
 Time platforms have a reversible target and a speed-limited physical position. After fast travel, a platform may briefly continue catching up when the bicycle stops. The clock saturates at its endpoints.
 

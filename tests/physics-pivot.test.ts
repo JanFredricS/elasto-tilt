@@ -13,7 +13,7 @@ it('catches the front wheel on a cradle and pivots under a finite brake without 
   try {
     game.load(level);
     let state = game.snapshot();
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < 66; i++) {
       state = game.step(1 / 120, { tilt: 0, brake: true });
       expect(state.status).toBe('playing');
       const frame = state.bodies.find(b => b.id === 'frame')!;

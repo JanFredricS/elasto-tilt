@@ -47,6 +47,7 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
     <div class="utility-bar" data-ui="utility">
       <span class="control-hint">A / D <i>tilt</i> · SPACE <i>brake</i></span>
       <div class="utility-buttons">
+        <button type="button" class="text-btn" data-action="survey" aria-label="View whole map" aria-pressed="false">MAP</button>
         <button type="button" class="text-btn" data-action="motion">ENABLE MOTION</button>
         <button type="button" class="text-btn" data-action="calibrate">CALIBRATE</button>
         <button type="button" class="text-btn debug-toggle" data-action="debug">FPS</button>
@@ -55,7 +56,7 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
     <div class="mode-toast" data-ui="mode-toast" role="status" aria-live="polite" hidden></div>
     <section class="menu-overlay" data-ui="menu" role="dialog" aria-modal="true" aria-labelledby="menu-title">
       <div class="menu-card">
-        <div class="menu-topline"><span>AN EXPERIMENT IN MOTION</span><span>✳ &nbsp; TEN LITTLE WORLDS</span></div>
+        <div class="menu-topline"><span>AN EXPERIMENT IN MOTION</span><span>✳ &nbsp; TEN GRAVITY JOURNEYS</span></div>
         <div class="menu-main">
           <div class="menu-intro">
             <div class="menu-emblem" aria-hidden="true"><span class="emblem-apple">●</span><span class="emblem-wheel">◉—◉</span></div>
@@ -63,7 +64,7 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
             <h1 id="menu-title">Newton’s<br><em>Ride.</em></h1>
             <p class="menu-lead">A bicycle, a little gravity, and ten impossible places. Tilt the world, catch a ledge, and follow the apples home.</p>
             <button type="button" class="primary-btn" data-action="start"><span>LET’S RIDE</span><span aria-hidden="true">↗</span></button>
-            <p class="menu-instruction">Tilt your phone or use A / D. Hold the brake to balance on an edge.</p>
+            <p class="menu-instruction">Tilt gently for precision. Hold the brake to lock the wheels. MAP shows the whole route.</p>
           </div>
           <div class="campaign">
             <div class="campaign-heading"><span>THE JOURNEY</span><span data-ui="progress-label">01 / 10 OPEN</span></div>
@@ -131,6 +132,7 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
       case 'pause': callbacks.pause(); break;
       case 'calibrate': callbacks.calibrate(); toast('Set. This is your level horizon.'); break;
       case 'debug': callbacks.debug(!current?.debug); break;
+      case 'survey': callbacks.survey(); break;
       case 'state-primary': primaryAction?.(); break;
       case 'state-secondary': callbacks.restart(); break;
       case 'menu': callbacks.menu(); break;
@@ -238,7 +240,7 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
     const selected = levels[state.levelIndex];
     menu.hidden = state.status !== 'menu';
     stateOverlay.hidden = state.status === 'menu' || playing;
-    get('controls').hidden = !playing;
+    get('controls').hidden = !playing || state.surveying;
     get('utility').hidden = state.status === 'menu';
     host.classList.toggle('is-playing', playing);
     host.classList.toggle('is-menu', state.status === 'menu');
@@ -256,10 +258,15 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
     text('angle', `${Math.round(((safe(state.worldAngle) * 180 / Math.PI) % 360 + 360) % 360)}°`);
     text('level-number', `${String(state.levelIndex + 1).padStart(2, '0')} / ${String(levels.length).padStart(2, '0')}`);
     text('level-name', selected?.name ?? 'Newton’s Ride');
-    text('mechanic', selected?.mechanic ?? '');
+    text('mechanic', state.surveying ? 'ROUTE OVERVIEW · Ride paused. Gather every apple, then return to the door.' : selected?.mechanic ?? '');
+    const survey = host.querySelector<HTMLButtonElement>('[data-action="survey"]')!;
+    const surveyLabel = state.surveying ? 'RIDE' : 'MAP';
+    if (survey.textContent !== surveyLabel) survey.textContent = surveyLabel;
+    survey.setAttribute('aria-pressed', String(state.surveying));
+    survey.setAttribute('aria-label', state.surveying ? 'Return to riding' : 'View whole map');
 
     const timeMap = !!selected?.timePlatforms?.length;
-    get('timeline-wrap').hidden = !timeMap || state.status === 'menu';
+    get('timeline-wrap').hidden = !timeMap || state.status === 'menu' || state.surveying;
     if (timeMap) {
       const value = Math.max(0, Math.min(1, safe(state.timeline)));
       get('timeline-fill').style.width = `${value * 100}%`;

@@ -1,4 +1,6 @@
-# Visual/UI review residuals
+# Visual/UI review history and residuals
+
+The current bicycle and map overview were rebuilt and reviewed in [review-visual-v2-1.md](review-visual-v2-1.md); the repeated-key finding was fixed and verified in [review-v2-fix-cycle.md](review-v2-fix-cycle.md). Wheels now use 64-segment circles and higher-precision curves. The descriptions below record the earlier implementation.
 
 Two independent review cycles examined the renderer and UI. The cycle 1 issues were fixed: debug metrics moved into the HUD, overlay focus and inert behavior were added, renderer destruction no longer accesses its canvas afterward, and compact landscape controls fit their buttons. Circle silhouettes use explicit 40–48 segment paths. The full-screen grain layer was removed.
 

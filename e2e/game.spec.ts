@@ -61,24 +61,20 @@ test('visible start, touch release, campaign return and debug toggle work', asyn
 });
 
 test('finishing Orchard unlocks the next room and persists across reload', async ({ page }) => {
+  test.setTimeout(110_000);
   await page.goto('/');
   await page.getByRole('button', { name: /LET’S RIDE/ }).click();
-  await page.evaluate(() => {
+  await page.evaluate(async () => {
+    const path = '/src/dev/replay.ts';
+    const { createReplayPilot } = await import(/* @vite-ignore */ path);
     const api = (window as any).__NEWTON__;
-    let previous = api.snapshot();
-    const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
-    const timer = setInterval(() => {
-      const state = api.snapshot();
-      if (state.status !== 'playing') { clearInterval(timer); api.tilt(0); return; }
-      const dt = state.elapsed - previous.elapsed;
-      if (dt <= 0) return;
-      const velocity = (state.bike.x - previous.bike.x) / dt;
-      const target = clamp((1.4 - velocity) * .14, -.17, .17);
-      api.tilt(clamp((target - state.worldAngle) * 8, -1, 1));
-      previous = state;
-    }, 30);
+    api.drive(createReplayPilot(0));
   });
-  await expect(page.getByRole('button', { name: /NEXT ROOM/ })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole('button', { name: /NEXT ROOM/ })).toBeVisible({ timeout: 100_000 });
+  const complete = await page.evaluate(() => (window as any).__NEWTON__.snapshot());
+  expect(complete.status).toBe('complete');
+  expect(complete.collected).toHaveLength(5);
+  expect(complete.elapsed).toBeGreaterThan(30);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('newtons-ride.progress.v1')!).unlocked)).toBe(2);
   await page.reload();
   await expect(page.getByRole('button', { name: 'Play One Wheel Wonder', exact: true })).toBeEnabled();

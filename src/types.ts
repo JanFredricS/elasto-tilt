@@ -46,6 +46,7 @@ export interface InputController {
 export interface GameRenderer {
   load(level: Level): void;
   render(state: Snapshot, dt: number): void;
+  overview(enabled: boolean): void;
   resize(): void;
   destroy(): void;
 }
@@ -55,11 +56,13 @@ export interface UICallbacks {
   pause(): void; resume(): void; enableMotion(): Promise<string>;
   calibrate(): void; brake(pressed: boolean): void; tilt(value: number): void;
   debug(enabled: boolean): void;
+  survey(): void;
 }
 export interface UIState {
   levelIndex: number; unlocked: number; apples: number; totalApples: number;
   elapsed: number; status: 'menu' | 'playing' | 'paused' | 'crashed' | 'complete';
   fps: number; frameMs: number; physicsMs: number; worldAngle: number;
   timeline: number; timeDirection: number; inputMode: string; debug: boolean;
+  surveying: boolean;
 }
 export interface GameUI { update(state: UIState): void; destroy(): void }

@@ -1,0 +1,147 @@
+import type { Controls, Level, Snapshot, Surface, Vec } from '../types';
+
+const p = (x: number, y: number): Vec => ({ x, y });
+const box = (minX: number, minY: number, maxX: number, maxY: number) => ({ min: p(minX, minY), max: p(maxX, maxY) });
+/** A sampled cosine grade has horizontal, wheel-friendly joins to every terrace. */
+export type Terrace = readonly [number, number];
+export const orchardProfile: Terrace[] = [[-5, 0], [5, 0], [14, 4], [21, 4], [30, -1.5], [35, -1.5], [45, 3], [50, 3]];
+export const wonderProfile: Terrace[] = [[-5, 0], [4, 0], [13, 5], [19, 5], [31, -5], [36, -5], [48, 3], [55, 3]];
+export const gardenProfile: Terrace[] = [[-5, 0], [4, 0], [14, 4], [19, 4], [26, 1], [34, 1], [44, -3], [51, -3]];
+export const millProfile: Terrace[] = [[-5, 0], [4, 0], [12, 3], [36, 3], [44, 3]];
+export const roomProfile: Terrace[] = [[-5, 0], [4, 0], [13, -3], [20, -3], [29, 0], [38, 0]];
+export function profileAt(profile: Terrace[], x: number): { y: number; angle: number } {
+  const i = profile.findIndex((pt, index) => index > 0 && x <= pt[0]);
+  if (i < 1) return { y: profile[x < profile[0][0] ? 0 : profile.length - 1][1], angle: 0 };
+  const [ax, ay] = profile[i - 1], [bx, by] = profile[i];
+  const t = Math.max(0, Math.min(1, (x - ax) / (bx - ax)));
+  return { y: ay + (by - ay) * (1 - Math.cos(t * Math.PI)) / 2,
+    angle: Math.atan((by - ay) * Math.PI * Math.sin(t * Math.PI) / (2 * (bx - ax))) };
+}
+function beam(id: string, a: Vec, b: Vec, kind: Surface['kind'] = 'ground', thickness = .45): Surface {
+  const angle = Math.atan2(b.y - a.y, b.x - a.x);
+  return { id, x: (a.x + b.x) / 2 + Math.sin(angle) * thickness / 2,
+    y: (a.y + b.y) / 2 - Math.cos(angle) * thickness / 2,
+    w: Math.hypot(b.x - a.x, b.y - a.y) + .025, h: thickness, angle, kind };
+}
+function terrain(id: string, profile: Terrace[], gaps: [number, number][] = []): Surface[] {
+  const surfaces: Surface[] = [];
+  for (let i = 1; i < profile.length; i++) {
+    const [x0] = profile[i - 1], [x1] = profile[i];
+    const count = Math.ceil((x1 - x0) * 2);
+    for (let j = 0; j < count; j++) {
+      const a = x0 + (x1 - x0) * j / count, b = x0 + (x1 - x0) * (j + 1) / count;
+      if (gaps.some(([lo, hi]) => a >= lo - .01 && b <= hi + .01)) continue;
+      surfaces.push(beam(`${id}-${i}-${j}`, p(a, profileAt(profile, a).y), p(b, profileAt(profile, b).y)));
+    }
+  }
+  return surfaces;
+}
+function arc(id: string, cx: number, cy: number, radius: number): Surface[] {
+  return Array.from({ length: 48 }, (_, i) => {
+    const a = -Math.PI / 2 + Math.PI * i / 48, b = -Math.PI / 2 + Math.PI * (i + 1) / 48;
+    return beam(`${id}-${i}`, p(cx + Math.cos(a) * radius, cy + Math.sin(a) * radius),
+      p(cx + Math.cos(b) * radius, cy + Math.sin(b) * radius));
+  });
+}
+const fruit = (id: string, profile: Terrace[], x: number) => ({ id, x, y: profileAt(profile, x).y + .9 });
+const hazard = (id: string, x: number, y: number, w: number): Surface => ({ id, x, y, w, h: .35, kind: 'hazard' });
+
+/** Campaign indices and IDs are save-game data. These first five remain stable. */
+export const earlyLevels: Level[] = [
+  {
+    id: 'newtons-orchard', name: 'Newton’s Orchard', subtitle: 'Over the hill and home again',
+    mechanic: 'Climb the orchard terraces, dip into the hollow, then brake and bring every apple home.',
+    hint: 'Small tilts build speed. Brake before the far apple, then tilt left to return to the door.',
+    spawn: p(0, .72), bounds: box(-7, -5, 53, 10), surfaces: terrain('orchard', orchardProfile),
+    apples: [5, 15.5, 26, 34, 46.5].map((x, i) => fruit(`orchard-${i}`, orchardProfile, x)),
+    exit: p(-1.5, .8), difficulty: 1, accent: '#eaa75c',
+  },
+  {
+    id: 'one-wheel-wonder', name: 'One Wheel Wonder', subtitle: 'The high road, the deep bowl',
+    mechanic: 'Balance across the hilltop beam, descend into the bowl, and climb the far bank before returning.',
+    hint: 'Turn the world with the grade. Slow down on crests; the deep bowl needs more tilt to climb out.',
+    spawn: p(0, .72), bounds: box(-7, -9, 58, 11), surfaces: [
+      ...terrain('wonder', wonderProfile, [[14, 18]]),
+      beam('wonder-balance-beam', p(14, 5), p(18, 5), 'cradle', .18),
+      hazard('wonder-thorns', 16, 1, 4),
+    ],
+    apples: [6, 16, 26, 34, 43, 52].map((x, i) => fruit(`wonder-${i}`, wonderProfile, x)),
+    exit: p(-1.5, .8), difficulty: 2, accent: '#e9b866',
+  },
+  {
+    id: 'hanging-garden', name: 'The Hanging Garden', subtitle: 'An apple beyond the hanging bridge',
+    mechanic: 'Cross a bicycle-sized suspended deck between the upper garden and the sunken orchard, then come back.',
+    hint: 'Approach the hanging deck gently. Keep the tilt small while aboard; brake on the terraces to plan the return.',
+    spawn: p(0, .72), bounds: box(-7, -8, 54, 11), surfaces: [
+      ...terrain('garden', gardenProfile, [[29, 32]]), hazard('garden-water', 30.5, -4, 4),
+    ],
+    swings: [{ id: 'garden-swing', anchor: p(30.5, 3.88), length: 3, width: 2.8, damping: .8 }],
+    apples: [6, 17, 27, 36, 47.5].map((x, i) => fruit(`garden-${i}`, gardenProfile, x)),
+    exit: p(-1.5, .8), difficulty: 3, accent: '#8dc68c',
+  },
+  {
+    id: 'pendulum-mill', name: 'The Pendulum Mill', subtitle: 'Across the mill, around the wheel',
+    mechanic: 'Cross two short hanging decks, then turn the curved mill wall into a road to the upper return gallery.',
+    hint: 'Settle between swings. Beyond the second deck, follow the apples up the round wall and across the ceiling.',
+    spawn: p(0, .72), bounds: box(-7, -4, 53, 19), surfaces: [
+      ...terrain('mill', millProfile, [[17, 20], [29, 32]]),
+      hazard('mill-water-a', 18.5, -2, 4), hazard('mill-water-b', 30.5, -2, 4),
+      ...arc('mill-turn', 44, 9, 6), beam('mill-upper-gallery', p(44, 15), p(-3, 15)),
+    ],
+    swings: [
+      { id: 'mill-short', anchor: p(18.5, 5.48), length: 2.6, width: 2.8, damping: .85 },
+      { id: 'mill-long', anchor: p(30.5, 6.68), length: 3.8, width: 2.8, damping: .9 },
+    ],
+    apples: [fruit('mill-0', millProfile, 8), fruit('mill-1', millProfile, 24), fruit('mill-2', millProfile, 39),
+      { id: 'mill-3', x: 49.1, y: 9 }, { id: 'mill-4', x: 34, y: 14.1 }, { id: 'mill-5', x: 16, y: 14.1 }],
+    exit: p(1, 14.15), difficulty: 4, accent: '#c6a56a',
+  },
+  {
+    id: 'room-on-its-side', name: 'The Room on Its Side', subtitle: 'The long way round the room',
+    mechanic: 'Explore the sunken floor, climb the rounded end wall, and ride the ceiling all the way home.',
+    hint: 'Follow the bowl before turning up the right wall. Keep rotating as the wall becomes the ceiling.',
+    spawn: p(0, .72), bounds: box(-7, -7, 48, 17), surfaces: [
+      ...terrain('room', roomProfile), ...arc('room-turn', 38, 6, 6),
+      beam('room-ceiling', p(38, 12), p(-3, 12)),
+      // An island in the room makes the two routes legible and catches careless free falls.
+      beam('room-divider', p(10, 5), p(28, 5), 'ground', .65),
+    ],
+    apples: [fruit('room-0', roomProfile, 7), fruit('room-1', roomProfile, 18), fruit('room-2', roomProfile, 32),
+      { id: 'room-3', x: 43.1, y: 6 }, { id: 'room-4', x: 30, y: 11.1 }, { id: 'room-5', x: 13, y: 11.1 }],
+    exit: p(0, 11.15), difficulty: 5, accent: '#a99cdb',
+  },
+];
+
+// Deterministic input-only route demonstration, also available to browser QA.
+const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
+const profiles = [orchardProfile, wonderProfile, gardenProfile, millProfile, roomProfile];
+/** Only observes snapshots and supplies the same angle/brake inputs available to a phone player. */
+export function createEarlyReplayPilot(index: number) {
+  let previous: Snapshot | undefined, returning = false, stage = 0;
+  const turnX = [0, 0, 0, 44, 38][index], turnY = [0, 0, 0, 9, 6][index];
+  return (state: Snapshot): Controls => {
+    const vx = previous ? (state.bike.x - previous.bike.x) * 120 : 0;
+    const vy = previous ? (state.bike.y - previous.bike.y) * 120 : 0;
+    previous = state;
+    let theta = profileAt(profiles[index], state.bike.x).angle;
+    let speed = index === 4 ? 2.3 : 2.4, brake = false;
+    if (index < 3) {
+      const far = earlyLevels[index].apples.at(-1)!.x;
+      if (state.collected.length === earlyLevels[index].apples.length) returning = true;
+      const direction = returning ? -1 : 1;
+      speed = direction * Math.min(2.4, Math.max(.5, (returning ? state.bike.x + 1.5 : far - state.bike.x + .5) * .9));
+      brake = returning && vx > .7;
+      if (index === 2 && state.bike.x > 26 && state.bike.x < 35) speed = direction * 1.5;
+    } else {
+      if (stage === 0 && state.bike.x >= turnX - .3) stage = 1;
+      if (stage === 1) theta = Math.atan2(state.bike.x - turnX, turnY - state.bike.y);
+      if (stage === 1 && state.bike.y > turnY + 5 && state.bike.x < turnX) stage = 2;
+      if (stage === 2) theta = Math.PI;
+      if (stage === 1) speed = 1.8;
+      if (index === 3 && stage === 0 && ((state.bike.x > 14 && state.bike.x < 22) || (state.bike.x > 26 && state.bike.x < 34))) speed = 1.5;
+    }
+    const along = vx * Math.cos(theta) + vy * Math.sin(theta);
+    const target = theta + clamp((speed - along) * .23, -.3, .3);
+    return { tilt: clamp((target - state.worldAngle) * 8, -1, 1), brake };
+  };
+}
