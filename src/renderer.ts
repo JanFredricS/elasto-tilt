@@ -1,5 +1,5 @@
-import { Application, Container, Graphics } from 'pixi.js';
-import type { BodyView, GameRenderer, Level, Snapshot, Vec } from './types';
+import { Application, Container, Graphics, Text } from 'pixi.js';
+import type { BodyView, GameRenderer, Level, Snapshot, Surface, Vec } from './types';
 import { drawStoneDepth, drawStoneFace, paletteFor } from './art-direction';
 
 const C = {
@@ -74,6 +74,40 @@ function drawApple(g: Graphics, x: number, y: number): void {
   ellipsePath(g, x - .085, y + .055, .022, .022, 20).fill({ color: C.ivory, alpha: .65 });
 }
 
+function drawRouteArrow(g: Graphics): void {
+  // Open strokes float in the air; a filled badge could be mistaken for a platform.
+  const shaft = { x: -.34, y: 0 };
+  const neck = { x: .23, y: 0 };
+  const tip = { x: .40, y: 0 };
+  const upper = { x: .18, y: .17 };
+  const lower = { x: .18, y: -.17 };
+  for (const [color, width, alpha] of [[C.ivory, .115, .94], [C.inkLight, .055, .90]] as const) {
+    line(g, shaft, neck, color, width, alpha);
+    line(g, upper, tip, color, width, alpha);
+    line(g, lower, tip, color, width, alpha);
+  }
+  circle(g, -.49, 0, .035, C.inkLight);
+}
+
+function distanceToSurface(point: Vec, surface: Surface): number {
+  const angle = surface.angle ?? 0;
+  const c = Math.cos(angle), s = Math.sin(angle);
+  const dx = point.x - surface.x, dy = point.y - surface.y;
+  const outsideX = Math.max(0, Math.abs(c * dx + s * dy) - surface.w / 2);
+  const outsideY = Math.max(0, Math.abs(-s * dx + c * dy) - surface.h / 2);
+  return Math.hypot(outsideX, outsideY);
+}
+
+function openRouteSide(origin: Vec, angle: number, surfaces: Surface[]): Vec {
+  const normal = { x: -Math.sin(angle), y: Math.cos(angle) };
+  const clearance = (side: number) => {
+    const point = { x: origin.x + normal.x * side * 2, y: origin.y + normal.y * side * 2 };
+    return surfaces.reduce((nearest, surface) => Math.min(nearest, distanceToSurface(point, surface)), Infinity);
+  };
+  const side = clearance(-1) > clearance(1) ? -1 : 1;
+  return { x: normal.x * side, y: normal.y * side };
+}
+
 export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
   const app = new Application();
   await app.init({
@@ -92,6 +126,7 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
   const architecture = new Graphics();
   const terrain = new Graphics();
   const ornaments = new Graphics();
+  const wayfinding = new Container();
   const appleLayer = new Container();
   const dynamic = new Graphics();
   const bikeWheels = new Container();
@@ -99,11 +134,13 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
   const helmet = new Graphics();
   const exit = new Graphics();
   const location = new Graphics();
-  world.addChild(architecture, terrain, ornaments, appleLayer, dynamic, bikeWheels, bikeFrame, helmet, exit, location);
+  world.addChild(architecture, terrain, ornaments, wayfinding, appleLayer, dynamic, bikeWheels, bikeFrame, helmet, exit, location);
   app.stage.addChild(world);
 
   let level: Level | undefined;
   let appleViews = new Map<string, Graphics>();
+  let routeArrows: Graphics[] = [];
+  let routeLabels: { view: Text; arrow: Graphics; normal: Vec; width: number; height: number }[] = [];
   const dynamicViews = new Map<string, Graphics>();
   let swingAnchors = new Map<string, Vec>();
   let camera: Vec = { x: 0, y: 0 };
@@ -150,6 +187,9 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
     terrain.clear();
     terrain.removeChildren().forEach(child => child.destroy());
     ornaments.clear();
+    wayfinding.removeChildren().forEach(child => child.destroy());
+    routeArrows = [];
+    routeLabels = [];
     dynamic.clear();
     dynamic.removeChildren().forEach(child => child.destroy());
     dynamicViews.clear();
@@ -182,6 +222,27 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
       graphic.position.set(apple.x, apple.y);
       appleLayer.addChild(graphic);
       appleViews.set(apple.id, graphic);
+    }
+
+    for (const hint of nextLevel.routeHints ?? []) {
+      if (![hint.x, hint.y, hint.angle].every(Number.isFinite)) continue;
+      const arrow = new Graphics();
+      drawRouteArrow(arrow);
+      arrow.position.set(hint.x, hint.y);
+      arrow.rotation = hint.angle;
+      wayfinding.addChild(arrow);
+      routeArrows.push(arrow);
+      if (hint.label?.trim()) {
+        const label = new Text({
+          text: hint.label.trim(),
+          style: { fontFamily: 'Arial, sans-serif', fontSize: 24, fontWeight: '700', fill: C.inkDeep, letterSpacing: 2 },
+        });
+        label.anchor.set(.5);
+        const bounds = label.getLocalBounds();
+        wayfinding.addChild(label);
+        routeLabels.push({ view: label, arrow, normal: openRouteSide(hint, hint.angle, nextLevel.surfaces),
+          width: bounds.width, height: bounds.height });
+      }
     }
 
     // A small illuminated gateway, with the same sensor location as before.
@@ -352,6 +413,26 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
     world.pivot.set(surveying ? (level.bounds.min.x + level.bounds.max.x) / 2 : camera.x,
       surveying ? (level.bounds.min.y + level.bounds.max.y) / 2 : camera.y);
     world.rotation = surveying ? 0 : finite(state.worldAngle);
+    const arrowScale = Math.max(1, Math.min(2.5, 18 / (.8 * scale)));
+    for (const arrow of routeArrows) arrow.scale.set(arrowScale);
+    // Labels sit on the more open side of the authored arrow in map space.
+    // Reserve screen pixels for both the arrow stroke and upright text, even
+    // when the overview shrinks the map or the rider turns the whole world.
+    const labelScale = Math.max(.01, 10 / (24 * scale));
+    const worldAngle = surveying ? 0 : lastWorldAngle;
+    for (const { view, arrow, normal, width, height } of routeLabels) {
+      const projected = worldAngle - arrow.rotation;
+      const normalX = Math.sin(projected);
+      const normalY = -Math.cos(projected);
+      const textHalfWidth = width * labelScale * scale / 2;
+      const textHalfHeight = height * labelScale * scale / 2;
+      const clearance = .23 * arrowScale * scale
+        + Math.abs(normalX) * textHalfWidth + Math.abs(normalY) * textHalfHeight + 5;
+      view.position.set(arrow.x + normal.x * clearance / scale, arrow.y + normal.y * clearance / scale);
+      // The world's mirrored Y scale plus inverse local rotation keep text upright.
+      view.rotation = worldAngle;
+      view.scale.set(labelScale, -labelScale);
+    }
     for (const [id, graphic] of appleViews) {
       graphic.visible = !state.collected.includes(id);
       if (graphic.visible) graphic.scale.set(surveying ? Math.max(1, 10 / scale) : 1 + Math.sin(elapsed * 3.2 + graphic.x) * .035);

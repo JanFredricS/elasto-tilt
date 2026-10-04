@@ -4,7 +4,8 @@
 
 ## Current implementation
 
-- Ten original routes rebuilt by two Astra map agents: rolling hills, deep bowls, return detours, compact suspended crossings, wall/ceiling circuits and an Escher spiral through all four gravity faces. Each has 5–8 apples; controlled successful runs travel 74–119 m in roughly 45–81 seconds.
+- Fourteen maps: the ten original routes rebuilt by two Astra map agents: rolling hills, deep bowls, return detours, compact suspended crossings, wall/ceiling circuits and an Escher spiral through all four gravity faces. Each has 5–8 apples; controlled successful runs travel 74–119 m in roughly 45–81 seconds.
+- Four new gravity journeys: the underside of one shared strip, a circular inward spiral with two real gaps, a tiered airborne somersault, and a chasm chain with a final inverted ascent to a hidden return ledge. See [expansion evidence](expansion-gameplay.md).
 - Progressive phone response: gentle near neutral, stronger farther out, full 360° world rotation at 75° phone bank. A steady phone holds its angle. Keyboard/touch remain held rotation controls.
 - Map 2 now requires reaching an elevated apple: its demonstrated solution catches the rear wheel against a gold stop, holds brake and tilts the front wheel up, then lowers it safely. Ordinary rolling misses that apple; creative alternate stunts remain possible. Pause shows the map instructions on phones.
 - Strong bounded brakes capture wheel angle relative to the frame. They resist steep downhill motion without anchoring the bike or cancelling airborne velocity.
@@ -15,8 +16,8 @@
 
 ## Verification
 
-- TypeScript and production build pass. The unit runner reports 93 successful cases: 91 acceptance passes and 2 explicitly expected failures for the known passive-carry defect. Unit coverage includes both redesigned campaign suites, curve and lifecycle regressions, gravity wake-up after rest, steep braking and stopping distance, loaded swings, all four seat-removal experiments, and Clockwork frozen-lift/omitted-return comparisons.
-- All ten actual Rapier routes complete with every apple. Escher collects at 0°, 90°, 180°, 270° and 360° and reverses in its final room. Clockwork raises its lift, reaches the high apple, then lowers it on the return journey.
+- TypeScript and production build pass. The unit runner reports 149 successful cases: 147 acceptance passes and 2 explicitly expected failures for the known passive-carry defect. Unit coverage includes both redesigned campaign suites, curve and lifecycle regressions, gravity wake-up after rest, steep braking and stopping distance, loaded swings, all four seat-removal experiments, and Clockwork frozen-lift/omitted-return comparisons.
+- All fourteen actual Rapier routes complete with every apple. Escher collects at 0°, 90°, 180°, 270° and 360° and reverses in its final room. Clockwork raises its lift, reaches the high apple, then lowers it on the return journey.
 - All 25 distinct browser checks passed across the full-route and focused runs, including all ten rendered campaign completions, unlock/save persistence and the final tilt/calibration regression. Independent rendered browser gameplay evidence is in [gameplay-v2.md](gameplay-v2.md). Seven additional overview/motion/layout/lifecycle browser checks passed, including three viewport sizes, map-view pause and keyboard repeat, and idle-then-phone-tilt.
 - Fresh Astra-low reviews covered maps, controls and visuals. One bounded fix cycle resolved the map/visual findings; the follow-up found no new defect. See [implementation-log.md](implementation-log.md).
 - The production build excludes the development control hook and replay helpers. Synthetic phone events and desktop FPS samples are separate from physical device validation.
@@ -28,7 +29,8 @@
 3. Loose and inverted weights respond physically but do not operate mandatory gates. Mill’s different swing lengths do not yet require a timed-period solution.
 4. Escher is a planar gravity spiral with a shared ceiling/floor and inner reversal. It has no impossible topology or portal transition.
 5. Controlled replay times are not minimum completion times. Human difficulty, shortcuts, actual iOS/Android sensors, orientation changes and sustained device frame pacing need further playtesting.
-6. Time platforms may finish bounded catch-up after the bike stops; this is authored reversible motion rather than arbitrary negative-time physics.
+6. Map 14 completion is verified through synthetic phone input, including smoothing and pause/resume recentering. Keyboard/button completion remains unproved after bounded tuning. Maps 11–13 complete through discrete button pulses; these automated timings do not establish comfortable human control.
+7. Time platforms may finish bounded catch-up after the bike stops; this is authored reversible motion rather than arbitrary negative-time physics.
 
 ## Run
 

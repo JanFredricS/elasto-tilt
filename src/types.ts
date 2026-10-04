@@ -6,11 +6,13 @@ export interface Prop extends Vec { id: string; shape: 'box' | 'ball'; w: number
 export interface Swing { id: string; anchor: Vec; length: number; width: number; damping?: number; angle?: number }
 export interface TimePlatform { id: string; from: Vec; to: Vec; w: number; h: number }
 export interface Portal extends Vec { id: string; target: Vec; rotation: number; radius: number }
+/** Visual guidance only. Angles are map-space radians: 0 points right, positive turns counterclockwise. */
+export interface RouteHint extends Vec { angle: number; label?: string }
 export interface Level {
   id: string; name: string; subtitle: string; mechanic: string; hint: string;
   spawn: Vec; surfaces: Surface[]; apples: Apple[]; exit: Vec;
   bounds: { min: Vec; max: Vec }; swings?: Swing[]; props?: Prop[];
-  portals?: Portal[]; timePlatforms?: TimePlatform[];
+  portals?: Portal[]; timePlatforms?: TimePlatform[]; routeHints?: RouteHint[];
   timeAxis?: Vec; timeTravel?: number; initialAngle?: number;
   accent?: string; difficulty: number;
 }

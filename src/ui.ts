@@ -25,7 +25,7 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
     </header>
 
     <div class="level-banner" aria-live="polite">
-      <span class="level-banner-index" data-ui="level-number">01 / 10</span>
+      <span class="level-banner-index" data-ui="level-number">01 / ${String(levels.length).padStart(2, '0')}</span>
       <span class="level-banner-name" data-ui="level-name">Newton’s Orchard</span>
       <span class="level-banner-mechanic" data-ui="mechanic"></span>
     </div>
@@ -56,18 +56,18 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
     <div class="mode-toast" data-ui="mode-toast" role="status" aria-live="polite" hidden></div>
     <section class="menu-overlay" data-ui="menu" role="dialog" aria-modal="true" aria-labelledby="menu-title">
       <div class="menu-card">
-        <div class="menu-topline"><span>AN EXPERIMENT IN MOTION</span><span>✳ &nbsp; TEN GRAVITY JOURNEYS</span></div>
+        <div class="menu-topline"><span>AN EXPERIMENT IN MOTION</span><span>✳ &nbsp; ${levels.length} GRAVITY JOURNEYS</span></div>
         <div class="menu-main">
           <div class="menu-intro">
             <div class="menu-emblem" aria-hidden="true"><span class="emblem-apple">●</span><span class="emblem-wheel">◉—◉</span></div>
             <p class="eyebrow">TURN THE WORLD. FIND YOUR WAY.</p>
             <h1 id="menu-title">Newton’s<br><em>Ride.</em></h1>
-            <p class="menu-lead">A bicycle, a little gravity, and ten impossible places. Tilt the world, catch a ledge, and follow the apples home.</p>
+            <p class="menu-lead">A bicycle, a little gravity, and ${levels.length} impossible places. Tilt the world, catch a ledge, and follow the apples home.</p>
             <button type="button" class="primary-btn" data-action="start"><span>LET’S RIDE</span><span aria-hidden="true">↗</span></button>
             <p class="menu-instruction">Tilt gently for precision. Hold the brake to lock the wheels. MAP shows the whole route.</p>
           </div>
           <div class="campaign">
-            <div class="campaign-heading"><span>THE JOURNEY</span><span data-ui="progress-label">01 / 10 OPEN</span></div>
+            <div class="campaign-heading"><span>THE JOURNEY</span><span data-ui="progress-label">01 / ${String(levels.length).padStart(2, '0')} OPEN</span></div>
             <div class="campaign-grid" data-ui="campaign-grid"></div>
             <p class="campaign-foot">Gather every apple, then reach the door. Each new room has its own little trick.</p>
           </div>

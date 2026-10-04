@@ -1,3 +1,4 @@
+import { levels } from '../src/levels';
 import { test, expect } from '@playwright/test';
 
 test('boots, runs real physics, pauses, and resets without browser errors', async ({ page }) => {
@@ -28,7 +29,7 @@ test('boots, runs real physics, pauses, and resets without browser errors', asyn
 test('each map loads with finite bodies and survives an idle second', async ({ page }) => {
   await page.goto('/');
   await page.waitForFunction(() => Boolean((window as any).__NEWTON__));
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < levels.length; i++) {
     await page.evaluate(index => (window as any).__NEWTON__.load(index), i);
     await page.waitForTimeout(1000);
     const state = await page.evaluate(() => (window as any).__NEWTON__.snapshot());

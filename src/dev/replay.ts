@@ -1,12 +1,16 @@
 import { createEarlyReplayPilot } from '../levels/early';
 import { lateLevels } from '../levels/late';
+import { createFlipSpiralPilot } from '../levels/flip-spiral';
+import { createTowerChasmPilot } from '../levels/tower-chasm';
 import type { Controls, Snapshot } from '../types';
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
 /** Input-only campaign pilot. Call once before each fixed 1/120 s physics step. */
 export function createReplayPilot(index: number): (state: Snapshot) => Controls {
-  if (!Number.isInteger(index) || index < 0 || index > 9) throw new RangeError('Campaign index must be 0–9');
+  if (!Number.isInteger(index) || index < 0 || index > 13) throw new RangeError('Campaign index must be 0–13');
+  if (index >= 12) return createTowerChasmPilot((index - 12) as 0 | 1);
+  if (index >= 10) return createFlipSpiralPilot((index - 10) as 0 | 1);
   if (index < 5) return createEarlyReplayPilot(index);
 
   const level = lateLevels[index - 5];
