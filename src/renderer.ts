@@ -18,6 +18,9 @@ const C = {
   ghost: 0xc9bcaa,
 };
 
+/** Puzzle props: higher contrast than any stone palette. */
+const PROP = { loose: 0xb0703c, rim: 0x4f2f1c, hoop: 0x5e3a22, settled: 0xe8cf9e };
+
 const TAU = Math.PI * 2;
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const finite = (value: number, fallback = 0) => Number.isFinite(value) ? value : fallback;
@@ -125,6 +128,7 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
   let routeArrows: Graphics[] = [];
   let routeLabels: { view: Text; arrow: Graphics; normal: Vec; width: number; height: number }[] = [];
   const dynamicViews = new Map<string, Graphics>();
+  const settledViews = new Set<string>();
   let swingAnchors = new Map<string, Vec>();
   let camera: Vec = { x: 0, y: 0 };
   let cameraReady = false;
@@ -176,6 +180,7 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
     dynamic.clear();
     dynamic.removeChildren().forEach(child => child.destroy());
     dynamicViews.clear();
+    settledViews.clear();
     exit.clear();
     appleLayer.removeChildren().forEach(child => child.destroy());
     appleViews = new Map();
@@ -269,13 +274,31 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
     for (const body of state.bodies) {
       if (body.kind !== 'prop' && body.kind !== 'swing' && body.kind !== 'time') continue;
       let item = dynamicViews.get(body.id);
+      // A prop that seats in its socket is redrawn once in its settled colours.
+      if (item && body.kind === 'prop' && settledViews.has(body.id) !== !!body.settled) {
+        item.destroy(); dynamicViews.delete(body.id); item = undefined;
+      }
       if (!item) {
-        const fill = body.kind === 'time' ? 0xe2ba7d : body.kind === 'swing' ? palette.stone : body.inverted ? C.red : palette.shade;
-        const rim = body.kind === 'time' ? 0xa67a6d : palette.edge;
+        // Loose props are warm wood against the cool stone so they read as
+        // movable; seated ones take a pale, stone-like face with a gold rim.
+        const prop = body.kind === 'prop' && !body.inverted;
+        const fill = body.kind === 'time' ? 0xe2ba7d : body.kind === 'swing' ? palette.stone : body.inverted ? C.red
+          : body.settled ? PROP.settled : PROP.loose;
+        const rim = body.kind === 'time' ? 0xa67a6d : prop ? (body.settled ? C.gold : PROP.rim) : palette.edge;
         item = new Graphics();
+        if (body.settled) settledViews.add(body.id); else settledViews.delete(body.id);
         if (body.shape === 'ball') {
-          ellipsePath(item, 0, 0, body.w / 2, body.w / 2).fill(fill);
-          ellipsePath(item, 0, 0, body.w / 2, body.w / 2).stroke({ color: rim, width: .045 });
+          const r = body.w / 2;
+          ellipsePath(item, 0, 0, r, r).fill(fill);
+          if (prop && r > .3) {
+            // Barrel staves and hoops make the rolling visible.
+            for (const offset of [-.45, .45]) {
+              const half = Math.sqrt(1 - offset * offset) * r * .92;
+              line(item, { x: offset * r, y: -half }, { x: offset * r, y: half }, PROP.hoop, Math.max(.03, r * .05), .8);
+            }
+            ellipsePath(item, 0, 0, r * .72, r * .72).stroke({ color: PROP.hoop, width: Math.max(.02, r * .025), alpha: .45 });
+          }
+          ellipsePath(item, 0, 0, r, r).stroke({ color: rim, width: prop ? Math.max(.05, r * .06) : .045 });
           ellipsePath(item, -body.w * .1, body.w * .1, Math.max(.025, body.w * .06), Math.max(.025, body.w * .06), 20).fill({ color: C.ivory, alpha: .45 });
         } else {
           item.rect(-body.w / 2, -body.h / 2, body.w, body.h).fill(fill);

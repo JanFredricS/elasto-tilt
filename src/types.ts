@@ -2,7 +2,13 @@
 export interface Vec { x: number; y: number }
 export interface Surface extends Vec { id: string; w: number; h: number; angle?: number; kind?: 'ground' | 'hazard' | 'cradle' }
 export interface Apple extends Vec { id: string }
-export interface Prop extends Vec { id: string; shape: 'box' | 'ball'; w: number; h: number; inverted?: boolean }
+export interface Prop extends Vec {
+  id: string; shape: 'box' | 'ball'; w: number; h: number; inverted?: boolean;
+  /** Collider density (default 1.5) and friction (default .9). */
+  density?: number; friction?: number;
+  /** When the prop rests within `tolerance` of this point (speed below `speed`, default .2 m/s), it becomes fixed terrain. */
+  socket?: { x: number; y: number; tolerance: number; speed?: number };
+}
 export interface Swing { id: string; anchor: Vec; length: number; width: number; damping?: number; angle?: number; mass?: number }
 export interface TimePlatform { id: string; from: Vec; to: Vec; w: number; h: number }
 export interface Portal extends Vec { id: string; target: Vec; rotation: number; radius: number }
@@ -25,7 +31,7 @@ export interface Controls {
   /** Calibrated phone pose in radians. Holding this value must not keep spinning. */
   worldAngle?: number;
 }
-export interface BodyView extends Vec { id: string; angle: number; w: number; h: number; kind: 'frame' | 'wheel' | 'head' | 'prop' | 'swing' | 'time'; shape: 'box' | 'ball'; inverted?: boolean }
+export interface BodyView extends Vec { id: string; angle: number; w: number; h: number; kind: 'frame' | 'wheel' | 'head' | 'prop' | 'swing' | 'time'; shape: 'box' | 'ball'; inverted?: boolean; settled?: boolean }
 export interface Snapshot {
   bodies: BodyView[]; bike: Vec; worldAngle: number; collected: string[];
   status: 'playing' | 'crashed' | 'complete'; elapsed: number;

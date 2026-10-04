@@ -1,15 +1,19 @@
 import RAPIER from '@dimforge/rapier2d-compat';
 import { carriedTravel, RouteClock } from './physics-time';
-import type { BodyView, Controls, Level, PhysicsGame, Snapshot, Vec } from './types';
+import type { BodyView, Controls, Level, PhysicsGame, Prop, Snapshot, Vec } from './types';
 
 const GRAVITY = 9.81;
-const BIKE_GROUP = (2 << 16) | 5;
-const ENV_GROUP = (1 << 16) | 7;
+const BIKE_GROUP = (2 << 16) | 13;
+const ENV_GROUP = (1 << 16) | 15;
+// Loose puzzle props use their own membership bit, so the visible-head sweep
+// (which only queries ENV membership) treats them as pushable, not lethal.
+const PROP_GROUP = (8 << 16) | 11;
 const SENSOR_GROUP = (4 << 16) | 2;
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 let initialized: Promise<void> | undefined;
 type RenderBody = { body: RAPIER.RigidBody; view: Omit<BodyView, 'x' | 'y' | 'angle'>; offset?: Vec };
-type Tag = { kind: 'bike' | 'helmet' | 'hazard' | 'apple' | 'exit' | 'time' | 'environment'; id: string };
+type Tag = { kind: 'bike' | 'helmet' | 'hazard' | 'apple' | 'exit' | 'time' | 'environment' | 'prop'; id: string };
+type Socketed = { body: RAPIER.RigidBody; collider: RAPIER.Collider; socket: NonNullable<Prop['socket']>; view: RenderBody['view'] };
 
 /** Spawn denotes frame centre. Wheel radius .34, axles (+/-.70, -.36), head (.126126126, .795). */
 export async function createPhysics(): Promise<PhysicsGame> {
@@ -24,6 +28,7 @@ export async function createPhysics(): Promise<PhysicsGame> {
   let bikeColliders: RAPIER.Collider[] = [];
   let renderBodies: RenderBody[] = [];
   let temporal: { body: RAPIER.RigidBody; from: Vec; to: Vec; lastTravel: number }[] = [];
+  let sockets: Socketed[] = [];
   let tags = new Map<number, Tag>();
   let collected = new Set<string>();
   let status: Snapshot['status'] = 'playing';
@@ -57,7 +62,7 @@ export async function createPhysics(): Promise<PhysicsGame> {
     angle = next.initialAngle ?? 0; elapsed = phase = direction = physicsMs = 0;
     clock = new RouteClock(); previousSupport = undefined;
     status = 'playing'; collected = new Set(); tags = new Map();
-    wheels = []; brakeAngles = undefined; bikeColliders = []; renderBodies = []; temporal = [];
+    wheels = []; brakeAngles = undefined; bikeColliders = []; renderBodies = []; temporal = []; sockets = [];
     world = new RAPIER.World({ x: GRAVITY * Math.sin(angle), y: -GRAVITY * Math.cos(angle) });
     world.numSolverIterations = 8;
     queue = new RAPIER.EventQueue(true);
@@ -93,9 +98,15 @@ export async function createPhysics(): Promise<PhysicsGame> {
     for (const prop of next.props ?? []) {
       const body = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(prop.x, prop.y)
         .setGravityScale(prop.inverted ? -1 : 1).setLinearDamping(.12).setCcdEnabled(true));
-      register((prop.shape === 'ball' ? RAPIER.ColliderDesc.ball(prop.w / 2) : RAPIER.ColliderDesc.cuboid(prop.w / 2, prop.h / 2))
-        .setDensity(1.5).setFriction(.9).setCollisionGroups(ENV_GROUP), body, { kind: 'environment', id: prop.id });
-      renderBodies.push({ body, view: { id: prop.id, w: prop.w, h: prop.h, shape: prop.shape, kind: 'prop', inverted: prop.inverted } });
+      const desc = (prop.shape === 'ball' ? RAPIER.ColliderDesc.ball(prop.w / 2) : RAPIER.ColliderDesc.cuboid(prop.w / 2, prop.h / 2))
+        .setDensity(prop.density ?? 1.5).setFriction(prop.friction ?? .9).setCollisionGroups(PROP_GROUP);
+      // An authored friction is a material choice (e.g. a slick barrel), so it
+      // wins over the grippy tyres and stone instead of being averaged away.
+      if (prop.friction !== undefined) desc.setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min);
+      const collider = register(desc, body, { kind: 'prop', id: prop.id });
+      const view: RenderBody['view'] = { id: prop.id, w: prop.w, h: prop.h, shape: prop.shape, kind: 'prop', inverted: prop.inverted };
+      renderBodies.push({ body, view });
+      if (prop.socket) sockets.push({ body, collider, socket: prop.socket, view });
     }
     for (const swing of next.swings ?? []) {
       // A damped pendulum can fall below Rapier’s sleep-speed threshold before
@@ -194,6 +205,19 @@ export async function createPhysics(): Promise<PhysicsGame> {
     const previousHead = headPosition();
     world.step(queue);
     elapsed += dt;
+    // A prop that comes to rest in its socket becomes terrain: fixed, solid
+    // to the head like any floor, and no longer movable by later contacts.
+    sockets = sockets.filter(({ body, collider, socket, view }) => {
+      const p = body.translation(), v = body.linvel();
+      if (Math.hypot(p.x - socket.x, p.y - socket.y) > socket.tolerance ||
+        Math.hypot(v.x, v.y) > (socket.speed ?? .2) || Math.abs(body.angvel()) > 1) return true;
+      body.setLinvel({ x: 0, y: 0 }, false); body.setAngvel(0, false);
+      body.setBodyType(RAPIER.RigidBodyType.Fixed, false);
+      collider.setCollisionGroups(ENV_GROUP);
+      tags.set(collider.handle, { kind: 'environment', id: tags.get(collider.handle)!.id });
+      view.settled = true;
+      return false;
+    });
     queue!.drainCollisionEvents((a, b, started) => {
       if (!started) return;
       const ta = tags.get(a), tb = tags.get(b);
@@ -202,7 +226,8 @@ export async function createPhysics(): Promise<PhysicsGame> {
       const other = bike === ta ? tb : ta;
       if (!bike) return;
       if (other.kind === 'apple') collected.add(other.id);
-      else if (other.kind === 'hazard' || (bike.kind === 'helmet' && other.kind !== 'exit')) status = 'crashed';
+      // Loose props are puzzle objects: pushing them with the head is harmless.
+      else if (other.kind === 'hazard' || (bike.kind === 'helmet' && other.kind !== 'exit' && other.kind !== 'prop')) status = 'crashed';
     });
     // A shape query extends the vulnerable head without adding a collider that
     // would perturb the original assembly's mass/contact solver or apple reach.
