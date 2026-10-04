@@ -1,4 +1,5 @@
 import { createDisplayMode } from './display-mode';
+import welcomeIllustration from './assets/newton-welcome.svg';
 import type { GameUI, Level, UICallbacks, UIState } from './types';
 
 const safe = (value: number, fallback = 0) => Number.isFinite(value) ? value : fallback;
@@ -80,23 +81,25 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
     <div class="mode-toast" data-ui="mode-toast" role="status" aria-live="polite" hidden></div>
     <section class="menu-overlay" data-ui="menu" role="dialog" aria-modal="true" aria-labelledby="menu-title">
       <div class="menu-card">
-        <div class="menu-topline"><span>AN EXPERIMENT IN MOTION</span><span>✳ &nbsp; ${levels.length} GRAVITY JOURNEYS</span></div>
+        <div class="menu-topline"><span>THE ORCHARD LAB <span aria-hidden="true">✳</span></span><span>AN EXPERIMENT IN MOTION</span></div>
         <div class="menu-main">
-          <div class="menu-intro">
-            <div class="menu-emblem" aria-hidden="true"><span class="emblem-apple">●</span><span class="emblem-wheel">◉—◉</span></div>
-            <p class="eyebrow">TURN THE WORLD. FIND YOUR WAY.</p>
-            <h1 id="menu-title">Newton’s<br><em>Ride.</em></h1>
-            <p class="menu-lead"><strong>Collect every apple, then return to the door to finish.</strong> Tilt the world and find your way through ${levels.length} gravity puzzles.</p>
-            <button type="button" class="primary-btn" data-action="start"><span>LET’S RIDE</span><span aria-hidden="true">↗</span></button>
-            <p class="menu-instruction">Tilt gently for precision. Hold the brake to lock the wheels. MAP shows the whole route.</p>
+          <div class="menu-hero">
+            <div class="menu-intro">
+              <p class="eyebrow">TURN THE WORLD. FIND YOUR WAY.</p>
+              <h1 id="menu-title">Newton’s<br><em>Ride.</em></h1>
+              <p class="menu-lead">A little ride through the rules of gravity. Tilt the world, gather every apple, then return to the door.</p>
+              <button type="button" class="primary-btn" data-action="start"><span>LET’S RIDE</span><span aria-hidden="true">↗</span></button>
+              <p class="menu-instruction"><span class="menu-keyboard-guide">A / D to tilt · Space to brake · M to view the map</span><span class="menu-touch-guide">Use the tilt and brake buttons as you ride. The MAP button shows the whole route.</span></p>
+            </div>
+            <div class="menu-art-wrap"><img class="menu-art" src="${welcomeIllustration}" alt="Newton sits beside his fallen bicycle and looks up at a falling apple." /></div>
           </div>
           <div class="campaign">
-            <div class="campaign-heading"><span>THE JOURNEY</span><span data-ui="progress-label">01 / ${String(levels.length).padStart(2, '0')} OPEN</span></div>
+            <div class="campaign-heading"><span>CHOOSE A MAP</span><span data-ui="progress-label">01 / ${String(levels.length).padStart(2, '0')} OPEN</span></div>
             <div class="campaign-grid" data-ui="campaign-grid"></div>
             <p class="campaign-foot">Every apple first. Then ride back to the door to complete the map.</p>
           </div>
         </div>
-        <div class="menu-footer"><span>ONE SMALL RIDE THROUGH THE RULES OF GRAVITY</span><span>© THE ORCHARD LAB</span></div>
+        <div class="menu-footer"><span>NEWTON’S RIDE</span><span>${levels.length} GRAVITY JOURNEYS</span></div>
       </div>
     </section>
 

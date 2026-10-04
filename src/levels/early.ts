@@ -84,16 +84,17 @@ export const earlyLevels: Level[] = [
   },
   {
     id: 'pendulum-mill', name: 'The Pendulum Mill', subtitle: 'Across the mill, around the wheel',
-    mechanic: 'Cross two short hanging decks, then turn the curved mill wall into a road to the upper return gallery.',
-    hint: 'Settle between swings. Beyond the second deck, follow the apples up the round wall and across the ceiling.',
+    mechanic: 'Ride two hanging cradles across the mill, then follow the curved wall to the upper return gallery.',
+    hint: 'Call each cradle with a small tilt, roll aboard and hold BRAKE to swing across. The longer second cradle responds more slowly. Release near the bank, then follow the apples up the round wall.',
     spawn: p(0, .72), bounds: box(-7, -4, 53, 19), surfaces: [
-      ...terrain('mill', millProfile, [[17, 20], [29, 32]]),
-      hazard('mill-water-a', 18.5, -2, 4), hazard('mill-water-b', 30.5, -2, 4),
+      ...terrain('mill', millProfile, [[16, 21], [28, 33]]),
+      hazard('mill-water-a', 18.5, -2, 6), hazard('mill-water-b', 30.5, -2, 6),
       ...arc('mill-turn', 44, 9, 6), beam('mill-upper-gallery', p(44, 15), p(-3, 15)),
     ],
+    // Lowered seats meet the banks as their ends rise; damping gives time to board.
     swings: [
-      { id: 'mill-short', anchor: p(18.5, 5.48), length: 2.6, width: 2.8, damping: .85 },
-      { id: 'mill-long', anchor: p(30.5, 6.68), length: 3.8, width: 2.8, damping: .9 },
+      { id: 'mill-short', anchor: p(18.5, 8.5), length: 6, width: 2.8, mass: 20, damping: 15, angle: -.12 },
+      { id: 'mill-long', anchor: p(30.5, 10), length: 7.5, width: 2.8, mass: 20, damping: 16, angle: -.12 },
     ],
     apples: [fruit('mill-0', millProfile, 8), fruit('mill-1', millProfile, 24), fruit('mill-2', millProfile, 39),
       { id: 'mill-3', x: 49.1, y: 9 }, { id: 'mill-4', x: 34, y: 14.1 }, { id: 'mill-5', x: 16, y: 14.1 }],
@@ -122,6 +123,7 @@ const profiles = [orchardProfile, wonderProfile, gardenProfile, millProfile, roo
 export function createEarlyReplayPilot(index: number) {
   let previous: Snapshot | undefined, returning = false, stage = 0, catchStage = 0, gardenStage = 0;
   let previousBikeAngle = 0, gardenBoardingReleased = false;
+  let millCrossing = 0, millStage = 0, millBoardingReleased = false;
   const turnX = [0, 0, 0, 44, 38][index], turnY = [0, 0, 0, 9, 6][index];
   return (state: Snapshot): Controls => {
     const vx = previous ? (state.bike.x - previous.bike.x) * 120 : 0;
@@ -177,6 +179,26 @@ export function createEarlyReplayPilot(index: number) {
       if (stage === 2) theta = Math.PI;
       if (stage === 1) speed = 1.8;
       if (index === 3 && stage === 0 && ((state.bike.x > 14 && state.bike.x < 22) || (state.bike.x > 26 && state.bike.x < 34))) speed = 1.5;
+    }
+    // Board and carry the rider across each mill gap before resuming the wall route.
+    if (index === 3 && millCrossing < 2) {
+      const centre = millCrossing === 0 ? 18.5 : 30.5;
+      const deck = state.bodies.find(body => body.id === (millCrossing === 0 ? 'mill-short' : 'mill-long'))!;
+      const control = (angle: number, hold = false): Controls => ({ tilt: clamp((angle - state.worldAngle) * 8, -1, 1), brake: hold });
+      if (millStage === 0 && state.bike.x > centre - 3.7) millStage = 1;
+      if (millStage === 1 && deck.x < centre - 1.05 && Math.abs(vx) < .15) millStage = 2;
+      if (millStage === 2 && state.bike.x > deck.x - .45) millStage = 3;
+      if (millStage === 3 && deck.x > centre + 1.05) millStage = 4;
+      if (millStage === 4 && state.bike.x > centre + 3.5) {
+        millCrossing++; millStage = 0; millBoardingReleased = false;
+      }
+      if (millStage === 1) return control(-.4, true);
+      if (millStage === 2) {
+        if (state.worldAngle >= 0) millBoardingReleased = true;
+        return control(bikeAngle + clamp((2 - vx) * .4, -.3, .3), !millBoardingReleased);
+      }
+      if (millStage === 3) return control(.4, true);
+      if (millStage === 4) return control(.45);
     }
     // Map 2: approach the stop, hold a rear-wheel pivot, lower, then resume riding.
     // This demonstration only supplies normal controls; it never modifies bodies.
