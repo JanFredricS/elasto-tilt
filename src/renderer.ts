@@ -1,5 +1,6 @@
 import { Application, Container, Graphics, Text } from 'pixi.js';
 import type { BodyView, GameRenderer, Level, Snapshot, Surface, Vec } from './types';
+import { createRiderArt } from './rider-art';
 import { drawStoneDepth, drawStoneFace, paletteFor } from './art-direction';
 
 const C = {
@@ -43,25 +44,6 @@ function local(origin: Vec, angle: number, x: number, y: number): Vec {
   const c = Math.cos(angle);
   const s = Math.sin(angle);
   return { x: origin.x + c * x - s * y, y: origin.y + s * x + c * y };
-}
-
-function drawWheel(g: Graphics): void {
-  // Machined rim, narrow sidewall and crossed spokes: a small technical object,
-  // with enough contrast to read at phone scale without a heavy cartoon outline.
-  ellipsePath(g, 0, 0, .34, .34, 64).fill(0x162a32);
-  ellipsePath(g, 0, 0, .317, .317, 64).stroke({ color: 0x52656c, width: .009 });
-  ellipsePath(g, 0, 0, .286, .286, 64).fill(C.ivory).stroke({ color: 0xa4b4b7, width: .019 });
-  ellipsePath(g, 0, 0, .272, .272, 64).stroke({ color: 0x294650, width: .009 });
-  for (let n = 0; n < 16; n++) {
-    const a = n * TAU / 16;
-    const offset = n % 2 ? .55 : -.55;
-    line(g, { x: Math.cos(a + offset) * .043, y: Math.sin(a + offset) * .043 },
-      { x: Math.cos(a) * .268, y: Math.sin(a) * .268 }, 0x7a9199, .007, .72);
-  }
-  ellipsePath(g, 0, 0, .089, .089, 64).stroke({ color: 0x93a8aa, width: .009 });
-  ellipsePath(g, 0, 0, .041, .041, 64).fill(0x24434d);
-  ellipsePath(g, 0, 0, .019, .019, 64).fill(0xe7eeea);
-  line(g, { x: .289, y: -.025 }, { x: .289, y: .025 }, C.orange, .018);
 }
 
 function drawApple(g: Graphics, x: number, y: number): void {
@@ -130,11 +112,12 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
   const appleLayer = new Container();
   const dynamic = new Graphics();
   const bikeWheels = new Container();
-  const bikeFrame = new Graphics();
-  const helmet = new Graphics();
+  const riderArt = await createRiderArt();
+  const bikeFrame = riderArt.body;
+  const riderHead = riderArt.head;
   const exit = new Graphics();
   const location = new Graphics();
-  world.addChild(architecture, terrain, ornaments, wayfinding, appleLayer, dynamic, bikeWheels, bikeFrame, helmet, exit, location);
+  world.addChild(architecture, terrain, ornaments, wayfinding, appleLayer, dynamic, bikeWheels, bikeFrame, riderHead, exit, location);
   app.stage.addChild(world);
 
   let level: Level | undefined;
@@ -150,11 +133,8 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
   let lastWorldAngle = 0;
   let surveying = false;
   let palette = paletteFor('newtons-orchard');
-  const wheelViews = [new Graphics(), new Graphics()];
-  for (const wheel of wheelViews) {
-    drawWheel(wheel);
-    bikeWheels.addChild(wheel);
-  }
+  const wheelViews = riderArt.wheels;
+  for (const wheel of wheelViews) bikeWheels.addChild(wheel);
 
   function resize(): void {
     const w = Math.max(1, host.clientWidth);
@@ -317,84 +297,24 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
   function drawBike(state: Snapshot): void {
     const frame = state.bodies.find(body => body.kind === 'frame');
     const head = state.bodies.find(body => body.kind === 'head');
-    const wheels = state.bodies.filter(body => body.kind === 'wheel');
-    bikeFrame.clear();
-    helmet.clear();
-    if (!frame || wheels.length < 2) {
-      for (const view of wheelViews) view.visible = false;
-      return;
-    }
-    const axis = { x: Math.cos(frame.angle), y: Math.sin(frame.angle) };
-    wheels.sort((a, b) => ((a.x - frame.x) * axis.x + (a.y - frame.y) * axis.y)
-      - ((b.x - frame.x) * axis.x + (b.y - frame.y) * axis.y));
-    const [rear, front] = wheels;
-    [rear, front].forEach((wheel, index) => {
-      wheelViews[index].visible = true;
-      wheelViews[index].position.set(wheel.x, wheel.y);
-      wheelViews[index].rotation = wheel.angle;
+    const wheels = [0, 1].map(index => state.bodies.find(body => body.id === `wheel-${index}`));
+    bikeFrame.visible = Boolean(frame && wheels.every(Boolean));
+    riderHead.visible = Boolean(head && bikeFrame.visible);
+    wheels.forEach((wheel, index) => {
+      const view = wheelViews[index];
+      view.visible = Boolean(wheel && bikeFrame.visible);
+      if (wheel) {
+        view.position.set(wheel.x, wheel.y);
+        view.rotation = wheel.angle;
+      }
     });
-    bikeFrame.position.set(frame.x, frame.y);
-    bikeFrame.rotation = frame.angle;
-    const hub = (wheel: BodyView): Vec => ({
-      x: (wheel.x - frame.x) * axis.x + (wheel.y - frame.y) * axis.y,
-      y: -(wheel.x - frame.x) * axis.y + (wheel.y - frame.y) * axis.x,
-    });
-    const r = hub(rear), f = hub(front);
-    const crank = { x: -.09, y: -.25 }, seat = { x: -.31, y: .10 };
-    const headTube = { x: .39, y: .16 }, handle = { x: .48, y: .31 };
-    // Far leg sits behind the frame. Filled jersey/shorts and articulated limbs
-    // replace the stick figure; the crouch stays within the real head hitbox.
-    line(bikeFrame, { x: -.27, y: .24 }, { x: -.42, y: -.015 }, 0x547079, .091);
-    line(bikeFrame, { x: -.42, y: -.015 }, { x: -.20, y: -.31 }, 0x9baead, .06);
-    line(bikeFrame, { x: -.23, y: -.32 }, { x: -.10, y: -.34 }, 0x243c46, .045);
-    // Paired chain stays, sculpted tubes, dark carbon fork and metal fittings.
-    line(bikeFrame, r, crank, 0x879da1, .028);
-    line(bikeFrame, { x: r.x, y: r.y + .025 }, { x: crank.x, y: crank.y + .035 }, 0x3e565e, .013);
-    for (const [a, b, width] of [[r, seat, .030], [seat, crank, .046], [crank, headTube, .060],
-      [seat, headTube, .045]] as [Vec, Vec, number][]) {
-      line(bikeFrame, a, b, 0xb84f38, width + .015);
-      line(bikeFrame, { x: a.x, y: a.y + .009 }, { x: b.x, y: b.y + .009 }, 0xf5855f, width);
-      line(bikeFrame, { x: a.x, y: a.y + .022 }, { x: b.x, y: b.y + .022 }, 0xffc2a5, .009, .85);
+    if (frame) {
+      bikeFrame.position.set(frame.x, frame.y);
+      bikeFrame.rotation = frame.angle;
     }
-    line(bikeFrame, headTube, f, 0x1c3641, .049);
-    line(bikeFrame, { x: .43, y: .09 }, { x: .50, y: -.09 }, 0xa5b5b8, .025);
-    line(bikeFrame, seat, { x: -.36, y: .24 }, 0x566c76, .028);
-    bikeFrame.moveTo(-.51, .255).bezierCurveTo(-.47, .29, -.29, .28, -.22, .25, .999)
-      .lineTo(-.23, .22).lineTo(-.48, .22).closePath().fill(0x19323e);
-    line(bikeFrame, headTube, handle, 0x92a7aa, .025);
-    line(bikeFrame, { x: .43, y: .32 }, { x: .60, y: .33 }, 0x1b3540, .028);
-    line(bikeFrame, { x: .55, y: .33 }, { x: .64, y: .32 }, 0x172c34, .046);
-    bikeFrame.moveTo(.58, .30).bezierCurveTo(.71, .13, .60, .01, .51, .02, .999)
-      .stroke({ color: 0x3c5861, width: .010 });
-    circle(bikeFrame, crank.x, crank.y, .070, 0x1a3540, 0x9daeb0, .012);
-    line(bikeFrame, crank, { x: .035, y: -.32 }, 0x9caeb0, .022);
-    line(bikeFrame, { x: -.02, y: -.34 }, { x: .12, y: -.34 }, 0x203b45, .025);
-    // Tailored jersey with a shoulder panel, then the near leg and gloved arm.
-    bikeFrame.moveTo(-.37, .26).bezierCurveTo(-.32, .45, -.19, .59, -.045, .60, .999)
-      .bezierCurveTo(.04, .60, .09, .53, .05, .47, .999).lineTo(-.20, .26)
-      .closePath().fill(0x315f70);
-    bikeFrame.moveTo(-.31, .39).bezierCurveTo(-.22, .51, -.11, .57, -.04, .56, .999)
-      .lineTo(.017, .50).lineTo(-.23, .32).closePath().fill(0xeff1e9);
-    line(bikeFrame, { x: -.29, y: .38 }, { x: -.12, y: .49 }, 0xf28c64, .035);
-    line(bikeFrame, { x: -.27, y: .27 }, { x: -.06, y: .06 }, 0x203b48, .13);
-    line(bikeFrame, { x: -.06, y: .06 }, { x: .02, y: -.24 }, 0xb3c2bd, .063);
-    line(bikeFrame, { x: .02, y: -.27 }, { x: .145, y: -.30 }, 0x203b48, .05);
-    line(bikeFrame, { x: -.01, y: .51 }, { x: .24, y: .31 }, 0x355e70, .078);
-    line(bikeFrame, { x: .24, y: .31 }, handle, 0xb3c2bd, .052);
-    circle(bikeFrame, handle.x, handle.y, .039, 0x203b48);
     if (head) {
-      // Smooth helmet shell follows the .21 m collision circle. No features
-      // outside it imply extra clearance around the vulnerable head.
-      ellipsePath(helmet, 0, 0, .205, .205, 64).fill(0x203b48);
-      helmet.moveTo(-.197, -.015).bezierCurveTo(-.22, .21, .10, .27, .197, .055, .999)
-        .bezierCurveTo(.09, .005, -.055, -.025, -.197, -.015, .999).fill(0xf4f1e5);
-      helmet.moveTo(-.165, .085).bezierCurveTo(-.08, .20, .075, .185, .15, .085, .999)
-        .stroke({ color: 0xf18a63, width: .030, cap: 'round' });
-      helmet.moveTo(.025, -.030).lineTo(.173, .018).lineTo(.183, -.058)
-        .lineTo(.070, -.11).closePath().fill(0x72989f);
-      line(helmet, { x: -.11, y: -.044 }, { x: -.025, y: -.16 }, 0xa4b9b5, .018);
-      helmet.position.set(head.x, head.y);
-      helmet.rotation = head.angle;
+      riderHead.position.set(head.x, head.y);
+      riderHead.rotation = head.angle;
     }
   }
 
@@ -468,6 +388,7 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
     destroy() {
       observer.disconnect();
       app.destroy(true, { children: true, context: true });
+      riderArt.destroy();
     },
   };
 }

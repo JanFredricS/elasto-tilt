@@ -16,6 +16,26 @@ function run(p: PhysicsGame, seconds: number, tilt = 0, brake = false) {
 }
 afterEach(() => { for (const p of games.splice(0)) p.destroy(); });
 describe('actual Rapier bicycle simulation', () => {
+  it('spawns the approved compact wheelbase with unchanged wheel and helmet sizes', async () => {
+    const p = await game();
+    const state = p.snapshot();
+    const [rear, front] = state.bodies.filter(b => b.kind === 'wheel');
+    expect(front.x - rear.x).toBeCloseTo(1.11, 5);
+    expect(rear.y - state.bike.y).toBeCloseTo(-.36, 5);
+    expect(front.w).toBe(.68);
+    const head = state.bodies.find(b => b.kind === 'head')!;
+    expect(head.x - state.bike.x).toBeCloseTo(.1, 5);
+    expect(head.y - state.bike.y).toBeCloseTo(.69, 5);
+    expect(head.w).toBe(.42);
+  });
+  it('clears a hazard outside the compact chassis while keeping chassis collisions', async () => {
+    const hazard = (x: number) => fixture({ surfaces: [
+      { id: 'tip', x, y: 2, w: .02, h: .01, kind: 'hazard' },
+    ] });
+    const outside = await game(hazard(.55)), inside = await game(hazard(.44));
+    expect(outside.step(1 / 120, { tilt: 0, brake: false }).status).toBe('playing');
+    expect(inside.step(1 / 120, { tilt: 0, brake: false }).status).toBe('crashed');
+  });
   it('keeps axles constrained through repeated full gravity rotations', async () => {
     const p = await game();
     for (let i = 0; i < 3000; i++) {
@@ -23,7 +43,7 @@ describe('actual Rapier bicycle simulation', () => {
       expect(state.status).toBe('playing');
       const frame = state.bodies.find(b => b.kind === 'frame')!;
       for (const [index, wheel] of state.bodies.filter(b => b.kind === 'wheel').entries()) {
-        const x = index === 0 ? -.7 : .7, y = -.36;
+        const x = index === 0 ? -.555 : .555, y = -.36;
         expect(Math.hypot(wheel.x - frame.x - Math.cos(frame.angle) * x + Math.sin(frame.angle) * y,
           wheel.y - frame.y - Math.sin(frame.angle) * x - Math.cos(frame.angle) * y)).toBeLessThan(.08);
       }

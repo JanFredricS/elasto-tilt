@@ -1,4 +1,6 @@
 import RAPIER from '@dimforge/rapier2d-compat';
+import { BIKE_AXLE_X, BIKE_AXLE_Y, BIKE_FRAME_HALF_HEIGHT, BIKE_FRAME_HALF_WIDTH,
+  BIKE_HEAD_OFFSET, BIKE_HEAD_RADIUS, BIKE_WHEEL_RADIUS } from './bike-geometry';
 import { carriedTravel, RouteClock } from './physics-time';
 import type { BodyView, Controls, Level, PhysicsGame, Snapshot, Vec } from './types';
 
@@ -11,7 +13,7 @@ let initialized: Promise<void> | undefined;
 type RenderBody = { body: RAPIER.RigidBody; view: Omit<BodyView, 'x' | 'y' | 'angle'>; offset?: Vec };
 type Tag = { kind: 'bike' | 'helmet' | 'hazard' | 'apple' | 'exit' | 'time' | 'environment'; id: string };
 
-/** Spawn denotes frame centre. Wheel radius .34, axles (+/-.70, -.36), helmet (.10, .69). */
+/** Spawn denotes frame centre. Geometry matches the approved compact artwork. */
 export async function createPhysics(): Promise<PhysicsGame> {
   await (initialized ??= RAPIER.init());
   let world: RAPIER.World | undefined;
@@ -64,20 +66,36 @@ export async function createPhysics(): Promise<PhysicsGame> {
       { kind: surface.kind === 'hazard' ? 'hazard' : 'environment', id: surface.id });
     frame = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(next.spawn.x, next.spawn.y)
       .setLinearDamping(.08).setAngularDamping(.12).setCcdEnabled(true));
-    bikeColliders.push(register(RAPIER.ColliderDesc.cuboid(.58, .12).setMass(2.5).setFriction(.55)
+    // Keep the former support-width / mass-height ratio as the wheelbase shrinks.
+    // This is a mass distribution, not an extra collider or a stabilizing force.
+    const frameMass = 2.5, wheelMass = .65, headMass = .35;
+    const totalMass = frameMass + wheelMass * 2 + headMass;
+    const oldCentreY = (wheelMass * 2 * BIKE_AXLE_Y + headMass * BIKE_HEAD_OFFSET.y) / totalMass;
+    const groundY = BIKE_AXLE_Y - BIKE_WHEEL_RADIUS;
+    const centreY = groundY + (oldCentreY - groundY) * BIKE_AXLE_X / .7;
+    const frameCentreY = (centreY - oldCentreY) * totalMass / frameMass;
+    // Preserve the former total angular inertia after both mass-position changes.
+    const frameInertia = frameMass * (.58 ** 2 + .12 ** 2) / 3
+      + 2 * wheelMass * (.7 ** 2 - BIKE_AXLE_X ** 2)
+      - frameMass * frameCentreY ** 2 + totalMass * (centreY ** 2 - oldCentreY ** 2);
+    bikeColliders.push(register(RAPIER.ColliderDesc.cuboid(BIKE_FRAME_HALF_WIDTH, BIKE_FRAME_HALF_HEIGHT)
+      .setMassProperties(frameMass, { x: 0, y: frameCentreY }, frameInertia).setFriction(.55)
       .setCollisionGroups(BIKE_GROUP), frame, { kind: 'bike', id: 'frame' }));
-    bikeColliders.push(register(RAPIER.ColliderDesc.ball(.21).setTranslation(.10, .69).setMass(.35)
+    bikeColliders.push(register(RAPIER.ColliderDesc.ball(BIKE_HEAD_RADIUS)
+      .setTranslation(BIKE_HEAD_OFFSET.x, BIKE_HEAD_OFFSET.y).setMass(headMass)
       .setCollisionGroups(BIKE_GROUP), frame, { kind: 'helmet', id: 'head' }));
-    renderBodies.push({ body: frame, view: { id: 'frame', w: 1.4, h: .72, kind: 'frame', shape: 'box' } });
-    renderBodies.push({ body: frame, offset: { x: .1, y: .69 }, view: { id: 'head', w: .42, h: .42, kind: 'head', shape: 'ball' } });
-    for (const [i, x] of [-.7, .7].entries()) {
-      const wheel = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(next.spawn.x + x, next.spawn.y - .36)
+    renderBodies.push({ body: frame, view: { id: 'frame', w: BIKE_AXLE_X * 2, h: .72, kind: 'frame', shape: 'box' } });
+    renderBodies.push({ body: frame, offset: BIKE_HEAD_OFFSET,
+      view: { id: 'head', w: BIKE_HEAD_RADIUS * 2, h: BIKE_HEAD_RADIUS * 2, kind: 'head', shape: 'ball' } });
+    for (const [i, x] of [-BIKE_AXLE_X, BIKE_AXLE_X].entries()) {
+      const wheel = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(next.spawn.x + x, next.spawn.y + BIKE_AXLE_Y)
         .setAngularDamping(.015).setCcdEnabled(true));
-      bikeColliders.push(register(RAPIER.ColliderDesc.ball(.34).setMass(.65).setFriction(1.5)
+      bikeColliders.push(register(RAPIER.ColliderDesc.ball(BIKE_WHEEL_RADIUS).setMass(wheelMass).setFriction(1.5)
         .setCollisionGroups(BIKE_GROUP), wheel, { kind: 'bike', id: `wheel-${i}` }));
-      world.createImpulseJoint(RAPIER.JointData.revolute({ x, y: -.36 }, { x: 0, y: 0 }), frame, wheel, true);
+      world.createImpulseJoint(RAPIER.JointData.revolute({ x, y: BIKE_AXLE_Y }, { x: 0, y: 0 }), frame, wheel, true);
       wheels.push(wheel);
-      renderBodies.push({ body: wheel, view: { id: `wheel-${i}`, w: .68, h: .68, kind: 'wheel', shape: 'ball' } });
+      renderBodies.push({ body: wheel,
+        view: { id: `wheel-${i}`, w: BIKE_WHEEL_RADIUS * 2, h: BIKE_WHEEL_RADIUS * 2, kind: 'wheel', shape: 'ball' } });
     }
     for (const apple of next.apples) register(RAPIER.ColliderDesc.ball(.4).setTranslation(apple.x, apple.y)
       .setSensor(true).setCollisionGroups(SENSOR_GROUP), undefined, { kind: 'apple', id: apple.id });
@@ -133,7 +151,7 @@ export async function createPhysics(): Promise<PhysicsGame> {
     frame.resetTorques(false);
     if (controls.brake && !brakeAngles) brakeAngles = wheels.map(wheel => wheel.rotation() - frame.rotation());
     if (!controls.brake) brakeAngles = undefined;
-    const brakeLimit = (frame.mass() + wheels.reduce((sum, wheel) => sum + wheel.mass(), 0)) * GRAVITY * .34 * 2;
+    const brakeLimit = (frame.mass() + wheels.reduce((sum, wheel) => sum + wheel.mass(), 0)) * GRAVITY * BIKE_WHEEL_RADIUS * 2;
     for (const [index, wheel] of wheels.entries()) {
       wheel.resetTorques(false);
       if (brakeAngles) {
