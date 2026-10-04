@@ -78,7 +78,7 @@ export const earlyLevels: Level[] = [
     spawn: p(0, .72), bounds: box(-7, -8, 54, 11), surfaces: [
       ...terrain('garden', gardenProfile, [[27, 34]]), hazard('garden-water', 30.5, -4, 8),
     ],
-    swings: [{ id: 'garden-swing', anchor: p(30.5, 7.16), length: 7, width: 2.8, mass: 20, damping: 9, angle: -.3 }],
+    swings: [{ id: 'garden-swing', anchor: p(30.5, 7.16), length: 7, width: 2.8, mass: 20, damping: 10, angle: -.3 }],
     apples: [6, 17, 27, 36, 47.5].map((x, i) => fruit(`garden-${i}`, gardenProfile, x)),
     exit: p(-1.5, .8), difficulty: 3, accent: '#8dc68c',
   },
@@ -121,7 +121,7 @@ const profiles = [orchardProfile, wonderProfile, gardenProfile, millProfile, roo
 /** Only observes snapshots and supplies the same angle/brake inputs available to a phone player. */
 export function createEarlyReplayPilot(index: number) {
   let previous: Snapshot | undefined, returning = false, stage = 0, catchStage = 0, gardenStage = 0;
-  let previousBikeAngle = 0;
+  let previousBikeAngle = 0, gardenBoardingReleased = false;
   const turnX = [0, 0, 0, 44, 38][index], turnY = [0, 0, 0, 9, 6][index];
   return (state: Snapshot): Controls => {
     const vx = previous ? (state.bike.x - previous.bike.x) * 120 : 0;
@@ -148,16 +148,25 @@ export function createEarlyReplayPilot(index: number) {
         if (gardenStage === 2 && deck.x > 32.45) gardenStage = 3;
         if (gardenStage === 3 && state.bike.x > 35) gardenStage = 4;
         if (gardenStage === 4 && returning && state.bike.x < 34.9) gardenStage = 5;
-        if (gardenStage === 5 && deck.x > 32.59 && Math.abs(vx) < .15) gardenStage = 6;
+        if (gardenStage === 5 && deck.x > 32.59 && Math.abs(vx) < .15) {
+          gardenStage = 6; gardenBoardingReleased = false;
+        }
         if (gardenStage === 6 && state.bike.x < deck.x + .45) gardenStage = 7;
         if (gardenStage === 7 && deck.x < 28.55) gardenStage = 8;
         if (gardenStage === 8 && state.bike.x < 26) gardenStage = 9;
         if (gardenStage === .5) return control(-.5, true);
-        if (gardenStage === 1) return control(.1, state.worldAngle < 0);
+        if (gardenStage === 1 || gardenStage === 6) {
+          const boardingDirection = gardenStage === 1 ? 1 : -1;
+          // Level the world before releasing the bank-side brake. Then ease
+          // onto the sloped deck at a controlled speed, avoiding a hard stop
+          // that pitches a wheel up when the cradle starts its loaded trip.
+          if (state.worldAngle * boardingDirection >= 0) gardenBoardingReleased = true;
+          const target = bikeAngle + clamp((boardingDirection * 2 - vx) * .4, -.3, .3);
+          return control(target, !gardenBoardingReleased);
+        }
         if (gardenStage === 2) return control(.5, true);
         if (gardenStage === 3) return control(.55);
         if (gardenStage === 5) return control(.5, true);
-        if (gardenStage === 6) return control(state.bike.x > 34 ? -.35 : -.05, state.bike.x > 34 && state.worldAngle > 0);
         if (gardenStage === 7) return control(-.5, true);
         if (gardenStage === 8) return control(-.55);
       }
