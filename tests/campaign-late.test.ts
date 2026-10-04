@@ -72,6 +72,23 @@ it('seats the Attic barrel in its well before the bike crosses, and it stays fix
   expect(result.state.bodies.find(b => b.id === 'attic-weight')!.settled).toBe(true);
 });
 
+it('keeps the Attic barrel in its cradle under a held hard-left tilt, but lets a hard-right tilt spill it', async () => {
+  const level = lateLevels[0], game = await createPhysics();
+  const hold = (worldAngle: number) => {
+    game.load(level); let state = game.snapshot();
+    for (let k = 0; k < 120 * 5; k++) state = game.step(1 / 120, { tilt: 0, worldAngle, brake: false });
+    return state.bodies.find(b => b.id === 'attic-barrel')!;
+  };
+  for (const worldAngle of [-.65, -1]) {
+    const barrel = hold(worldAngle);
+    expect(barrel.x, `held ${worldAngle}`).toBeGreaterThan(25.5);
+    expect(barrel.x, `held ${worldAngle}`).toBeLessThan(28.5);
+  }
+  expect(hold(.5).x).toBeLessThan(28.5);
+  expect(hold(.65).x).toBeGreaterThan(29.5);
+  game.destroy();
+});
+
 it('blocks the Attic far side when the barrel is pinned in its cradle', async () => {
   const level = lateLevels[0];
   const pinned = await replayLate({ ...level, props: level.props!.filter(p => p.id !== 'attic-barrel'),

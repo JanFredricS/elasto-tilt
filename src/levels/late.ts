@@ -27,11 +27,11 @@ const ATTIC = (() => {
   return {
     barrel,
     teaser: { x: 9.5, half: .5 },
-    // The barrel rests on two lip edges 35° either side of its lowest point,
-    // so it holds against tilt alone until about 33°, but leaning the bike's
-    // weight into it pops it at about 26°.
+    // The barrel's right lip is 35° from its lowest point, so it holds against
+    // tilt alone until about 34°, but leaning the bike's weight into it pops it
+    // at about 26–28°. The left back lip is 68°: it survives a held 1.1 rad tilt.
     cradle: { x: cradleX, half: barrel * Math.sin(lip), lip, floor: 2.2 - barrel * (1 - Math.cos(lip)) - .04,
-      barrelY: 2.2 + barrel * Math.cos(lip) + .01 },
+      barrelY: 2.2 + barrel * Math.cos(lip) + .01, back: 68 * Math.PI / 180 },
     // A circle cannot sit flush in a hole it fell through: seated, the barrel
     // crowns .45 m above the floor so the joints stay shallow enough to roll
     // over (.35–.55 m all work; .3 m traps a slow wheel in the joint).
@@ -44,11 +44,18 @@ const beam = (id: string, from: Vec, to: Vec, h = .4): Surface => {
   return { ...g(id, (from.x + to.x) / 2 - Math.sin(angle) * h / 2, (from.y + to.y) / 2 + Math.cos(angle) * h / 2,
     Math.hypot(to.x - from.x, to.y - from.y) + .04, h), angle };
 };
-/** A shallow trapezoid notch: chamfered lips, flat floor just below the barrel. */
+/**
+ * Asymmetric cradle. Right: a 35° chamfered lip the barrel can be pushed over.
+ * Left: a bowl concentric with the barrel rising to a steep back lip (BACK° from
+ * the bottom), reached by a gentle ramp, so no sane leftward tilt spills it
+ * back down the climb towards the door.
+ */
 const cradle = (): Surface[] => {
-  const { x, half, lip, floor } = ATTIC.cradle, run = (2.2 - floor) / Math.tan(lip);
-  return [slope('attic-cradle-left', p(x - half, 2.2), p(x - half + run, floor)),
-    g('attic-cradle-floor', x, floor - .3, 2 * (half - run) + .1),
+  const { x, half, lip, floor, barrelY, back } = ATTIC.cradle, run = (2.2 - floor) / Math.tan(lip);
+  const radius = ATTIC.barrel + .02, start = Math.PI * 1.5 - back;
+  const crest = p(x + Math.cos(start) * radius, barrelY + Math.sin(start) * radius);
+  return [...turn('attic-cradle-bowl', x, barrelY, radius, start),
+    slope('attic-cradle-ramp', p(crest.x - 3.4, 2.2), crest),
     slope('attic-cradle-right', p(x + half - run, floor), p(x + half, 2.2))];
 };
 const wellWalls = (): Surface[] => {
@@ -72,7 +79,7 @@ export const lateLevels: Level[] = [
       g('attic-entry-step', (11 + ATTIC.teaser.x + ATTIC.teaser.half) / 2, -.3, 11 - ATTIC.teaser.x - ATTIC.teaser.half),
       g('attic-teaser-socket', ATTIC.teaser.x, -.75, 2.4, .3),
       slope('attic-up', p(11, 0), p(21, 2.2)),
-      g('attic-ridge', (21 + ATTIC.cradle.x - ATTIC.cradle.half) / 2, 1.9, ATTIC.cradle.x - ATTIC.cradle.half - 21),
+      g('attic-ridge', 23, 1.9, 4),
       ...cradle(),
       g('attic-ridge-lip', (ATTIC.cradle.x + ATTIC.cradle.half + ATTIC.well.x - ATTIC.well.half) / 2, 1.9,
         ATTIC.well.x - ATTIC.well.half - ATTIC.cradle.x - ATTIC.cradle.half),
@@ -203,15 +210,20 @@ export function createLateReplayPilot(index: number, reverse = true): (state: Sn
     const barrel = level.id === 'newtons-attic' ? state.bodies.find(body => body.id === 'attic-barrel') : undefined;
     if (barrel && !barrel.settled && !returning && state.bike.x > ATTIC.cradle.x - 4) {
       // Still in the cradle: lean into it so the bike's weight adds to the tilt.
-      if (barrel.x < ATTIC.cradle.x + ATTIC.cradle.half + .3) { desired = 2.2; lean = .5; }
+      // Once it starts to roll, brake on the crest so the bike does not follow it in.
+      if (barrel.x < ATTIC.cradle.x + ATTIC.cradle.half + .3)
+        return { tilt: clamp((.48 - state.worldAngle) * 8, -1, 1), brake: barrel.x > ATTIC.cradle.x + .25 };
       // Over the lip: brake, keep a gentle rightward tilt and let it drop into the well.
       else return { tilt: clamp((.2 - state.worldAngle) * 8, -1, 1), brake: true };
     }
     // Rolling out of the empty cradle notch or over the plug joints needs a
     // firm absolute lean when the bike has slowed, either way.
     if (barrel && state.bike.x > ATTIC.cradle.x - 1.6 && state.bike.x < ATTIC.well.x + 4) {
-      if (Math.abs(velocity) < 1) return { tilt: clamp((Math.sign(desired) * .55 - state.worldAngle) * 8, -1, 1), brake: false };
-      desired *= 1.6; lean = .45;
+      // Heading home, the steep back of the cradle bowl needs the world tipped hard.
+      const firm = returning && Math.abs(state.bike.x - ATTIC.cradle.x) < 2 ? 1 : .55;
+      if (Math.abs(velocity) < 1) return { tilt: clamp((Math.sign(desired) * firm - state.worldAngle) * 8, -1, 1), brake: false };
+      // Carry speed over the plug joints; homeward, enough to ride up out of the cradle bowl.
+      desired *= returning ? 2.2 : 1.6; lean = .45;
     }
     const target = angle + clamp((desired - velocity) * .22, -lean, lean);
     return { tilt: clamp((target - state.worldAngle) * 8, -1, 1), brake: false };

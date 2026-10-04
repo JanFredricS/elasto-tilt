@@ -14,9 +14,14 @@ test('phone tilt wakes a resting bike, holds an angle, and returns to level', as
   await page.goto('/');
   await page.getByRole('button', { name: /LET’S RIDE/ }).click();
   await page.getByRole('button', { name: 'Enable motion' }).click();
-  const pose = (gamma: number) => page.evaluate(g => {
-    window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { beta: 0, gamma: g }));
-  }, gamma);
+  // A phone held tilted back 30° from upright, turned `bank` degrees clockwise
+  // about its screen normal like a steering wheel (flat poses freeze by design).
+  const pose = (bank: number) => page.evaluate(b => {
+    const deg = Math.PI / 180, p = 30 * deg, t = b * deg;
+    const beta = Math.asin(Math.cos(p) * Math.cos(t)) / deg;
+    const gamma = Math.atan2(Math.cos(p) * Math.sin(t), Math.sin(p)) / deg;
+    window.dispatchEvent(new DeviceOrientationEvent('deviceorientation', { beta, gamma }));
+  }, bank);
   await pose(0);
   // Reproduce the report: the player waits long enough for Rapier to sleep.
   await page.waitForTimeout(10_000);

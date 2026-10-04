@@ -5,7 +5,6 @@ import { createTowerChasmPilot } from '../levels/tower-chasm';
 import { createStairwayPilot } from '../levels/stairway';
 import type { Controls, Snapshot } from '../types';
 
-
 /** Input-only campaign pilot. Call once before each fixed 1/120 s physics step. */
 export function createReplayPilot(index: number): (state: Snapshot) => Controls {
   if (!Number.isInteger(index) || index < 0 || index > 14) throw new RangeError('Campaign index must be 0–14');
