@@ -8,7 +8,7 @@
 - Progressive phone response: gentle near neutral, stronger farther out, full 360° world rotation at 75° phone bank. A steady phone holds its angle. Keyboard/touch remain held rotation controls.
 - Strong bounded brakes capture wheel angle relative to the frame. They resist steep downhill motion without anchoring the bike or cancelling airborne velocity.
 - Compact 2.7–2.8 m swing decks, distinct suspension lengths, working gravity response and loaded rider support. All four tested crossings fail when their seat is removed.
-- Rebuilt smooth vector bicycle with detailed rims/spokes, sculpted frame, shaped rider and helmet. Quiet backgrounds and readable terrain; Escher uses nested galleries and shallow architectural bevels.
+- Rebuilt smooth vector bicycle with detailed rims/spokes, sculpted frame, shaped rider and helmet. Monument Valley inspired pastel architecture, ivory lit faces, recessed windows and warm archways. Quiet gradients and exact collider rims keep the route readable. See [art direction](art-direction.md).
 - MAP/M pauses simulation and shows the full route, remaining apples and current position. Touch controls, motion calibration, pause/retry, local progress saves, campaign selection and FPS/frame/physics HUD remain available.
 - TypeScript/Vite, PixiJS and Rapier 2D; no gameplay backend. Main pushes run tests/build and publish the result to GitHub Pages.
 

@@ -1,5 +1,6 @@
 import { Application, Container, Graphics } from 'pixi.js';
 import type { BodyView, GameRenderer, Level, Snapshot, Vec } from './types';
+import { drawStoneDepth, drawStoneFace, paletteFor } from './art-direction';
 
 const C = {
   ink: 0x173f45,
@@ -109,7 +110,9 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
   let cameraReady = false;
   let scale = 48;
   let elapsed = 0;
+  let lastWorldAngle = 0;
   let surveying = false;
+  let palette = paletteFor('newtons-orchard');
   const wheelViews = [new Graphics(), new Graphics()];
   for (const wheel of wheelViews) {
     drawWheel(wheel);
@@ -134,6 +137,11 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
 
   function load(nextLevel: Level): void {
     level = nextLevel;
+    palette = paletteFor(nextLevel.id);
+    const shell = host.parentElement ?? host;
+    shell.style.setProperty('--scene-bg-top', palette.sky);
+    shell.style.setProperty('--scene-bg-bottom', palette.mist);
+    shell.style.setProperty('--scene-glow', palette.glow);
     swingAnchors = new Map((nextLevel.swings ?? []).map(swing => [swing.id, swing.anchor]));
     elapsed = 0;
     camera = { ...nextLevel.spawn };
@@ -149,31 +157,12 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
     appleLayer.removeChildren().forEach(child => child.destroy());
     appleViews = new Map();
 
-    // Keep most of the air clear: terrain and moving objects are the puzzle.
-    const { min, max } = nextLevel.bounds;
-    architecture.rect(min.x - 2, min.y - 2, max.x - min.x + 4, max.y - min.y + 4)
-      .fill({ color: C.ivory, alpha: .001 });
-    const spacing = 8;
-    for (let x = Math.floor(min.x / spacing) * spacing; x < max.x; x += spacing) {
-      line(architecture, { x, y: min.y }, { x, y: max.y }, C.ghost, .010, .12);
-    }
-    for (let y = Math.floor(min.y / spacing) * spacing; y < max.y; y += spacing) {
-      line(architecture, { x: min.x, y }, { x: max.x, y }, C.ghost, .010, .12);
-    }
+    drawStoneDepth(architecture, nextLevel, palette);
 
     for (const surface of nextLevel.surfaces) {
       const piece = new Graphics();
-      const fill = surface.kind === 'hazard' ? C.red : C.ink;
-      if (nextLevel.id === 'eschers-orchard' && surface.kind !== 'hazard') {
-        // A shallow cut-stone extrusion makes overlapping galleries legible.
-        // Every solid top is still an actual collider; the offset is only a bevel.
-        const l = -surface.w / 2, r = surface.w / 2, b = -surface.h / 2;
-        piece.poly([l, b, r, b, r + .23, b - .23, l + .23, b - .23]).fill(0x729094);
-        piece.poly([r, b, r, surface.h / 2, r + .23, surface.h / 2 - .23, r + .23, b - .23]).fill(0xa2b4b2);
-      }
-      piece.rect(-surface.w / 2, -surface.h / 2, surface.w, surface.h).fill(fill);
-      piece.rect(-surface.w / 2, surface.h / 2 - Math.min(.075, surface.h / 3), surface.w, Math.min(.075, surface.h / 3))
-        .fill(surface.kind === 'hazard' ? C.orange : C.inkLight);
+      if (surface.kind === 'hazard') piece.rect(-surface.w / 2, -surface.h / 2, surface.w, surface.h).fill(C.red);
+      else drawStoneFace(piece, surface, palette);
       if (surface.kind === 'hazard') {
         for (let x = -surface.w / 2 + .16; x < surface.w / 2; x += .3) {
           line(piece, { x, y: -surface.h / 2 + .05 }, { x: x + .2, y: surface.h / 2 - .05 }, C.ivory, .025, .47);
@@ -195,11 +184,16 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
       appleViews.set(apple.id, graphic);
     }
 
-    // Portal-shaped exit is deliberately distinct from solid surfaces.
-    exit.roundRect(-.36, -.48, .72, .96, .15).fill({ color: C.ink, alpha: .13 });
-    exit.roundRect(-.32, -.44, .64, .88, .12).stroke({ color: C.ink, width: .065 });
-    exit.roundRect(-.22, -.34, .44, .67, .08).stroke({ color: C.gold, width: .035 });
-    circle(exit, .205, -.02, .035, C.orange);
+    // A small illuminated gateway, with the same sensor location as before.
+    const arch = (g: Graphics, w: number, floor: number, shoulder: number, top: number) =>
+      g.moveTo(-w, floor).lineTo(-w, shoulder)
+        .bezierCurveTo(-w, top, w, top, w, shoulder, .99).lineTo(w, floor).closePath();
+    arch(exit, .44, -.55, .24, .76).fill(palette.shade);
+    arch(exit, .37, -.51, .22, .66).fill(palette.light);
+    arch(exit, .265, -.48, .20, .54).fill(palette.edge);
+    arch(exit, .21, -.46, .19, .47).fill(0xf4dba6);
+    exit.rect(-.42, -.55, .84, .065).fill(palette.light);
+    line(exit, { x: -.19, y: -.42 }, { x: .19, y: -.42 }, 0xfff8df, .027);
     exit.position.set(nextLevel.exit.x, nextLevel.exit.y);
 
     for (const swing of nextLevel.swings ?? []) {
@@ -232,8 +226,8 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
       if (body.kind !== 'prop' && body.kind !== 'swing' && body.kind !== 'time') continue;
       let item = dynamicViews.get(body.id);
       if (!item) {
-        const fill = body.kind === 'time' ? C.gold : body.kind === 'swing' ? C.ink : body.inverted ? C.red : C.rope;
-        const rim = body.kind === 'time' ? C.orange : C.inkDeep;
+        const fill = body.kind === 'time' ? 0xe2ba7d : body.kind === 'swing' ? palette.stone : body.inverted ? C.red : palette.shade;
+        const rim = body.kind === 'time' ? 0xa67a6d : palette.edge;
         item = new Graphics();
         if (body.shape === 'ball') {
           ellipsePath(item, 0, 0, body.w / 2, body.w / 2).fill(fill);
@@ -345,6 +339,7 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
 
   function render(state: Snapshot, dt: number): void {
     if (!level) return;
+    lastWorldAngle = finite(state.worldAngle);
     elapsed += Math.max(0, dt);
     if (!cameraReady) {
       camera = { x: finite(state.bike.x), y: finite(state.bike.y) };
@@ -378,7 +373,16 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
   return {
     load,
     render,
-    overview(enabled) { surveying = enabled; cameraReady = false; resize(); },
+    overview(enabled) {
+      surveying = enabled;
+      cameraReady = false;
+      // Resize and pivot together so Pixi never presents one zoomed frame
+      // around the previous camera centre before the next game frame.
+      if (level) world.pivot.set(enabled ? (level.bounds.min.x + level.bounds.max.x) / 2 : camera.x,
+        enabled ? (level.bounds.min.y + level.bounds.max.y) / 2 : camera.y);
+      world.rotation = enabled ? 0 : lastWorldAngle;
+      resize();
+    },
     resize,
     destroy() {
       observer.disconnect();
