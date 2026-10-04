@@ -31,7 +31,7 @@ async function boot() {
 
   function load(index: number, nextStatus: UIState['status'] = 'playing') {
     levelIndex = Math.max(0, Math.min(levels.length - 1, index));
-    input.reset();
+    input.reset(levels[levelIndex].initialAngle ?? 0);
     physics.load(levels[levelIndex]);
     renderer.load(levels[levelIndex]);
     renderState = physics.snapshot();
@@ -42,14 +42,14 @@ async function boot() {
   function pause() {
     if (status === 'playing') {
       status = 'paused';
-      input.reset();
+      input.reset(renderState.worldAngle);
       accumulator = 0;
     }
   }
   function resume() {
     if (status !== 'paused') return;
     status = 'playing';
-    input.reset();
+    input.reset(renderState.worldAngle);
     last = performance.now();
   }
   ui = createUI(document.querySelector<HTMLElement>('#ui')!, levels, {
@@ -80,7 +80,7 @@ async function boot() {
     const elapsed = Math.max(0, Math.min((now - last) / 1000, 0.1));
     last = now;
     if (elapsed > 0 && elapsed < 0.1) frameMs += (elapsed * 1000 - frameMs) * 0.08;
-    const controls = input.read(elapsed);
+    const controls = input.read(elapsed, renderState.worldAngle);
     if (status === 'playing') {
       accumulator = Math.min(accumulator + elapsed, FIXED_DT * 8);
       while (accumulator >= FIXED_DT) {

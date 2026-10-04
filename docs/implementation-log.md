@@ -4,7 +4,7 @@
 
 The user requested concurrent implementation, Astra for physics/controller, Sol 6 for other implementation and gameplay validation, fresh-context Astra-low review of each slice, and at most two fix cycles before recording residuals. Sol 6.1 was not available; the advance review used available `gpt-6-sol`, as disclosed before work began.
 
-No external review message was sent. Reviews are local subagent work, saved here. The repository is private: https://github.com/JanFredricS/elasto-tilt.
+No external review message was sent. Reviews are local subagent work, saved here. The repository is public, as authorized for GitHub Pages: https://github.com/JanFredricS/elasto-tilt.
 
 ## Advance review
 
@@ -31,3 +31,11 @@ An independent Sol gameplay agent redesigned the initially unreachable Clockwork
 ## Browser evidence
 
 Chrome tests verify actual Orchard completion, both apples, next-room unlock, and save persistence across reload. Independent routes complete Escher, Clockwork, Hanging Garden, Pendulum Mill and Gravity Engine. Screenshots have been inspected at 844×390, 390×844, and 1440×900; saved evidence also shows Escher’s 90°/180° checkpoints and the raised Clockwork lift. A warm desktop landscape frame sample measured median/p95 16.7 ms. Physical phone sensors and device frame pacing are not yet validated; simulated browser dimensions are not a substitute.
+
+## Mobile feedback: gravity wake-up and absolute phone tilt
+
+The user’s iPhone report exposed two gaps: a bicycle left idle could remain asleep when gravity rotated, and the original rate-based phone input continued rotating the room while the phone was held at an angle. Earlier browser routes started moving immediately and did not reproduce the idle case.
+
+Astra reproduced the sleeping-body bug with failing regression tests, then made gravity changes wake all dynamic bodies, including bicycle parts, props, and swings. Phone input now uses a calibrated absolute bank target, with a 3× response, a small dead zone, and bounded smoothing. A steady phone holds the world angle. Screen-horizontal gravity projection avoids raw beta/gamma discontinuities near upright. Keyboard and touch controls retain rate behavior and reanchor motion on release. Explicit calibration targets a flat world; pause/resume retain the current world angle.
+
+Regression coverage includes ten seconds at rest before tilting in either direction, brake release at a held gravity angle, ordinary and inverted props, swings, sensor silence, orientation aliasing, screen direction, manual override, and calibration. `e2e/motion-regression.spec.ts` exercises the permission button and synthetic phone orientation through the real browser game after ten idle seconds. Fresh Astra-low review is recorded in `review-mobile-fix.md`; no actionable findings required a fix cycle. Physical iPhone sensor feel remains a device-only check.

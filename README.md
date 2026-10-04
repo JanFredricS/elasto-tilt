@@ -29,7 +29,7 @@ With the development server running, use `pnpm test:browser` for the Chrome/Chro
 
 ## Controls
 
-- **Phone:** enable motion from the interface and calibrate while holding the device comfortably. Tilt adjusts the world’s rotation speed; neutral holds its current angle.
+- **Phone:** enable motion while holding the device comfortably. Your bank angle sets the world angle: hold the phone still and the world stops rotating. The response is amplified 3× so ceilings are reachable with a comfortable tilt. Calibrate sets the current holding position to a flat world. Keyboard/touch buttons still rotate while held.
 - **Keyboard:** left/right arrows or A/D tilt; Space brakes; R restarts; Escape pauses/resumes; F toggles the FPS overlay.
 - **Touch fallback:** hold the direction buttons to rotate the world; hold Brake to resist wheel rotation.
 - Collect every apple before reaching the exit. A helmet hit ends the attempt.

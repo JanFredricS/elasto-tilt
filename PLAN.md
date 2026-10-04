@@ -5,7 +5,7 @@ A mobile-first, side-view bicycle physics puzzle game. Tilt the visible world th
 
 ## Controls and simulation contract
 - Landscape-first, responsive portrait fallback. Phone orientation permission through a deliberate button, calibration, dead zone, smoothing, keyboard and touch fallback.
-- Tilt commands angular world velocity; neutral holds the current angle. Gentle input is precise, stronger sustained input permits complete rotation without inverting the phone.
+- Updated after physical-phone feedback: phone bank commands a calibrated absolute world angle (3× response, capped at ±180° from the calibrated anchor); a steady phone holds that angle. Keyboard/touch buttons retain angular-rate control. Calibration sets a flat horizon. Rotated gravity explicitly wakes sleeping dynamic bodies.
 - Stable map-space terrain, rotating gravity and matching rendered world transform. HUD remains upright. This is gravity manipulation, not centrifugal physics.
 - Fixed physics timestep, bounded catch-up, pause on hidden tab, bounded pixel ratio, FPS/frame-time/physics debug overlay.
 - Bicycle chassis, two jointed wheels, explicit vulnerable helmet, credible wheel braking. No automatic attachment to arbitrary surfaces. Designed lips/cradles support wheel catches.

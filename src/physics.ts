@@ -110,8 +110,19 @@ export async function createPhysics(): Promise<PhysicsGame> {
     if (!world || status !== 'playing' || !Number.isFinite(dt) || dt <= 0) return snapshot();
     const start = performance.now();
     dt = Math.min(dt, 1 / 30);
-    angle += clamp(Number.isFinite(controls.tilt) ? controls.tilt : 0, -1, 1) * .95 * dt;
-    world.gravity = { x: GRAVITY * Math.sin(angle), y: -GRAVITY * Math.cos(angle) };
+    if (typeof controls.worldAngle === 'number' && Number.isFinite(controls.worldAngle)) {
+      const difference = controls.worldAngle - angle, maxRotation = 2.5 * dt;
+      angle = Math.abs(difference) <= maxRotation ? controls.worldAngle : angle + Math.sign(difference) * maxRotation;
+    } else {
+      angle += clamp(Number.isFinite(controls.tilt) ? controls.tilt : 0, -1, 1) * .95 * dt;
+    }
+    const gravity = { x: GRAVITY * Math.sin(angle), y: -GRAVITY * Math.cos(angle) };
+    if (Math.abs(gravity.x - world.gravity.x) > 1e-7 || Math.abs(gravity.y - world.gravity.y) > 1e-7) {
+      world.gravity = gravity;
+      // Rapier does not wake sleeping bodies when world gravity changes.
+      // Include props and jointed swings as well as every part of the bike.
+      world.forEachRigidBody(body => { if (body.isDynamic()) body.wakeUp(); });
+    }
     world.timestep = dt;
     frame.resetTorques(false);
     for (const wheel of wheels) {

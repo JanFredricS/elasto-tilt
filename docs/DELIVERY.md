@@ -16,10 +16,10 @@ Live game: https://janfredrics.github.io/elasto-tilt/
 ## Verification
 
 - TypeScript check and production build pass.
-- Vitest runner reports 51 successful cases: **49 genuine passing assertions and 2 explicitly expected failures documenting the known passive-carry bug**. Those expected failures are not acceptance passes.
+- Vitest runner reports 58 successful cases: **56 passing test cases and 2 explicitly expected failures documenting the known passive-carry bug**. Those expected failures are not acceptance passes.
 - All ten maps complete with every apple through deterministic scripted controllers running actual Rapier physics.
 - Clockwork completes with forward/reverse travel. Freezing its lift and removing the backward leg each prevent the tested controller from completing; this is route evidence, not a proof about all possible solutions.
-- **All 15 Chrome browser tests pass** in the final combined run (about 1.7 minutes). They cover startup, actual movement, pause/reset, all spawns, completion/unlocking/save reload, menus/pointer cancellation, responsive layout, representative puzzle playthroughs and renderer teardown.
+- **All 16 Chrome browser tests pass** after the mobile gravity fix (about 1.9 minutes). They cover startup, actual movement, pause/reset, all spawns, completion/unlocking/save reload, menus/pointer cancellation, responsive layout, representative puzzle playthroughs and renderer teardown. The new phone regression waits ten seconds before tilting, verifies bicycle motion and a steady world angle, then returns to level using synthetic orientation events.
 - Independent Sol browser validation completes Clockwork, Escher, Hanging Garden, Pendulum Mill and Gravity Engine. The Escher browser route turns through approximately 180°; a full 360° visual/phone run is not claimed.
 - Repeated 120-frame desktop Chrome landscape samples measured median/p95 frame intervals of 16.7 ms, approximately 60 FPS; the maximum observed physics step in the final run was 1.1 ms. These are short desktop samples, not a phone performance guarantee.
 - The production bundle does not contain the development `__NEWTON__` control hook.

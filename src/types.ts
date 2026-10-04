@@ -14,7 +14,13 @@ export interface Level {
   timeAxis?: Vec; timeTravel?: number; initialAngle?: number;
   accent?: string; difficulty: number;
 }
-export interface Controls { tilt: number; brake: boolean }
+export interface Controls {
+  /** Keyboard/touch rotation rate, used when no phone angle target is supplied. */
+  tilt: number;
+  brake: boolean;
+  /** Calibrated phone pose in radians. Holding this value must not keep spinning. */
+  worldAngle?: number;
+}
 export interface BodyView extends Vec { id: string; angle: number; w: number; h: number; kind: 'frame' | 'wheel' | 'head' | 'prop' | 'swing' | 'time'; shape: 'box' | 'ball'; inverted?: boolean }
 export interface Snapshot {
   bodies: BodyView[]; bike: Vec; worldAngle: number; collected: string[];
@@ -28,12 +34,12 @@ export interface PhysicsGame {
   destroy(): void;
 }
 export interface InputController {
-  read(dt: number): Controls;
+  read(dt: number, currentWorldAngle?: number): Controls;
   enableMotion(): Promise<string>;
   calibrate(): void;
   setBrake(pressed: boolean): void;
   setTouchTilt(value: number): void;
-  reset(): void;
+  reset(worldAngle?: number): void;
   destroy(): void;
   readonly mode: string;
 }
