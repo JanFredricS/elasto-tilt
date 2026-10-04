@@ -1,6 +1,4 @@
 import RAPIER from '@dimforge/rapier2d-compat';
-import { BIKE_AXLE_X, BIKE_AXLE_Y, BIKE_FRAME_HALF_HEIGHT, BIKE_FRAME_HALF_WIDTH,
-  BIKE_HEAD_OFFSET, BIKE_HEAD_RADIUS, BIKE_WHEEL_RADIUS } from './bike-geometry';
 import { carriedTravel, RouteClock } from './physics-time';
 import type { BodyView, Controls, Level, PhysicsGame, Snapshot, Vec } from './types';
 
@@ -13,9 +11,10 @@ let initialized: Promise<void> | undefined;
 type RenderBody = { body: RAPIER.RigidBody; view: Omit<BodyView, 'x' | 'y' | 'angle'>; offset?: Vec };
 type Tag = { kind: 'bike' | 'helmet' | 'hazard' | 'apple' | 'exit' | 'time' | 'environment'; id: string };
 
-/** Spawn denotes frame centre. Geometry matches the approved compact artwork. */
+/** Spawn denotes frame centre. Wheel radius .34, axles (+/-.70, -.36), head (.126126126, .795). */
 export async function createPhysics(): Promise<PhysicsGame> {
   await (initialized ??= RAPIER.init());
+  const visibleHead = new RAPIER.Ball(.231);
   let world: RAPIER.World | undefined;
   let queue: RAPIER.EventQueue | undefined;
   let level: Level;
@@ -37,6 +36,11 @@ export async function createPhysics(): Promise<PhysicsGame> {
     const collider = world!.createCollider(desc.setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS), body);
     tags.set(collider.handle, tag);
     return collider;
+  };
+  const headPosition = () => {
+    const centre = frame.translation(), rotation = frame.rotation();
+    return { x: centre.x + Math.cos(rotation) * .126126126 - Math.sin(rotation) * .795,
+      y: centre.y + Math.sin(rotation) * .126126126 + Math.cos(rotation) * .795 };
   };
   const free = () => { queue?.free(); world?.free(); queue = undefined; world = undefined; };
   const snapshot = (): Snapshot => ({
@@ -66,36 +70,21 @@ export async function createPhysics(): Promise<PhysicsGame> {
       { kind: surface.kind === 'hazard' ? 'hazard' : 'environment', id: surface.id });
     frame = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(next.spawn.x, next.spawn.y)
       .setLinearDamping(.08).setAngularDamping(.12).setCcdEnabled(true));
-    // Keep the former support-width / mass-height ratio as the wheelbase shrinks.
-    // This is a mass distribution, not an extra collider or a stabilizing force.
-    const frameMass = 2.5, wheelMass = .65, headMass = .35;
-    const totalMass = frameMass + wheelMass * 2 + headMass;
-    const oldCentreY = (wheelMass * 2 * BIKE_AXLE_Y + headMass * BIKE_HEAD_OFFSET.y) / totalMass;
-    const groundY = BIKE_AXLE_Y - BIKE_WHEEL_RADIUS;
-    const centreY = groundY + (oldCentreY - groundY) * BIKE_AXLE_X / .7;
-    const frameCentreY = (centreY - oldCentreY) * totalMass / frameMass;
-    // Preserve the former total angular inertia after both mass-position changes.
-    const frameInertia = frameMass * (.58 ** 2 + .12 ** 2) / 3
-      + 2 * wheelMass * (.7 ** 2 - BIKE_AXLE_X ** 2)
-      - frameMass * frameCentreY ** 2 + totalMass * (centreY ** 2 - oldCentreY ** 2);
-    bikeColliders.push(register(RAPIER.ColliderDesc.cuboid(BIKE_FRAME_HALF_WIDTH, BIKE_FRAME_HALF_HEIGHT)
-      .setMassProperties(frameMass, { x: 0, y: frameCentreY }, frameInertia).setFriction(.55)
+    bikeColliders.push(register(RAPIER.ColliderDesc.cuboid(.58, .12).setMass(2.5).setFriction(.55)
       .setCollisionGroups(BIKE_GROUP), frame, { kind: 'bike', id: 'frame' }));
-    bikeColliders.push(register(RAPIER.ColliderDesc.ball(BIKE_HEAD_RADIUS)
-      .setTranslation(BIKE_HEAD_OFFSET.x, BIKE_HEAD_OFFSET.y).setMass(headMass)
-      .setCollisionGroups(BIKE_GROUP), frame, { kind: 'helmet', id: 'head' }));
-    renderBodies.push({ body: frame, view: { id: 'frame', w: BIKE_AXLE_X * 2, h: .72, kind: 'frame', shape: 'box' } });
-    renderBodies.push({ body: frame, offset: BIKE_HEAD_OFFSET,
-      view: { id: 'head', w: BIKE_HEAD_RADIUS * 2, h: BIKE_HEAD_RADIUS * 2, kind: 'head', shape: 'ball' } });
-    for (const [i, x] of [-BIKE_AXLE_X, BIKE_AXLE_X].entries()) {
-      const wheel = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(next.spawn.x + x, next.spawn.y + BIKE_AXLE_Y)
+    // Original upper-body collider retains mass, contact response and apple reach.
+    bikeColliders.push(register(RAPIER.ColliderDesc.ball(.21).setTranslation(.10, .69).setMass(.35)
+      .setCollisionGroups(BIKE_GROUP), frame, { kind: 'helmet', id: 'neck' }));
+    renderBodies.push({ body: frame, view: { id: 'frame', w: 1.4, h: .72, kind: 'frame', shape: 'box' } });
+    renderBodies.push({ body: frame, offset: { x: .126126126, y: .795 }, view: { id: 'head', w: .462, h: .462, kind: 'head', shape: 'ball' } });
+    for (const [i, x] of [-.7, .7].entries()) {
+      const wheel = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(next.spawn.x + x, next.spawn.y - .36)
         .setAngularDamping(.015).setCcdEnabled(true));
-      bikeColliders.push(register(RAPIER.ColliderDesc.ball(BIKE_WHEEL_RADIUS).setMass(wheelMass).setFriction(1.5)
+      bikeColliders.push(register(RAPIER.ColliderDesc.ball(.34).setMass(.65).setFriction(1.5)
         .setCollisionGroups(BIKE_GROUP), wheel, { kind: 'bike', id: `wheel-${i}` }));
-      world.createImpulseJoint(RAPIER.JointData.revolute({ x, y: BIKE_AXLE_Y }, { x: 0, y: 0 }), frame, wheel, true);
+      world.createImpulseJoint(RAPIER.JointData.revolute({ x, y: -.36 }, { x: 0, y: 0 }), frame, wheel, true);
       wheels.push(wheel);
-      renderBodies.push({ body: wheel,
-        view: { id: `wheel-${i}`, w: BIKE_WHEEL_RADIUS * 2, h: BIKE_WHEEL_RADIUS * 2, kind: 'wheel', shape: 'ball' } });
+      renderBodies.push({ body: wheel, view: { id: `wheel-${i}`, w: .68, h: .68, kind: 'wheel', shape: 'ball' } });
     }
     for (const apple of next.apples) register(RAPIER.ColliderDesc.ball(.4).setTranslation(apple.x, apple.y)
       .setSensor(true).setCollisionGroups(SENSOR_GROUP), undefined, { kind: 'apple', id: apple.id });
@@ -153,7 +142,7 @@ export async function createPhysics(): Promise<PhysicsGame> {
     frame.resetTorques(false);
     if (controls.brake && !brakeAngles) brakeAngles = wheels.map(wheel => wheel.rotation() - frame.rotation());
     if (!controls.brake) brakeAngles = undefined;
-    const brakeLimit = (frame.mass() + wheels.reduce((sum, wheel) => sum + wheel.mass(), 0)) * GRAVITY * BIKE_WHEEL_RADIUS * 2;
+    const brakeLimit = (frame.mass() + wheels.reduce((sum, wheel) => sum + wheel.mass(), 0)) * GRAVITY * .34 * 2;
     for (const [index, wheel] of wheels.entries()) {
       wheel.resetTorques(false);
       if (brakeAngles) {
@@ -202,6 +191,7 @@ export async function createPhysics(): Promise<PhysicsGame> {
       platform.lastTravel = (next.x - previous.x) * axis.x + (next.y - previous.y) * axis.y;
       platform.body.setNextKinematicTranslation(next);
     }
+    const previousHead = headPosition();
     world.step(queue);
     elapsed += dt;
     queue!.drainCollisionEvents((a, b, started) => {
@@ -214,6 +204,13 @@ export async function createPhysics(): Promise<PhysicsGame> {
       if (other.kind === 'apple') collected.add(other.id);
       else if (other.kind === 'hazard' || (bike.kind === 'helmet' && other.kind !== 'exit')) status = 'crashed';
     });
+    // A shape query extends the vulnerable head without adding a collider that
+    // would perturb the original assembly's mass/contact solver or apple reach.
+    const headCentre = headPosition();
+    const headTravel = { x: headCentre.x - previousHead.x, y: headCentre.y - previousHead.y };
+    const headHit = world.castShape(previousHead, 0, headTravel, visibleHead, 0, 1, true,
+      RAPIER.QueryFilterFlags.EXCLUDE_SENSORS, (2 << 16) | 1, undefined, frame);
+    if (headHit) status = 'crashed';
     // Test exit occupancy every step so collecting the last apple inside it still completes.
     if (status === 'playing' && collected.size === level.apples.length) {
       for (const collider of bikeColliders) world.intersectionPairsWith(collider, other => {

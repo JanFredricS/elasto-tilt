@@ -1,7 +1,7 @@
 import { Container, Sprite, Texture } from 'pixi.js';
 import artwork from './assets/natural-philosopher.svg?raw';
 
-/** Rasterize the approved vectors once at more than twice the maximum display
+/** Rasterize the philosopher vectors once at more than twice the maximum display
  * resolution. Separate wheels retain their real physics rotation; nothing is
  * stretched or redrawn on the animation loop. SVG coordinates are 100 per metre. */
 export async function createRiderArt() {
@@ -29,8 +29,8 @@ export async function createRiderArt() {
     return container;
   }
   const [body, head, rearWheel, frontWheel] = await Promise.all([
-    part(['rider-far', 'frame', 'rider'], [-97, -98, 194, 176]),
-    part(['head'], [-22, -22, 44, 44], true),
+    part(['rider-far', 'frame', 'rider'], [-110, -120, 220, 200]),
+    part(['head'], [-25, -25, 50, 50], true),
     part(['rear-wheel'], [-35, -35, 70, 70], true),
     part(['front-wheel'], [-35, -35, 70, 70], true),
   ]);

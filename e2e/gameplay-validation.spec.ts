@@ -122,6 +122,8 @@ for (const [index, name] of names.entries()) {
   });
 }
 
+test.describe('touch controls', () => {
+  test.use({ hasTouch: true });
 test('landscape touch holds release and warm frame samples stay finite', async ({ page }) => {
   await page.setViewportSize({ width: 844, height: 390 });
   await page.goto('/?debug');
@@ -166,4 +168,6 @@ test('landscape touch holds release and warm frame samples stay finite', async (
   expect(sample.frames).toBe(120);
   expect(Number.isFinite(sample.p95 + sample.median + sample.physicsMax)).toBe(true);
   expect(sample.p95).toBeLessThan(50);
+});
+
 });

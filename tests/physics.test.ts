@@ -16,26 +16,6 @@ function run(p: PhysicsGame, seconds: number, tilt = 0, brake = false) {
 }
 afterEach(() => { for (const p of games.splice(0)) p.destroy(); });
 describe('actual Rapier bicycle simulation', () => {
-  it('spawns the approved compact wheelbase with unchanged wheel and helmet sizes', async () => {
-    const p = await game();
-    const state = p.snapshot();
-    const [rear, front] = state.bodies.filter(b => b.kind === 'wheel');
-    expect(front.x - rear.x).toBeCloseTo(1.11, 5);
-    expect(rear.y - state.bike.y).toBeCloseTo(-.36, 5);
-    expect(front.w).toBe(.68);
-    const head = state.bodies.find(b => b.kind === 'head')!;
-    expect(head.x - state.bike.x).toBeCloseTo(.1, 5);
-    expect(head.y - state.bike.y).toBeCloseTo(.69, 5);
-    expect(head.w).toBe(.42);
-  });
-  it('clears a hazard outside the compact chassis while keeping chassis collisions', async () => {
-    const hazard = (x: number) => fixture({ surfaces: [
-      { id: 'tip', x, y: 2, w: .02, h: .01, kind: 'hazard' },
-    ] });
-    const outside = await game(hazard(.55)), inside = await game(hazard(.44));
-    expect(outside.step(1 / 120, { tilt: 0, brake: false }).status).toBe('playing');
-    expect(inside.step(1 / 120, { tilt: 0, brake: false }).status).toBe('crashed');
-  });
   it('keeps axles constrained through repeated full gravity rotations', async () => {
     const p = await game();
     for (let i = 0; i < 3000; i++) {
@@ -43,7 +23,7 @@ describe('actual Rapier bicycle simulation', () => {
       expect(state.status).toBe('playing');
       const frame = state.bodies.find(b => b.kind === 'frame')!;
       for (const [index, wheel] of state.bodies.filter(b => b.kind === 'wheel').entries()) {
-        const x = index === 0 ? -.555 : .555, y = -.36;
+        const x = index === 0 ? -.7 : .7, y = -.36;
         expect(Math.hypot(wheel.x - frame.x - Math.cos(frame.angle) * x + Math.sin(frame.angle) * y,
           wheel.y - frame.y - Math.sin(frame.angle) * x - Math.cos(frame.angle) * y)).toBeLessThan(.08);
       }
@@ -84,6 +64,22 @@ describe('actual Rapier bicycle simulation', () => {
     expect(run(helmet, .05).status).toBe('crashed');
     const hazard = await game(fixture({ spawn: { x: 0, y: .7 }, surfaces: [{ id: 'hazard', x: 0, y: -.1, w: 4, h: .2, kind: 'hazard' }] }));
     expect(run(hazard, .1).status).toBe('crashed');
+  });
+  it('the taller visible hair can hit a low ceiling while clear space remains safe', async () => {
+    // Above the old head's 2.90 m top, but inside the philosopher's visible crown.
+    const crown = await game(fixture({ surfaces: [{ id: 'crown-edge', x: .126, y: 3.015, w: .08, h: .02 }] }));
+    const clear = await game(fixture({ surfaces: [{ id: 'clear-roof', x: .126, y: 3.08, w: .08, h: .02 }] }));
+    expect(run(crown, 1 / 120).status).toBe('crashed');
+    expect(run(clear, 1 / 120).status).toBe('playing');
+  });
+  it('the raised head catches a thin obstacle during fast inverted flight', async () => {
+    // The obstacle grazes the new crown's right edge, outside the old head.
+    const p = await game(fixture({ spawn: { x: 0, y: 0 }, initialAngle: Math.PI,
+      surfaces: [{ id: 'thin-head-edge', x: .35, y: 10.03, w: .01, h: .01 }] }));
+    let state = p.snapshot();
+    for (let i = 0; i < 120 && state.status === 'playing'; i++) state = p.step(1 / 60, { tilt: 0, brake: false });
+    expect(state.status, JSON.stringify(state.bodies.filter(b => b.kind === 'head' || b.kind === 'frame'))).toBe('crashed');
+    expect(state.bike.y).toBeLessThan(10);
   });
   it('inverted props accelerate opposite ordinary props and swing length stays constrained', async () => {
     const p = await game(fixture({ props: [

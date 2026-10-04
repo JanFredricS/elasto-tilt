@@ -14,6 +14,8 @@ export interface Level {
   bounds: { min: Vec; max: Vec }; swings?: Swing[]; props?: Prop[];
   portals?: Portal[]; timePlatforms?: TimePlatform[]; routeHints?: RouteHint[];
   timeAxis?: Vec; timeTravel?: number; initialAngle?: number;
+  /** Normal riding view only; verticalOffset is a fraction of viewport height. */
+  camera?: { zoom: number; verticalOffset?: number };
   accent?: string; difficulty: number;
 }
 export interface Controls {

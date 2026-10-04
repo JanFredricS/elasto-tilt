@@ -1,11 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="776" height="704" viewBox="-97 -98 194 176" fill="none" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="800" viewBox="-110 -120 220 200" fill="none" role="img" aria-labelledby="title description">
   <title id="title">Newton's Ride — the Natural Philosopher</title>
-  <desc id="description">An ivory-haired natural philosopher in a cropped teal coat rides a compact coral bicycle with brass fittings. The round wheels and shorter wheelbase follow the selected concept's proportions.</desc>
-  <!-- Approved compact artwork. 100 SVG units = 1 physics metre.
-       Wheel centres: (+/-55.5,36), outer radius 33.95.
-       Head centre: (10,-69), artwork radius below 21. -->
+  <desc id="description">An ivory-haired natural philosopher in a cropped teal coat rides a coral bicycle with a taller seated posture with brass fittings. Round wheels keep the original game wheelbase; the taller rider retains the approved curls and smile.</desc>
+  <!-- Original 1.4 m wheelbase, taller philosopher. 100 SVG units = 1 metre.
+       Wheel centres: (+/-70,36), outer radius 33.95.
+       Head centre: (12.6126126,-79.5), artwork radius below 23.1. -->
 
-  <g id="rear-wheel" transform="translate(-55.5 36)">
+  <g id="rear-wheel" transform="translate(-70 36)">
     <circle r="33.95" fill="#203B48"/>
     <circle r="29.4" fill="#FFF5E7"/>
     <circle r="30.5" stroke="#8DADA9" stroke-width="1.1"/>
@@ -13,7 +13,7 @@
     <circle r="4.1" fill="#C8AA6A" stroke="#203B48" stroke-width="1.1"/>
     <circle r="1.3" fill="#F5DFAB"/>
   </g>
-  <g id="front-wheel" transform="translate(55.5 36)">
+  <g id="front-wheel" transform="translate(70 36)">
     <circle r="33.95" fill="#203B48"/>
     <circle r="29.4" fill="#FFF5E7"/>
     <circle r="30.5" stroke="#8DADA9" stroke-width="1.1"/>
@@ -23,7 +23,7 @@
   </g>
 
   <!-- Far limbs sit behind the bicycle for clear overlap. -->
-  <g id="rider-far">
+  <g id="rider-far" transform="translate(0 -3.6) scale(1.261261261 1.1)">
     <g id="far-leg">
       <path id="far-breeches" d="M-33-27Q-25-28-18-22L-7-12Q-1-7-4 1L-7 6Q-12 9-17 4L-24-2L-38-16Q-42-23-33-27Z" fill="#345A61"/>
       <path id="far-stocking" d="M-15 5Q-11 8-6 5L-14 25Q-15 29-20 28L-24 25L-18 11Z" fill="#D8DACA"/>
@@ -35,7 +35,7 @@
     </g>
   </g>
 
-  <g id="frame" stroke-linejoin="round" stroke-linecap="round">
+  <g id="frame" transform="translate(0 -3.6) scale(1.261261261 1.1)" stroke-linejoin="round" stroke-linecap="round">
     <g id="chain">
       <path d="M-55.5 34L-7 37Q-1 37-1 42Q-1 47-7 47L-55.5 38" stroke="#A6A48D" stroke-width=".9"/>
     </g>
@@ -54,7 +54,7 @@
     <path id="near-pedal" d="M-6 45L9 45" stroke="#203B48" stroke-width="2.6"/>
   </g>
 
-  <g id="rider">
+  <g id="rider" transform="translate(0 -3.6) scale(1.261261261 1.1)">
     <g id="near-leg">
       <path id="breeches" d="M-32-29Q-23-31-16-23L3-11Q10-7 7 2L5 8Q0 12-7 8L-14 1L-33-12Q-41-18-32-29Z" fill="#203B48"/>
       <path d="M-29-23L-8-9Q1-5 1 3" stroke="#41636B" stroke-width="1.2" stroke-linecap="round"/>
@@ -86,7 +86,8 @@
 
   <!-- The hair has its own scalloped contour, not a circular clipping mask.
        The crown and three hanging locks remain inside the head collider. -->
-  <g id="head" transform="translate(10 -69)">
+  <g id="head" transform="translate(12.6126126 -79.5)">
+    <g transform="scale(1.1)">
       <path id="face" d="M-3-10Q6-16 15-10L16-4L19 1L15 3L15 8Q12 15 6 16L-1 12L-7 5Z" fill="#F1CDAC" stroke="#203B48" stroke-width="1.3" stroke-linejoin="round"/>
       <path id="hair" d="M16-10C14-15 10-17 6-17C4-20-2-20-5-17C-10-18-13-14-13-11C-17-13-20-7-16-4C-20-4-21 2-17 5C-20 10-13 14-10 10C-13 16-4 20-2 13C0 14 4 11 2 7C7 5 6 0 3-2C4-7 9-10 16-10Z" fill="#FFF5E7" stroke="#203B48" stroke-width="1.25" stroke-linejoin="round"/>
       <path id="back-curl" d="M-16-4Q-12-5-11-1" stroke="#203B48" stroke-width="1.05" stroke-linecap="round"/>
@@ -95,5 +96,6 @@
       <path d="M6-7Q10-9 14-7" stroke="#203B48" stroke-width="1.2" stroke-linecap="round"/>
       <ellipse cx="12" cy="-3.5" rx="1.1" ry="1.55" fill="#203B48"/>
       <path id="smile" d="M6.5 6.8Q10 8.2 14.3 5.6Q13 11.7 9.2 10.1Q7.4 9.3 6.5 6.8Z" fill="#FFF5E7" stroke="#9E6250" stroke-width=".75" stroke-linejoin="round"/>
+    </g>
   </g>
 </svg>

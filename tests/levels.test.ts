@@ -141,14 +141,17 @@ describe('authored campaign', () => {
     expect(orchard.exit.x).toBeLessThan(orchard.spawn.x);
   });
 
-  it('puts Escher objectives around nested rooms and on both sides of the shared gallery', () => {
+  it('puts Escher objectives along each tunnel face and on both sides of the shared gallery', () => {
     const escher = levels[6];
     const shared = escher.surfaces.find(s => s.id === 'escher-shared-floor-ceiling')!;
     expect(escher.apples.filter(a => a.x > shared.x - shared.w / 2 && a.x < shared.x + shared.w / 2 && a.y < shared.y)).toHaveLength(2);
     expect(escher.apples.some(a => a.y > shared.y && a.y < shared.y + 2)).toBe(true);
-    expect(escher.apples.some(a => a.x < 2 && a.y > 8)).toBe(true);
-    expect(escher.apples.some(a => a.x > 30 && a.y > 8)).toBe(true);
-    expect(escher.apples.some(a => a.y > 16)).toBe(true);
+    const east = escher.surfaces.find(s => s.id === 'escher-east-room')!;
+    const west = escher.surfaces.find(s => s.id === 'escher-west-room')!;
+    const roof = escher.surfaces.find(s => s.id === 'escher-upper-gallery')!;
+    expect(escher.apples.some(a => a.x < west.x + 2 && Math.abs(a.y - west.y) < west.h / 2)).toBe(true);
+    expect(escher.apples.some(a => a.x > east.x - 2 && Math.abs(a.y - east.y) < east.h / 2)).toBe(true);
+    expect(escher.apples.filter(a => a.y > roof.y - 2 && a.y < roof.y - roof.h / 2)).toHaveLength(2);
     expect(escher.exit.y).toBeGreaterThan(shared.y);
   });
 

@@ -82,3 +82,43 @@ Validation: 149 unit runner-success cases (147 acceptance passes and the two unc
 Astra authored map15 with four 11m rises, 7m vertical faces, 10m treads, and small local corner fillets. Eight apples require the climb; the starting door requires descending the same stairs. No physics changes or body manipulation. Root integrated the campaign, existing blue palette, replay and browser harness, and added discrete-button plus synthetic-phone input proofs. Native and rendered completion:159.783s,196.53m. Phone menu and overview pass.
 
 Fresh Astra-low review independently passes32 relevant tests and typechecking; one visual fix removed overlapping CLIMB/UP labels on phone by keeping only UP. Full157-case runner comprises155 acceptance passes and2 unchanged expected failures. Build passes. Evidence and remaining human/hardware limits are in `stairway.md` and `review-stairway.md`.
+
+
+## Desktop controls and iPhone screen guide — 2026-10-04
+
+Desktop pointer/hover capability now hides riding, motion and calibration buttons while retaining keyboard guidance, map and FPS controls. Touch devices keep their controls. Landscape iPhones receive a paused swipe guide once per page; SCREEN reopens it. A native upward page scroll can minimize Safari chrome; supported browsers request fullscreen from a user gesture. Dismissal resumes only the ride paused by this guide. Standalone launches skip it. Added manifest and Apple web-app metadata for Home Screen launch under the repository path.
+
+Two fresh-context review passes completed. First-pass portrait/retry findings were fixed by limiting SCREEN to landscape and resetting Continue on each opening. The second pass found no further source issues. Browser testing subsequently caught and fixed dismissal before the next animation frame. Five focused browser tests pass, including genuine Chromium touch scrolling, desktop keyboard movement, installed mode, and fullscreen rejection. Eleven existing browser checks pass (maps boot, touch release, motion/calibration, map overview and viewport bounds). All 161 unit/physics cases and the production build pass.
+
+Residual: physical iPhone Safari toolbar collapse and installed launch still need device validation. Chromium phone emulation verifies native page scrolling and interface lifecycle, not Safari's toolbar policy. The guide explicitly offers Safari Hide Toolbar and Add to Home Screen rather than claiming that a swipe guarantees fullscreen. The separate Natural Philosopher draft is not included in this deployment.
+
+## Taller philosopher on original wheelbase — 2026-10-04
+
+Integrated the philosopher on the original 1.4 m axle spacing with a taller body and larger head. Preserved original mass, brakes, wheel radii, and apple reach, and added a matching visible-head collision query. Full 161-case campaign suite passes without map or pilot edits; the added crown-clearance and fast inverted-flight regressions also pass (163 total). The head check sweeps between physics steps, addressing the second Sol review finding. See `rider-integration.md` for validation and review limitations. Sol generated four start-page illustration variants under `docs/design/newton-start/`; these remain options for user selection.
+
+
+## Map 7: visible circular tunnel — 2026-10-04
+
+Astra lowered Escher’s outer roof from 18 m to 14 m and replaced the distant interior architecture with a continuous lining around all four rounded turns. The passage is approximately 2.4 m high; the shared slab remains the entry ceiling and the final terrace floor. All eight apples and the return door remain, with the wall and roof apples moved with their surfaces. A level-specific camera widens the riding view by 10% and shifts the rider slightly down so the approaching roof stays visible. Other maps retain the previous camera defaults.
+
+Native replay completes in 75.442 seconds over 110.812 m, reaching 6.296 radians of world rotation. The full 163-case unit suite passes after replacing obsolete absolute-height assertions with checks against the actual wall and roof surfaces. TypeScript and the Pages build pass. A new rendered phone test completes all eight apples, recording portrait/landscape entry, first bend, ceiling and return bend screenshots. Four existing map-overview checks also pass.
+
+Fresh Astra-low review inspected geometry, rider clearance, camera defaults and all route screenshots; no blocking findings or source fix cycles were required. Minor existing HUD overlap with architecture remains, but the rider and tunnel edges stay visible. Browser emulation does not establish physical-phone sensor feel. The final assertion correction checks the same face-placement contract against the intentionally lowered geometry.
+
+
+## Pendulum Mill and illustrated welcome — 2026-10-04
+
+Fresh-context Astra medium widened both map 4 openings to 5 m while retaining bicycle-sized 2.8 m decks, smaller gaps than the Hanging Garden. Longer 6 m and 7.5 m suspensions with finite damping give both seats room and time to carry the braked rider. The demonstration calls each cradle, boards, holds brake through the transfer and rolls off. Both-wheel carriage is continuous over 1.782 m and 1.853 m; the complete six-apple route measures 76.90 s / 103.68 m. Independent frozen and removed-seat trials fail for each crossing under the successful recorded inputs. Shared physics and other map geometry are unchanged. See `pendulum-mill.md`.
+
+Sol recreated the selected seated Newton illustration in actual SVG paths and shapes, mirrored with the bicycle to the left and Newton to the right. The welcome page places Newton’s Ride and its start action on the left, illustration on the right, and the fifteen-map selection below. Portrait stacks the hero and uses two map columns; landscape preserves the side-by-side hero. Existing action labels, saved progression, keyboard focus and disabled-map behavior remain.
+
+Independent map review passed 18 focused native cases. The full suite passes all 167 cases; typechecking and Pages build pass. The rendered phone Mill route completes and matches the native carriage measurements. Twelve existing browser checks also pass, covering start/menu, saved unlocks, all map spawns, three viewport layouts, desktop controls and the iPhone screen guide. Independent illustration/UI review passed after one bounded fix cycle corrected clipped wheel bounds, upward gaze and narrow-screen layout. Source contains no embedded raster. Welcome evidence is saved as `evidence/welcome-desktop.png`, `welcome-portrait.png`, and `welcome-landscape.png`; both Mill transfers have their own screenshots.
+
+Residuals: the SVG is a stylized recreation of the selected artwork. Wheel support is measured geometrically; tests establish the demonstrated cradle route, not every possible trajectory. Human boarding comfort and physical iPhone sensor feel still require device play.
+
+
+## Original welcome artwork — 2026-10-04
+
+The user rejected the SVG recreation as unlike the selected illustration. The welcome page now uses the exact original 1280×714 JPEG, verified byte-for-byte against the attachment. CSS frames out its white margins and mirrors the scene so Newton remains on the right; no artwork was redrawn or resampled. The unused SVG recreation was removed. Paragraph widths are explicitly constrained to their column to avoid the mobile clipping reported in the user's screenshot.
+
+Independent visual/source review passes. Browser checks at 1440×1000, 390×844, 844×390 and 320×568 confirm original image loading, complete artwork framing, no text overflow, and working start/pause/return-to-menu. TypeScript and the Pages build pass. Welcome screenshots were refreshed. No gameplay changes.
