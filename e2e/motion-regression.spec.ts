@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { bankOffset } from '../src/input';
 
+test.use({ hasTouch: true });
+
 test('phone tilt wakes a resting bike, holds an angle, and returns to level', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => {

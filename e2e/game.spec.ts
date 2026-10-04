@@ -38,6 +38,8 @@ test('each map loads with finite bodies and survives an idle second', async ({ p
   }
 });
 
+test.describe('touch controls', () => {
+  test.use({ hasTouch: true });
 test('visible start, touch release, campaign return and debug toggle work', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /LET’S RIDE/ }).click();
@@ -59,6 +61,8 @@ test('visible start, touch release, campaign return and debug toggle work', asyn
   await page.getByRole('button', { name: /LET’S RIDE/ }).click();
   await page.keyboard.press('KeyF');
   await expect(page.getByText('PERFORMANCE', { exact: true })).toBeVisible();
+});
+
 });
 
 test('finishing Orchard unlocks the next room and persists across reload', async ({ page }) => {

@@ -82,3 +82,12 @@ Validation: 149 unit runner-success cases (147 acceptance passes and the two unc
 Astra authored map15 with four 11m rises, 7m vertical faces, 10m treads, and small local corner fillets. Eight apples require the climb; the starting door requires descending the same stairs. No physics changes or body manipulation. Root integrated the campaign, existing blue palette, replay and browser harness, and added discrete-button plus synthetic-phone input proofs. Native and rendered completion:159.783s,196.53m. Phone menu and overview pass.
 
 Fresh Astra-low review independently passes32 relevant tests and typechecking; one visual fix removed overlapping CLIMB/UP labels on phone by keeping only UP. Full157-case runner comprises155 acceptance passes and2 unchanged expected failures. Build passes. Evidence and remaining human/hardware limits are in `stairway.md` and `review-stairway.md`.
+
+
+## Desktop controls and iPhone screen guide — 2026-10-04
+
+Desktop pointer/hover capability now hides riding, motion and calibration buttons while retaining keyboard guidance, map and FPS controls. Touch devices keep their controls. Landscape iPhones receive a paused swipe guide once per page; SCREEN reopens it. A native upward page scroll can minimize Safari chrome; supported browsers request fullscreen from a user gesture. Dismissal resumes only the ride paused by this guide. Standalone launches skip it. Added manifest and Apple web-app metadata for Home Screen launch under the repository path.
+
+Two fresh-context review passes completed. First-pass portrait/retry findings were fixed by limiting SCREEN to landscape and resetting Continue on each opening. The second pass found no further source issues. Browser testing subsequently caught and fixed dismissal before the next animation frame. Five focused browser tests pass, including genuine Chromium touch scrolling, desktop keyboard movement, installed mode, and fullscreen rejection. Eleven existing browser checks pass (maps boot, touch release, motion/calibration, map overview and viewport bounds). All 161 unit/physics cases and the production build pass.
+
+Residual: physical iPhone Safari toolbar collapse and installed launch still need device validation. Chromium phone emulation verifies native page scrolling and interface lifecycle, not Safari's toolbar policy. The guide explicitly offers Safari Hide Toolbar and Add to Home Screen rather than claiming that a swipe guarantees fullscreen. The separate Natural Philosopher draft is not included in this deployment.
