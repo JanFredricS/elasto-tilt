@@ -1,6 +1,6 @@
 # Redesigned campaign routes
 
-This replaces the short original routes. Coordinates are metres, positive y up. All fourteen have real Rapier replays that collect every apple and reach the exit using normal control commands. Timing below measures controlled demonstrations, not a forced minimum or speedrun record. Earlier review documents describe the superseded first layouts.
+This replaces the short original routes. Coordinates are metres, positive y up. All fifteen have real Rapier replays that collect every apple and reach the exit using normal control commands. Timing below measures controlled demonstrations, not a forced minimum or speedrun record. Earlier review documents describe the superseded first layouts.
 
 | Map | Route | Apples | Demonstrated distance / time |
 | --- | --- | --- | --- |
@@ -18,6 +18,7 @@ This replaces the short original routes. Coordinates are metres, positive y up. 
 | Spiral Sanctuary | More than two inward circular turns, two airborne gap crossings, central door. | 9 | 192 m / 95 s |
 | Switchback Scaffold | Wall climb, free-air somersault, wheels-on-top landing, upper-storey return. | 6 | 182 m / 108 s |
 | The Hidden Way Home | Two opposing wall jumps, final wall apple, inverted ascent to a hidden ledge, original door. | 6 | about 387 m / 132 s |
+| Stairway to Heaven | Four giant steps: turn onto each vertical riser, ease over each crest, collect the summit apple, and descend home. | 8 | 197 m / 160 s |
 
 The map 2 correction and measured one-wheel apple collection are documented in [one-wheel-fix.md](one-wheel-fix.md).
 
@@ -30,3 +31,5 @@ Browser gameplay evidence is recorded independently in [gameplay-v2.md](gameplay
 Design reference: Elasto Mania’s traversal, balance, and collectible-route tradition; see the [official game page](https://elastomania.com/index.html) and [community level overview](https://www.pcgamer.com/how-a-17-year-old-community-is-keeping-elasto-mania-alive/). All terrain and artwork here are original.
 
 Expansion route details and control coverage: [flip and spiral](flip-spiral.md), [scaffold and chasm](tower-chasm.md), [rendered validation](expansion-gameplay.md).
+
+[Stairway to Heaven](stairway.md) adds demonstrated contact on every riser, tread and local corner, including the return descent.

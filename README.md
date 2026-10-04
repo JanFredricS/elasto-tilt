@@ -6,7 +6,7 @@ A mobile-first bicycle physics puzzle. Tilt the world, brake to pivot, collect N
 
 Every push to `main` runs the physics/campaign tests, builds the game, and deploys it over HTTPS. Deployment status is available in [GitHub Actions](https://github.com/JanFredricS/elasto-tilt/actions/workflows/pages.yml). A failed test or build leaves the previous deployment live. The workflow can also be run manually.
 
-This is a playable prototype with fourteen scripted, physics-validated routes. Advanced hanging transfers and some mechanism puzzles remain design work. Physical phone testing is still required. See [delivery and residuals](docs/DELIVERY.md).
+This is a playable prototype with fifteen scripted, physics-validated routes. Advanced hanging transfers and some mechanism puzzles remain design work. Physical phone testing is still required. See [delivery and residuals](docs/DELIVERY.md).
 
 ## Run
 
@@ -50,6 +50,8 @@ Progress saves locally on the current browser. There is no account or server req
 The first ten redesigned routes span 74–119 metres in successful controlled replays, lasting roughly 45–81 seconds. They include rolling terraces, return detours, compact pendulums, and nested galleries. The Escher map turns through all four gravity faces and returns onto the floor that was previously the entry ceiling, using readable planar collision geometry. Selected final-map objects follow a reversible authored timeline while the bicycle remains live. This is not arbitrary backwards rigid-body simulation.
 
 Four additional routes ride around the same platform onto its underside, wind inward through a circular spiral with two real gaps, somersault between scaffold tiers, and chain opposing wall jumps into an inverted ascent back to the starting door. Their rendered demonstrations take about 31–132 seconds. See [expansion gameplay evidence](docs/expansion-gameplay.md).
+
+**Map 15 — Stairway to Heaven** adds four 11-metre steps. Ride each vertical face, ease over the 90° crest, gather eight apples and descend to the starting door. Its demonstrated route takes about 2 minutes 40 seconds. See [stairway evidence](docs/stairway.md).
 
 Time platforms have a reversible target and a speed-limited physical position. After fast travel, a platform may briefly continue catching up when the bicycle stops. The clock saturates at its endpoints.
 

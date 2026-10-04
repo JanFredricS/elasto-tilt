@@ -1,8 +1,9 @@
+import { levels } from '../src/levels';
 import { expect, test } from '@playwright/test';
 
 const maps = [
   [10, 'underside-return'], [11, 'spiral-sanctuary'],
-  [12, 'switchback-scaffold'], [13, 'the-hidden-way-home'],
+  [12, 'switchback-scaffold'], [13, 'the-hidden-way-home'], [14, 'stairway-to-heaven'],
 ] as const;
 for (const [index, id] of maps) {
   test(`${id} completes through the rendered campaign`, async ({ page }) => {
@@ -13,6 +14,7 @@ for (const [index, id] of maps) {
     await page.waitForFunction(() => Boolean((window as any).__NEWTON__));
     await page.evaluate(i => (window as any).__NEWTON__.load(i), index);
     await page.getByRole('button', { name: 'View whole map' }).click();
+    await page.waitForTimeout(250); // Allow Pixi text textures and the overview transform to settle.
     await page.screenshot({ path: `docs/evidence/${id}-overview.png` });
     await page.getByRole('button', { name: 'Return to riding' }).click();
     await page.evaluate(async campaignIndex => {
@@ -59,7 +61,15 @@ for (const [index, id] of maps) {
         return pilot(state);
       });
     }, index);
-    if (index > 10) {
+    if (index === 14) {
+      await page.waitForFunction(() => {
+        const state = (window as any).__NEWTON__.snapshot();
+        return state.bike.y > 3 && state.bike.y < 8 &&
+          state.bodies.some((body: any) => body.id === 'frame' && body.angle > 1.2);
+      }, undefined, { timeout: 60_000 });
+      await page.screenshot({ path: 'docs/evidence/stairway-wall-climb.png' });
+    }
+    if (index > 10 && index < 14) {
       await page.waitForFunction(() => (window as any).__expansionTrace.maxAirborne > .15 ||
         (window as any).__NEWTON__.snapshot().status !== 'playing', undefined, { timeout: 240_000 });
       await page.screenshot({ path: `docs/evidence/${id}-flight.png` });
@@ -71,21 +81,22 @@ for (const [index, id] of maps) {
     expect(state.status, JSON.stringify({ state, trace })).toBe('complete');
     expect(state.collected).toHaveLength(trace.total);
     expect(trace.distance).toBeGreaterThan(30);
-    if (index > 10) expect(trace.maxAirborne).toBeGreaterThan(.15);
+    if (index > 10 && index < 14) expect(trace.maxAirborne).toBeGreaterThan(.15);
     expect(errors).toEqual([]);
     console.log(`${id} rendered evidence`, JSON.stringify({ elapsed: state.elapsed, ...trace }));
   });
 }
 
-test('fourteen-map menu and route instructions fit a phone', async ({ page }) => {
+test('campaign menu and route instructions fit a phone', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.addInitScript(() => localStorage.setItem('newtons-ride.progress.v1', JSON.stringify({ unlocked: 14 })));
+  await page.addInitScript(count => localStorage.setItem('newtons-ride.progress.v1', JSON.stringify({ unlocked: count })), levels.length);
   await page.goto('/');
-  await expect(page.locator('.level-tile')).toHaveCount(14);
+  await expect(page.locator('.level-tile')).toHaveCount(levels.length);
   await page.locator('.level-tile').last().click();
-  await expect(page.locator('[data-ui="level-number"]')).toHaveText('14 / 14');
+  await expect(page.locator('[data-ui="level-number"]')).toHaveText(`${levels.length} / ${levels.length}`);
   await page.getByRole('button', { name: 'View whole map' }).click();
-  await page.screenshot({ path: 'docs/evidence/hidden-way-phone-overview.png' });
+  await page.waitForTimeout(250);
+  await page.screenshot({ path: 'docs/evidence/stairway-phone-overview.png' });
   await page.getByRole('button', { name: 'Return to riding' }).click();
   await page.getByRole('button', { name: 'Pause game' }).click();
   await expect(page.locator('[data-ui="state-copy"]')).not.toBeEmpty();

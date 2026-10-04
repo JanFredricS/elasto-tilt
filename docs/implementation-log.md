@@ -75,3 +75,10 @@ Fresh Astra-low physics review verified real terrain clearance and contact, all 
 UI review used two bounded fixes: screen-space arrow/label clearance, then moving the final ROTATE marker above its wall for phone overview readability. Final review and remaining limits are recorded in `review-expansion-ui.md` and `review-new-map-physics.md`.
 
 Validation: 149 unit runner-success cases (147 acceptance passes and the two unchanged expected failures); TypeScript and Pages build pass. All four new maps complete through rendered Chrome physics, and eight additional browser checks cover the fourteen-map menu, phone hints, all map spawns, three control layouts, FPS controls, Clockwork utilities, and repeated annotated renderer teardown. Exact route evidence and hardware/control limitations are in `expansion-gameplay.md`. Production excludes development replay/control hooks.
+
+
+## Stairway to Heaven
+
+Astra authored map15 with four 11m rises, 7m vertical faces, 10m treads, and small local corner fillets. Eight apples require the climb; the starting door requires descending the same stairs. No physics changes or body manipulation. Root integrated the campaign, existing blue palette, replay and browser harness, and added discrete-button plus synthetic-phone input proofs. Native and rendered completion:159.783s,196.53m. Phone menu and overview pass.
+
+Fresh Astra-low review independently passes32 relevant tests and typechecking; one visual fix removed overlapping CLIMB/UP labels on phone by keeping only UP. Full157-case runner comprises155 acceptance passes and2 unchanged expected failures. Build passes. Evidence and remaining human/hardware limits are in `stairway.md` and `review-stairway.md`.
