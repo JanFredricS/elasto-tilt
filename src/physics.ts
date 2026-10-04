@@ -37,6 +37,11 @@ export async function createPhysics(): Promise<PhysicsGame> {
     tags.set(collider.handle, tag);
     return collider;
   };
+  const headPosition = () => {
+    const centre = frame.translation(), rotation = frame.rotation();
+    return { x: centre.x + Math.cos(rotation) * .126126126 - Math.sin(rotation) * .795,
+      y: centre.y + Math.sin(rotation) * .126126126 + Math.cos(rotation) * .795 };
+  };
   const free = () => { queue?.free(); world?.free(); queue = undefined; world = undefined; };
   const snapshot = (): Snapshot => ({
     bodies: renderBodies.map(({ body, view, offset }) => {
@@ -186,6 +191,7 @@ export async function createPhysics(): Promise<PhysicsGame> {
       platform.lastTravel = (next.x - previous.x) * axis.x + (next.y - previous.y) * axis.y;
       platform.body.setNextKinematicTranslation(next);
     }
+    const previousHead = headPosition();
     world.step(queue);
     elapsed += dt;
     queue!.drainCollisionEvents((a, b, started) => {
@@ -200,12 +206,11 @@ export async function createPhysics(): Promise<PhysicsGame> {
     });
     // A shape query extends the vulnerable head without adding a collider that
     // would perturb the original assembly's mass/contact solver or apple reach.
-    const centre = frame.translation(), rotation = frame.rotation();
-    const headCentre = { x: centre.x + Math.cos(rotation) * .126126126 - Math.sin(rotation) * .795,
-      y: centre.y + Math.sin(rotation) * .126126126 + Math.cos(rotation) * .795 };
-    world.intersectionsWithShape(headCentre, rotation, visibleHead, () => {
-      status = 'crashed'; return false;
-    }, RAPIER.QueryFilterFlags.EXCLUDE_SENSORS, (2 << 16) | 1, undefined, frame);
+    const headCentre = headPosition();
+    const headTravel = { x: headCentre.x - previousHead.x, y: headCentre.y - previousHead.y };
+    const headHit = world.castShape(previousHead, 0, headTravel, visibleHead, 0, 1, true,
+      RAPIER.QueryFilterFlags.EXCLUDE_SENSORS, (2 << 16) | 1, undefined, frame);
+    if (headHit) status = 'crashed';
     // Test exit occupancy every step so collecting the last apple inside it still completes.
     if (status === 'playing' && collected.size === level.apples.length) {
       for (const collider of bikeColliders) world.intersectionPairsWith(collider, other => {
