@@ -10,7 +10,7 @@ This replaces the short original routes. Coordinates are metres, positive y up. 
 | The Pendulum Mill | Two compact decks of different suspension lengths, curved mill wall, long overhead return. | 6 | 103 m / 53 s |
 | The Room on Its Side | Sunken floor around a central divider, rounded end wall, ceiling journey home. | 6 | 92 m / 46 s |
 | Newton’s Attic | Ramped ridge and loose weights; return past the home door to collect a storage-pocket apple, then reverse again. | 6 | 102 m / 69 s |
-| Escher’s Orchard | Lower gallery → east wall → roof → west wall → top of the former entry ceiling → inner-room reversal. | 8 | 119 m / 81 s |
+| Escher’s Orchard | Lower gallery → east wall → roof → west wall → top of the former entry ceiling → inner-room reversal. | 8 | 111 m / 75 s |
 | The Contrary Conservatory | Lower greenhouse, rising weights, end wall and roof; reverse out of the final roof pocket. | 7 | 102 m / 68 s |
 | The Gravity Engine | Compact hanging deck, long approach around an axle, wall climb and overhead gallery return. | 7 | 83 m / 56 s |
 | The Clockwork Apple | Long approach raises a lift; collect the high apple and reverse the entire journey to lower it and return. | 5 | 74 m / 49 s |
@@ -24,7 +24,7 @@ The map 2 correction and measured one-wheel apple collection are documented in [
 
 Acceptance coverage is in `tests/campaign-early.test.ts` and `tests/campaign-late.test.ts`. Static tests separately check rotated bounds and bike spawn clearance. Campaign tests reject idle, held rotation, and fixed-angle attempts as trivial quick solutions. They record actual wheel support on the swings. An independent reviewer removed each of the four swing decks and observed the unchanged pilot crash at its gap. Clockwork tests freeze the lift and omit the return leg; both experiments prevent the tested route from completing.
 
-Escher now involves a complete gravity circuit and a shared ceiling/floor, with nested architecture and a reverse detour. Its geometry remains planar; it is not a topologically impossible world or a teleport system. Loose/inverted weights respond physically but do not operate mandatory gates. Sustained upside-down hanging and brake-assisted free-wheel swing capture still need dedicated campaign challenges. See [map residuals](maps-residuals.md).
+Escher now involves a complete gravity circuit and a shared ceiling/floor, with a continuous low tunnel around each bend and a reverse detour. Its geometry remains planar; it is not a topologically impossible world or a teleport system. Loose/inverted weights respond physically but do not operate mandatory gates. Sustained upside-down hanging and brake-assisted free-wheel swing capture still need dedicated campaign challenges. See [map residuals](maps-residuals.md).
 
 Browser gameplay evidence is recorded independently in [gameplay-v2.md](gameplay-v2.md). Full route overview is available using MAP or M, which pauses simulation. Physical phone sensor feel and sustained mobile performance remain hardware checks.
 

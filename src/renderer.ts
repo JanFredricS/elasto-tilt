@@ -143,13 +143,16 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
     const portrait = h > w * 1.1;
     const sceneWidth = portrait ? 9.4 : 15.5;
     const sceneHeight = portrait ? 13.8 : 9.1;
-    scale = clamp(Math.min(w / sceneWidth, h / sceneHeight), 26, 88);
+    const framing = level?.camera;
+    scale = clamp(Math.min(w / sceneWidth, h / sceneHeight), 26, 88)
+      * clamp(framing?.zoom ?? 1, .7, 1.2);
     if (surveying && level) {
       const span = { x: level.bounds.max.x - level.bounds.min.x, y: level.bounds.max.y - level.bounds.min.y };
       scale = Math.min((w - 36) / span.x, Math.max(80, h - (portrait ? 260 : 170)) / span.y);
     }
     world.scale.set(scale, -scale);
-    world.position.set(w / 2, surveying ? h / 2 + 12 : h / 2 + (portrait ? -0.16 * h : 0));
+    world.position.set(w / 2, surveying ? h / 2 + 12
+      : h / 2 + (portrait ? -0.16 * h : 0) + clamp(framing?.verticalOffset ?? 0, -.1, .1) * h);
   }
 
   function load(nextLevel: Level): void {
