@@ -115,3 +115,10 @@ Sol recreated the selected seated Newton illustration in actual SVG paths and sh
 Independent map review passed 18 focused native cases. The full suite passes all 167 cases; typechecking and Pages build pass. The rendered phone Mill route completes and matches the native carriage measurements. Twelve existing browser checks also pass, covering start/menu, saved unlocks, all map spawns, three viewport layouts, desktop controls and the iPhone screen guide. Independent illustration/UI review passed after one bounded fix cycle corrected clipped wheel bounds, upward gaze and narrow-screen layout. Source contains no embedded raster. Welcome evidence is saved as `evidence/welcome-desktop.png`, `welcome-portrait.png`, and `welcome-landscape.png`; both Mill transfers have their own screenshots.
 
 Residuals: the SVG is a stylized recreation of the selected artwork. Wheel support is measured geometrically; tests establish the demonstrated cradle route, not every possible trajectory. Human boarding comfort and physical iPhone sensor feel still require device play.
+
+
+## Original welcome artwork — 2026-10-04
+
+The user rejected the SVG recreation as unlike the selected illustration. The welcome page now uses the exact original 1280×714 JPEG, verified byte-for-byte against the attachment. CSS frames out its white margins and mirrors the scene so Newton remains on the right; no artwork was redrawn or resampled. The unused SVG recreation was removed. Paragraph widths are explicitly constrained to their column to avoid the mobile clipping reported in the user's screenshot.
+
+Independent visual/source review passes. Browser checks at 1440×1000, 390×844, 844×390 and 320×568 confirm original image loading, complete artwork framing, no text overflow, and working start/pause/return-to-menu. TypeScript and the Pages build pass. Welcome screenshots were refreshed. No gameplay changes.
