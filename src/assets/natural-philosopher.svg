@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="800" viewBox="-110 -120 220 200" fill="none" role="img" aria-labelledby="title description">
+  <title id="title">Newton's Ride — the Natural Philosopher</title>
+  <desc id="description">An ivory-haired natural philosopher in a cropped teal coat rides a coral bicycle with a taller seated posture with brass fittings. Round wheels keep the original game wheelbase; the taller rider retains the approved curls and smile.</desc>
+  <!-- Original 1.4 m wheelbase, taller philosopher. 100 SVG units = 1 metre.
+       Wheel centres: (+/-70,36), outer radius 33.95.
+       Head centre: (12.6126126,-79.5), artwork radius below 23.1. -->
+
+  <g id="rear-wheel" transform="translate(-70 36)">
+    <circle r="33.95" fill="#203B48"/>
+    <circle r="29.4" fill="#FFF5E7"/>
+    <circle r="30.5" stroke="#8DADA9" stroke-width="1.1"/>
+    <path d="M0 0V-28.9M0 0 25 14.45M0 0-25 14.45" stroke="#7A9593" stroke-width="1.55" stroke-linecap="round"/>
+    <circle r="4.1" fill="#C8AA6A" stroke="#203B48" stroke-width="1.1"/>
+    <circle r="1.3" fill="#F5DFAB"/>
+  </g>
+  <g id="front-wheel" transform="translate(70 36)">
+    <circle r="33.95" fill="#203B48"/>
+    <circle r="29.4" fill="#FFF5E7"/>
+    <circle r="30.5" stroke="#8DADA9" stroke-width="1.1"/>
+    <path d="M0 0V-28.9M0 0 25 14.45M0 0-25 14.45" stroke="#7A9593" stroke-width="1.55" stroke-linecap="round"/>
+    <circle r="4.1" fill="#C8AA6A" stroke="#203B48" stroke-width="1.1"/>
+    <circle r="1.3" fill="#F5DFAB"/>
+  </g>
+
+  <!-- Far limbs sit behind the bicycle for clear overlap. -->
+  <g id="rider-far" transform="translate(0 -3.6) scale(1.261261261 1.1)">
+    <g id="far-leg">
+      <path id="far-breeches" d="M-33-27Q-25-28-18-22L-7-12Q-1-7-4 1L-7 6Q-12 9-17 4L-24-2L-38-16Q-42-23-33-27Z" fill="#345A61"/>
+      <path id="far-stocking" d="M-15 5Q-11 8-6 5L-14 25Q-15 29-20 28L-24 25L-18 11Z" fill="#D8DACA"/>
+      <path id="far-shoe" d="M-23 24Q-19 28-14 25L-11 28L-4 30Q-1 31-3 34L-22 32Q-26 30-23 24Z" fill="#294650"/>
+    </g>
+    <g id="far-arm">
+      <path d="M-4-53Q1-55 5-49L19-33L35-27L34-21L16-26Q12-27 9-32L-7-44Z" fill="#244B56"/>
+      <path d="M33-27L39-25Q42-23 40-20L33-21Z" fill="#E6C0A0"/>
+    </g>
+  </g>
+
+  <g id="frame" transform="translate(0 -3.6) scale(1.261261261 1.1)" stroke-linejoin="round" stroke-linecap="round">
+    <g id="chain">
+      <path d="M-55.5 34L-7 37Q-1 37-1 42Q-1 47-7 47L-55.5 38" stroke="#A6A48D" stroke-width=".9"/>
+    </g>
+    <path id="seat-post" d="M-29-4L-33-13" stroke="#B69B62" stroke-width="2.8"/>
+    <path id="rear-triangle" d="M-55.5 36L-29-4M-55.5 36L-7 42" stroke="#ED8563" stroke-width="2.8"/>
+    <path id="main-triangle" d="M-29-4L36-4L-7 42Z" stroke="#F28C68" stroke-width="3.35"/>
+    <path id="fork" d="M36-4L55.5 36" stroke="#ED8563" stroke-width="3.15"/>
+    <path d="M35.8-4.4L34.1-10.9" stroke="#C8AA6A" stroke-width="3.8"/>
+    <path id="handlebar-stem" d="M36-4L33-17L38-19" stroke="#A78E58" stroke-width="2.45"/>
+    <path id="handlebar" d="M35-19L42-20" stroke="#203B48" stroke-width="2.7"/>
+    <path id="saddle" d="M-42-14Q-35-17-25-13L-26-10L-39-10Q-43-10-42-14Z" fill="#203B48"/>
+    <path d="M-41-14Q-34-15-26-13" stroke="#C8AA6A" stroke-width="2.2"/>
+    <circle id="crank" cx="-7" cy="42" r="4.6" fill="#C8AA6A" stroke="#203B48" stroke-width="1"/>
+    <circle cx="-7" cy="42" r="1.55" fill="#F3DFB0"/>
+    <path id="near-crank" d="M-7 42L-1 45" stroke="#A48E64" stroke-width="2.1"/>
+    <path id="near-pedal" d="M-6 45L9 45" stroke="#203B48" stroke-width="2.6"/>
+  </g>
+
+  <g id="rider" transform="translate(0 -3.6) scale(1.261261261 1.1)">
+    <g id="near-leg">
+      <path id="breeches" d="M-32-29Q-23-31-16-23L3-11Q10-7 7 2L5 8Q0 12-7 8L-14 1L-33-12Q-41-18-32-29Z" fill="#203B48"/>
+      <path d="M-29-23L-8-9Q1-5 1 3" stroke="#41636B" stroke-width="1.2" stroke-linecap="round"/>
+      <path id="stocking" d="M-5 8Q0 11 5 8L-5 32Q-7 37-12 35L-16 32L-9 15Z" fill="#FFF1D8"/>
+      <path d="M2 13L-7 32" stroke="#D5CBB6" stroke-width="1.3" stroke-linecap="round"/>
+      <path id="near-shoe" d="M-15 31Q-11 36-6 33L-3 36L5 39Q9 40 7 43L-13 41Q-18 39-15 31Z" fill="#203B48"/>
+      <rect x="-4" y="35.5" width="3.6" height="2.8" rx=".7" fill="#C8AA6A"/>
+    </g>
+
+    <g id="torso">
+      <path id="coat" d="M-39-27Q-34-39-23-48Q-13-57-4-58Q3-58 7-51L4-43L-20-21Q-29-22-39-27Z" fill="#254F5C"/>
+      <path id="coat-light" d="M-34-30Q-23-46-8-52L-4-48L-25-29Z" fill="#376674"/>
+      <path id="waistcoat" d="M-4-50L6-44L-18-22L-25-26Z" fill="#D8B5A7"/>
+      <path id="shirt" d="M0-57L9-51L4-44L-5-49Z" fill="#FFF5E7"/>
+      <path id="lapel" d="M-8-54L0-55L-4-46L-13-40L-11-48Z" fill="#183E4D"/>
+      <path d="M-39-27Q-31-23-23-25" stroke="#C8AA6A" stroke-width="1.15" stroke-linecap="round"/>
+      <circle cx="-22" cy="-32" r="1.7" fill="#C8AA6A"/>
+    </g>
+
+    <g id="near-arm">
+      <path id="coat-sleeve" d="M-3-54Q2-56 7-50L17-32L30-26L28-18L14-23Q10-24 7-29L-8-46Q-10-51-3-54Z" fill="#254F5C"/>
+      <path d="M-3-52L13-28L27-22" stroke="#47727B" stroke-width="1.2" stroke-linecap="round"/>
+      <path id="cuff" d="M28-27L34-25L32-17L27-19Z" fill="#FFF5E7"/>
+      <path id="near-hand" d="M34-25L39-25Q44-25 44-21Q44-17 40-17L33-18Z" fill="#EBC5A7" stroke="#25434B" stroke-width=".8"/>
+    </g>
+    <path id="neck" d="M3-55L8-61L17-58L11-49Z" fill="#EBC5A7"/>
+    <path id="collar" d="M2-56L9-52L12-48L6-47L-1-52Z" fill="#FFF5E7"/>
+  </g>
+
+  <!-- The hair has its own scalloped contour, not a circular clipping mask.
+       The crown and three hanging locks remain inside the head collider. -->
+  <g id="head" transform="translate(12.6126126 -79.5)">
+    <g transform="scale(1.1)">
+      <path id="face" d="M-3-10Q6-16 15-10L16-4L19 1L15 3L15 8Q12 15 6 16L-1 12L-7 5Z" fill="#F1CDAC" stroke="#203B48" stroke-width="1.3" stroke-linejoin="round"/>
+      <path id="hair" d="M16-10C14-15 10-17 6-17C4-20-2-20-5-17C-10-18-13-14-13-11C-17-13-20-7-16-4C-20-4-21 2-17 5C-20 10-13 14-10 10C-13 16-4 20-2 13C0 14 4 11 2 7C7 5 6 0 3-2C4-7 9-10 16-10Z" fill="#FFF5E7" stroke="#203B48" stroke-width="1.25" stroke-linejoin="round"/>
+      <path id="back-curl" d="M-16-4Q-12-5-11-1" stroke="#203B48" stroke-width="1.05" stroke-linecap="round"/>
+      <path id="lower-curl" d="M-10 10Q-12 5-8 3" stroke="#203B48" stroke-width="1.05" stroke-linecap="round"/>
+      <path id="temple-curl" d="M2 7Q-4 9-4 4Q-4 1-2-1" stroke="#203B48" stroke-width="1.05" stroke-linecap="round"/>
+      <path d="M6-7Q10-9 14-7" stroke="#203B48" stroke-width="1.2" stroke-linecap="round"/>
+      <ellipse cx="12" cy="-3.5" rx="1.1" ry="1.55" fill="#203B48"/>
+      <path id="smile" d="M6.5 6.8Q10 8.2 14.3 5.6Q13 11.7 9.2 10.1Q7.4 9.3 6.5 6.8Z" fill="#FFF5E7" stroke="#9E6250" stroke-width=".75" stroke-linejoin="round"/>
+    </g>
+  </g>
+</svg>
