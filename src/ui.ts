@@ -292,7 +292,7 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
     if (!stateOverlay.hidden) {
       let eyebrow = 'TAKE A BREATH';
       let title = 'Paused.';
-      let copy = 'A little stillness helps. Your ride is waiting.';
+      let copy = selected?.hint ?? 'A little stillness helps. Your ride is waiting.';
       let action = 'KEEP RIDING';
       primaryAction = callbacks.resume;
       if (state.status === 'crashed') {

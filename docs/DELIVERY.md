@@ -6,6 +6,7 @@
 
 - Ten original routes rebuilt by two Astra map agents: rolling hills, deep bowls, return detours, compact suspended crossings, wall/ceiling circuits and an Escher spiral through all four gravity faces. Each has 5–8 apples; controlled successful runs travel 74–119 m in roughly 45–81 seconds.
 - Progressive phone response: gentle near neutral, stronger farther out, full 360° world rotation at 75° phone bank. A steady phone holds its angle. Keyboard/touch remain held rotation controls.
+- Map 2 now requires reaching an elevated apple: its demonstrated solution catches the rear wheel against a gold stop, holds brake and tilts the front wheel up, then lowers it safely. Ordinary rolling misses that apple; creative alternate stunts remain possible. Pause shows the map instructions on phones.
 - Strong bounded brakes capture wheel angle relative to the frame. They resist steep downhill motion without anchoring the bike or cancelling airborne velocity.
 - Compact 2.7–2.8 m swing decks, distinct suspension lengths, working gravity response and loaded rider support. All four tested crossings fail when their seat is removed.
 - Rebuilt smooth vector bicycle with detailed rims/spokes, sculpted frame, shaped rider and helmet. Monument Valley inspired pastel architecture, ivory lit faces, recessed windows and warm archways. Quiet gradients and exact collider rims keep the route readable. See [art direction](art-direction.md).
@@ -14,7 +15,7 @@
 
 ## Verification
 
-- TypeScript and production build pass. The unit runner reports 90 successful cases: 88 acceptance passes and 2 explicitly expected failures for the known passive-carry defect. Unit coverage includes both redesigned campaign suites, curve and lifecycle regressions, gravity wake-up after rest, steep braking and stopping distance, loaded swings, all four seat-removal experiments, and Clockwork frozen-lift/omitted-return comparisons.
+- TypeScript and production build pass. The unit runner reports 93 successful cases: 91 acceptance passes and 2 explicitly expected failures for the known passive-carry defect. Unit coverage includes both redesigned campaign suites, curve and lifecycle regressions, gravity wake-up after rest, steep braking and stopping distance, loaded swings, all four seat-removal experiments, and Clockwork frozen-lift/omitted-return comparisons.
 - All ten actual Rapier routes complete with every apple. Escher collects at 0°, 90°, 180°, 270° and 360° and reverses in its final room. Clockwork raises its lift, reaches the high apple, then lowers it on the return journey.
 - All 25 distinct browser checks passed across the full-route and focused runs, including all ten rendered campaign completions, unlock/save persistence and the final tilt/calibration regression. Independent rendered browser gameplay evidence is in [gameplay-v2.md](gameplay-v2.md). Seven additional overview/motion/layout/lifecycle browser checks passed, including three viewport sizes, map-view pause and keyboard repeat, and idle-then-phone-tilt.
 - Fresh Astra-low reviews covered maps, controls and visuals. One bounded fix cycle resolved the map/visual findings; the follow-up found no new defect. See [implementation-log.md](implementation-log.md).

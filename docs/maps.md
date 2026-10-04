@@ -5,7 +5,7 @@ This replaces the short original routes. Coordinates are metres, positive y up. 
 | Map | Route | Apples | Demonstrated distance / time |
 | --- | --- | --- | --- |
 | Newton’s Orchard | Climb to a 4 m terrace, descend into a hollow, reach the far hill, brake and return home. | 5 | 98 m / 45 s |
-| One Wheel Wonder | High narrow beam, a 10 m descent into a bowl, climb the far bank and reverse the route. | 6 | 118 m / 54 s |
+| One Wheel Wonder | Brake the rear wheel against a gold stop and pivot up to the high apple; descend into the deep bowl, climb the far bank and return. | 6 | 58 s |
 | The Hanging Garden | Upper garden, compact suspended crossing, sunken orchard, then cross the moving deck again on the return. | 5 | 98 m / 49 s |
 | The Pendulum Mill | Two compact decks of different suspension lengths, curved mill wall, long overhead return. | 6 | 103 m / 53 s |
 | The Room on Its Side | Sunken floor around a central divider, rounded end wall, ceiling journey home. | 6 | 92 m / 46 s |
@@ -14,6 +14,8 @@ This replaces the short original routes. Coordinates are metres, positive y up. 
 | The Contrary Conservatory | Lower greenhouse, rising weights, end wall and roof; reverse out of the final roof pocket. | 7 | 102 m / 68 s |
 | The Gravity Engine | Compact hanging deck, long approach around an axle, wall climb and overhead gallery return. | 7 | 83 m / 56 s |
 | The Clockwork Apple | Long approach raises a lift; collect the high apple and reverse the entire journey to lower it and return. | 5 | 74 m / 49 s |
+
+The map 2 correction and measured one-wheel apple collection are documented in [one-wheel-fix.md](one-wheel-fix.md).
 
 Acceptance coverage is in `tests/campaign-early.test.ts` and `tests/campaign-late.test.ts`. Static tests separately check rotated bounds and bike spawn clearance. Campaign tests reject idle, held rotation, and fixed-angle attempts as trivial quick solutions. They record actual wheel support on the swings. An independent reviewer removed each of the four swing decks and observed the unchanged pilot crash at its gap. Clockwork tests freeze the lift and omit the return leg; both experiments prevent the tested route from completing.
 

@@ -57,15 +57,18 @@ export const earlyLevels: Level[] = [
     exit: p(-1.5, .8), difficulty: 1, accent: '#eaa75c',
   },
   {
-    id: 'one-wheel-wonder', name: 'One Wheel Wonder', subtitle: 'The high road, the deep bowl',
-    mechanic: 'Balance across the hilltop beam, descend into the bowl, and climb the far bank before returning.',
-    hint: 'Turn the world with the grade. Slow down on crests; the deep bowl needs more tilt to climb out.',
+    id: 'one-wheel-wonder', name: 'One Wheel Wonder', subtitle: 'Catch a wheel, reach the high apple',
+    mechanic: 'Catch your rear wheel against the gold stop. Hold brake and tilt left to lift the front wheel toward the high apple.',
+    hint: 'Roll just past the gold stop, hold BRAKE, then tilt left. Tilt back right to lower the front wheel; release once both wheels land.',
     spawn: p(0, .72), bounds: box(-7, -9, 58, 11), surfaces: [
-      ...terrain('wonder', wonderProfile, [[14, 18]]),
-      beam('wonder-balance-beam', p(14, 5), p(18, 5), 'cradle', .18),
-      hazard('wonder-thorns', 16, 1, 4),
+      ...terrain('wonder', wonderProfile),
+      // A shallow approach lets the rider pass the stop. Its vertical return face
+      // catches a braked rear tyre while the high apple requires a genuine lift.
+      beam('wonder-catch-ramp', p(12.9, 5), p(13.83, 5.2), 'cradle', .18),
+      { id: 'wonder-wheel-stop', x: 13.9, y: 5, w: .14, h: .4, kind: 'cradle' },
     ],
-    apples: [6, 16, 26, 34, 43, 52].map((x, i) => fruit(`wonder-${i}`, wonderProfile, x)),
+    apples: [fruit('wonder-0', wonderProfile, 6), { id: 'wonder-1', x: 14.3, y: 7.2 },
+      ...[26, 34, 43, 52].map((x, i) => fruit(`wonder-${i + 2}`, wonderProfile, x))],
     exit: p(-1.5, .8), difficulty: 2, accent: '#e9b866',
   },
   {
@@ -117,12 +120,16 @@ const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n
 const profiles = [orchardProfile, wonderProfile, gardenProfile, millProfile, roomProfile];
 /** Only observes snapshots and supplies the same angle/brake inputs available to a phone player. */
 export function createEarlyReplayPilot(index: number) {
-  let previous: Snapshot | undefined, returning = false, stage = 0;
+  let previous: Snapshot | undefined, returning = false, stage = 0, catchStage = 0;
+  let previousBikeAngle = 0;
   const turnX = [0, 0, 0, 44, 38][index], turnY = [0, 0, 0, 9, 6][index];
   return (state: Snapshot): Controls => {
     const vx = previous ? (state.bike.x - previous.bike.x) * 120 : 0;
     const vy = previous ? (state.bike.y - previous.bike.y) * 120 : 0;
     previous = state;
+    const bikeAngle = state.bodies.find(body => body.id === 'frame')!.angle;
+    const angularSpeed = (bikeAngle - previousBikeAngle) * 120;
+    previousBikeAngle = bikeAngle;
     let theta = profileAt(profiles[index], state.bike.x).angle;
     let speed = index === 4 ? 2.3 : 2.4, brake = false;
     if (index < 3) {
@@ -139,6 +146,23 @@ export function createEarlyReplayPilot(index: number) {
       if (stage === 2) theta = Math.PI;
       if (stage === 1) speed = 1.8;
       if (index === 3 && stage === 0 && ((state.bike.x > 14 && state.bike.x < 22) || (state.bike.x > 26 && state.bike.x < 34))) speed = 1.5;
+    }
+    // Map 2: approach the stop, hold a rear-wheel pivot, lower, then resume riding.
+    // This demonstration only supplies normal controls; it never modifies bodies.
+    if (index === 1 && !returning && catchStage < 3) {
+      if (catchStage === 0 && state.bike.x > 11.5) {
+        speed = clamp((15.02 - state.bike.x) * 1.2, .1, 1);
+        if (state.bike.x < 14.8) theta = Math.max(theta, .35);
+        if (state.bike.x > 14.98) catchStage = 1;
+      }
+      if (catchStage === 1 && state.collected.includes('wonder-1')) catchStage = 2;
+      if (catchStage === 2 && Math.abs(bikeAngle) < .08 && Math.abs(angularSpeed) < .4) catchStage = 3;
+      if (catchStage === 1 || catchStage === 2) {
+        const target = catchStage === 1
+          ? clamp(bikeAngle - 1.03 + 2 * (bikeAngle - .6) + 2 * angularSpeed, -1.3, .6)
+          : .15;
+        return { tilt: clamp((target - state.worldAngle) * 8, -1, 1), brake: true };
+      }
     }
     const along = vx * Math.cos(theta) + vy * Math.sin(theta);
     const target = theta + clamp((speed - along) * .23, -.3, .3);

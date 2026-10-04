@@ -57,3 +57,11 @@ All 25 distinct browser checks passed across the independent full-route run and 
 ## Monument Valley visual direction
 
 Root rebuilt static terrain with four pastel palettes, lit depth, recessed wall windows, warm archways and exact collider rims. Sol 6 restyled the interface and scene gradients. The physics and map geometry are unchanged. Root also made map-view camera pivot/scale atomic and removed overlapping shading fins on curved terrain. Fresh Astra-low review required two bounded brake-label contrast adjustments; the final foreground/background combinations pass 4.5:1. Thirteen targeted browser checks, TypeScript and Pages build pass. Desktop median/p95 frame samples remain 16.7 ms. Final phone evidence was recaptured in a fresh viewport after an immediate-resize screenshot artifact. See `art-direction.md`, `review-monument-art.md` and `evidence/monument-*.png`.
+
+## Map 2: a useful one-wheel move
+
+Astra replaced the cosmetic thin bridge with a short gold wheel stop and an elevated apple. The successful route brakes against the rear-wheel catch, tilts the front wheel upward, then counter-tilts to land and continue. The ordinary rolling policy collects five apples but misses the raised one. There is no artificial brake condition on apple collection.
+
+Fresh Astra-low review independently passed 14 relevant tests and inspected the rendered pivot. The only integration corrections were stale map descriptions and removing a diagnostic probe; both were resolved in the first review cycle. Root added the map hint to the pause overlay so phone players can read the instructions, and verified it at 390×844. The final browser replay completes all six apples in 57.733 seconds, records 186 consecutive braked one-wheel steps and 0.6655 rad of pivot rotation, and specifically witnesses elevated apple collection with one supported wheel at 0.4466 rad.
+
+Full suite: 93 runner-success cases (91 acceptance passes plus 2 unchanged expected failures). TypeScript and Pages build pass. Evidence and limitations are in `one-wheel-fix.md`, `review-one-wheel.md`, and `evidence/one-wheel-*.png`. Human control tolerance and other stunt solutions remain unverified; the change proves a useful physical move rather than forbidding creative alternatives.

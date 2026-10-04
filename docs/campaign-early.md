@@ -5,14 +5,14 @@ The first five level IDs, display names and order remain save-compatible. Their 
 | Map | Route | Demonstrated time | Travel |
 | --- | --- | ---: | ---: |
 | Newton’s Orchard | Out over a 4 m terrace, through a hollow at −1.5 m, up to a far 3 m terrace, brake and return to the start | 44.7 s | 98.5 m |
-| One Wheel Wonder | Climb to a 5 m beam, descend into a −5 m bowl, climb the far bank, reverse and return | 53.5 s | 118.4 m |
+| One Wheel Wonder | Rear-wheel catch at the 5 m crest, pivot up to the high apple, descend into a −5 m bowl, climb the far bank and return | 57.7 s | — |
 | The Hanging Garden | Upper garden, short suspended crossing, sunken orchard, return across the same moving deck | 49.2 s | 97.8 m |
 | The Pendulum Mill | Climbing entrance, two independent suspended decks, large curved end wall, ceiling return gallery | 52.9 s | 102.5 m |
 | The Room on Its Side | Sunken floor, rising bank, rounded end wall, ceiling route above a central divider | ≈46 s | 92.0 m |
 
 These are representative controlled runs, not enforced minimums or speedrun estimates. The test pilot targets 2.4 m/s on terrain (2.3 m/s in Room), 1.5 m/s near suspended decks and 1.8 m/s on the wall turns. It operates the normal tilt-rate and brake controls, observes snapshots, and never changes bodies, positions, velocities, collection state or time. Phone angle input is not required for the demonstration.
 
-Terrain grades use sampled cosine curves with horizontal joins to the terraces. The short collider segments meet continuously with small overlaps, so a wheel encounters a smooth grade rather than a staircase. The beam in Wonder is a 4 m unsupported slender span over thorns. The curved wall transfers in Mill and Room use a 6 m radius, giving a full bicycle enough room to turn while the helmet stays inside the curve.
+Terrain grades use sampled cosine curves with horizontal joins to the terraces. The short collider segments meet continuously with small overlaps, so a wheel encounters a smooth grade rather than a staircase. Wonder now has a 0.20 m gold wheel stop and a short approach ramp. The high apple is 2.20 m above the terrace: its demonstrated collection occurs while the braked rear tyre catches the stop and the front tyre is 0.62 m clear of the road. The old cosmetic thin beam and inaccessible thorns were removed; see [one-wheel-fix.md](one-wheel-fix.md). The curved wall transfers in Mill and Room use a 6 m radius, giving a full bicycle enough room to turn while the helmet stays inside the curve.
 
 Garden has one 2.8 m deck on a 3 m pendulum. Mill has two 2.8 m decks on 2.6 m and 3.8 m pendulums, separated by a settling terrace. Each spans a 3 m opening. Their damping is finite; decks can rotate and must actually carry a wheel during the completion tests.
 
