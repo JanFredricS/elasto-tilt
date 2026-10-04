@@ -1,6 +1,8 @@
 # Newton’s Ride — prototype delivery
 
-Private repository: https://github.com/JanFredricS/elasto-tilt
+Public repository: https://github.com/JanFredricS/elasto-tilt
+
+Live game: https://janfredrics.github.io/elasto-tilt/
 
 ## Implemented
 
@@ -39,4 +41,4 @@ The advance review used available Sol 6 because requested Sol 6.1 was unavailabl
 
 `pnpm install`, then `pnpm dev`. Use A/D or arrow keys to tilt, Space to brake, R to restart, Escape to pause and F for FPS. The on-screen controls support touch. Run `pnpm test`, `pnpm build` and (with the dev server running) `pnpm test:browser`.
 
-The repository is published privately. Website deployment and a cloud backend are not part of this delivery.
+The user subsequently authorized public visibility and GitHub Pages hosting. The game now deploys from `main` through `.github/workflows/pages.yml` after its tests and build succeed. No cloud gameplay backend is required.

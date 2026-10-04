@@ -2,6 +2,10 @@
 
 A mobile-first bicycle physics puzzle. Tilt the world, brake to pivot, collect Newton’s apples, and ride walls and ceilings. Built with TypeScript, PixiJS and Rapier 2D.
 
+**[Play live on GitHub Pages](https://janfredrics.github.io/elasto-tilt/)**
+
+Every push to `main` runs the physics/campaign tests, builds the game, and deploys it over HTTPS. Deployment status is available in [GitHub Actions](https://github.com/JanFredricS/elasto-tilt/actions/workflows/pages.yml). A failed test or build leaves the previous deployment live. The workflow can also be run manually.
+
 This is a playable prototype with ten scripted, physics-validated routes. Advanced hanging transfers and some mechanism puzzles remain design work. Physical phone testing is still required. See [delivery and residuals](docs/DELIVERY.md).
 
 ## Run
@@ -51,4 +55,4 @@ Physics runs at fixed 120 Hz, with a maximum of eight catch-up steps per display
 
 ## Repository
 
-This project uses a local Git repository. Remote publication status is recorded in the final delivery report; do not assume a GitHub remote exists if authentication was unavailable.
+The [repository](https://github.com/JanFredricS/elasto-tilt) is public. GitHub Pages publishes only the generated `dist` directory. `pnpm build:pages` sets asset URLs to `/elasto-tilt/`; the ordinary local build and development server keep their root paths.
