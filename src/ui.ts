@@ -1,5 +1,5 @@
 import { createDisplayMode } from './display-mode';
-import welcomeIllustration from './assets/newton-welcome.svg';
+import welcomeIllustration from './assets/newton-welcome.jpg';
 import type { GameUI, Level, UICallbacks, UIState } from './types';
 
 const safe = (value: number, fallback = 0) => Number.isFinite(value) ? value : fallback;
@@ -91,7 +91,7 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
               <button type="button" class="primary-btn" data-action="start"><span>LET’S RIDE</span><span aria-hidden="true">↗</span></button>
               <p class="menu-instruction"><span class="menu-keyboard-guide">A / D to tilt · Space to brake · M to view the map</span><span class="menu-touch-guide">Use the tilt and brake buttons as you ride. The MAP button shows the whole route.</span></p>
             </div>
-            <div class="menu-art-wrap"><img class="menu-art" src="${welcomeIllustration}" alt="Newton sits beside his fallen bicycle and looks up at a falling apple." /></div>
+            <div class="menu-art-wrap"><img class="menu-art" src="${welcomeIllustration}" width="1280" height="714" alt="Newton sits beside his fallen bicycle and looks up at a falling apple." /></div>
           </div>
           <div class="campaign">
             <div class="campaign-heading"><span>CHOOSE A MAP</span><span data-ui="progress-label">01 / ${String(levels.length).padStart(2, '0')} OPEN</span></div>
