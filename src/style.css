@@ -224,3 +224,36 @@ button:focus-visible { outline: 3px solid #cc6258; outline-offset: 3px; }
   .level-tile { min-height: 48px; }
   .campaign-foot { display: none; }
 }
+
+/* Always-visible orientation reference, independent of phone or keyboard input. */
+.game-ui { --orientation-top: max(76px, calc(env(safe-area-inset-top) + 50px)); }
+.horizon-gauge { position: absolute; z-index: 2; top: calc(var(--orientation-top) + 16px); left: max(20px, env(safe-area-inset-left)); width: 88px; display: flex; flex-direction: column; align-items: center; color: #314956; pointer-events: none; }
+.horizon-gauge svg { display: block; width: 100%; overflow: visible; }
+.horizon-face { fill: #faf8f0; fill-opacity: .94; stroke: #b5c2c3; stroke-width: 1; }
+.horizon-ticks { stroke: #80979c; stroke-width: 1; }
+.horizon-reference { stroke: #647c83; stroke-width: 1; stroke-dasharray: 2 3; }
+.horizon-ground { fill: #d27b6c; fill-opacity: .18; }
+.horizon-line { stroke: #bb665b; stroke-width: 3; stroke-linecap: round; }
+.horizon-up { fill: #bb665b; }
+.horizon-pivot { fill: #314956; }
+.horizon-gauge strong { margin-top: 2px; font-size: 14px; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.horizon-gauge > span { margin-top: 2px; font-size: 7px; font-weight: 750; letter-spacing: .1em; }
+.horizon-gauge.is-level .horizon-line { stroke: #497c77; }
+.horizon-gauge.is-level .horizon-up { fill: #497c77; }
+.horizon-gauge.is-level .horizon-ground { fill: #77a59a; }
+.level-banner { top: calc(var(--orientation-top) + 21px); left: max(125px, calc(env(safe-area-inset-left) + 105px)); max-width: min(300px, calc(100vw - 145px)); }
+.is-menu .horizon-gauge { display: none; }
+@media (max-width: 760px) {
+  .game-ui { --orientation-top: max(61px, calc(env(safe-area-inset-top) + 42px)); }
+  .horizon-gauge { top: calc(var(--orientation-top) + 15px); left: max(11px, env(safe-area-inset-left)); width: 72px; }
+  .horizon-gauge strong { font-size: 13px; }
+  .level-banner { left: max(96px, calc(env(safe-area-inset-left) + 85px)); max-width: calc(100vw - 112px); }
+}
+@media (max-width: 650px) and (orientation: portrait) {
+  .timeline { top: calc(var(--orientation-top) + 154px); }
+}
+@media (max-height: 460px) and (orientation: landscape) {
+  .game-ui { --orientation-top: max(47px, calc(env(safe-area-inset-top) + 44px)); }
+  .horizon-gauge { top: calc(var(--orientation-top) + 12px); width: 62px; }
+  .level-banner { top: calc(var(--orientation-top) + 15px); max-width: 250px; }
+}
