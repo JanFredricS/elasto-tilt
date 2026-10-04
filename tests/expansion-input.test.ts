@@ -33,9 +33,12 @@ it.each([0, 1, 2] as const)('completes late map %i through 60 Hz motion events, 
   let rateTarget = 0;
   let state = game.snapshot(), anchor = state.worldAngle, bank = 0, recenters = 0;
   let controls: Controls = { tilt: 0, brake: false };
-  const pose = (gamma: number) => {
-    const event = new Event('deviceorientation');
-    Object.assign(event, { beta: 0, gamma });
+  // A phone tilted 30° back from upright, turned `bank` degrees about its
+  // screen normal like a steering wheel. (A phone lying flat has no defined
+  // steering direction; input freezes there by design.)
+  const pose = (bank: number) => {
+    const event = new Event('deviceorientation'), r = Math.PI / 180, p = 30 * r, t = bank * r;
+    Object.assign(event, { beta: Math.asin(Math.cos(p) * Math.cos(t)) / r, gamma: Math.atan2(Math.cos(p) * Math.sin(t), Math.sin(p)) / r });
     browser.dispatchEvent(event);
   };
   try {
