@@ -146,6 +146,7 @@ button:focus-visible { outline: 3px solid #cc6258; outline-offset: 3px; }
   .level-banner { top: 77px; left: max(13px, env(safe-area-inset-left)); }
   .level-banner-name { font-size: 19px; }
   .level-banner-mechanic { display: none; }
+  .level-banner-mechanic.is-objective { display: block; max-width: 245px; font-weight: 600; }
   .timeline { top: 78px; right: 10px; padding: 7px; gap: 5px; }
   .timeline-label { font-size: 7px; }
   .timeline-track { width: 50px; }
@@ -192,7 +193,7 @@ button:focus-visible { outline: 3px solid #cc6258; outline-offset: 3px; }
   .utility-bar { top: auto; bottom: max(117px, calc(env(safe-area-inset-bottom) + 108px)); right: 12px; }
   .utility-buttons { flex-wrap: wrap; justify-content: flex-end; max-width: 230px; }
   .level-banner { top: 82px; }
-  .timeline { top: 118px; left: 13px; right: auto; }
+  .timeline { top: 150px; left: 13px; right: auto; }
   .debug-panel { top: 50%; }
 }
 

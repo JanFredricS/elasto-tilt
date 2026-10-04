@@ -62,14 +62,14 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
             <div class="menu-emblem" aria-hidden="true"><span class="emblem-apple">●</span><span class="emblem-wheel">◉—◉</span></div>
             <p class="eyebrow">TURN THE WORLD. FIND YOUR WAY.</p>
             <h1 id="menu-title">Newton’s<br><em>Ride.</em></h1>
-            <p class="menu-lead">A bicycle, a little gravity, and ${levels.length} impossible places. Tilt the world, catch a ledge, and follow the apples home.</p>
+            <p class="menu-lead"><strong>Collect every apple, then return to the door to finish.</strong> Tilt the world and find your way through ${levels.length} gravity puzzles.</p>
             <button type="button" class="primary-btn" data-action="start"><span>LET’S RIDE</span><span aria-hidden="true">↗</span></button>
             <p class="menu-instruction">Tilt gently for precision. Hold the brake to lock the wheels. MAP shows the whole route.</p>
           </div>
           <div class="campaign">
             <div class="campaign-heading"><span>THE JOURNEY</span><span data-ui="progress-label">01 / ${String(levels.length).padStart(2, '0')} OPEN</span></div>
             <div class="campaign-grid" data-ui="campaign-grid"></div>
-            <p class="campaign-foot">Gather every apple, then reach the door. Each new room has its own little trick.</p>
+            <p class="campaign-foot">Every apple first. Then ride back to the door to complete the map.</p>
           </div>
         </div>
         <div class="menu-footer"><span>ONE SMALL RIDE THROUGH THE RULES OF GRAVITY</span><span>© THE ORCHARD LAB</span></div>
@@ -258,7 +258,11 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
     text('angle', `${Math.round(((safe(state.worldAngle) * 180 / Math.PI) % 360 + 360) % 360)}°`);
     text('level-number', `${String(state.levelIndex + 1).padStart(2, '0')} / ${String(levels.length).padStart(2, '0')}`);
     text('level-name', selected?.name ?? 'Newton’s Ride');
-    text('mechanic', state.surveying ? 'ROUTE OVERVIEW · Ride paused. Gather every apple, then return to the door.' : selected?.mechanic ?? '');
+    const allApples = state.totalApples > 0 && state.apples >= state.totalApples;
+    const showObjective = state.elapsed < 8 || allApples || state.surveying;
+    get('mechanic').classList.toggle('is-objective', showObjective);
+    text('mechanic', allApples ? 'All apples collected! Return to the door to finish.'
+      : showObjective ? 'Collect every apple, then return to the door to finish.' : selected?.mechanic ?? '');
     const survey = host.querySelector<HTMLButtonElement>('[data-action="survey"]')!;
     const surveyLabel = state.surveying ? 'RIDE' : 'MAP';
     if (survey.textContent !== surveyLabel) survey.textContent = surveyLabel;
@@ -292,7 +296,7 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
     if (!stateOverlay.hidden) {
       let eyebrow = 'TAKE A BREATH';
       let title = 'Paused.';
-      let copy = selected?.hint ?? 'A little stillness helps. Your ride is waiting.';
+      let copy = `Collect every apple, then return to the door to finish. ${selected?.hint ?? ''}`.trim();
       let action = 'KEEP RIDING';
       primaryAction = callbacks.resume;
       if (state.status === 'crashed') {
