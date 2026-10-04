@@ -6,6 +6,12 @@ const timeText = (seconds: number) => {
   return `${String(Math.floor(whole / 60)).padStart(2, '0')}:${String(whole % 60).padStart(2, '0')}`;
 };
 
+// Fixed protractor marks; the coloured diameter follows the rendered world.
+const horizonTicks = Array.from({ length: 36 }, (_, i) => {
+  const major = i % 3 === 0;
+  return `<line x1="50" y1="${major ? 9 : 12}" x2="50" y2="16" transform="rotate(${i * 10} 50 50)" />`;
+}).join('');
+
 export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallbacks): GameUI {
   host.classList.add('game-ui');
   host.innerHTML = `
@@ -23,6 +29,22 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
       </div>
       <div class="debug-panel" data-ui="debug-panel" hidden><b>PERFORMANCE</b><span data-ui="debug-fps"></span><span data-ui="debug-frame"></span><span data-ui="debug-physics"></span><span data-ui="debug-input"></span></div>
     </header>
+
+    <div class="horizon-gauge" data-ui="horizon" role="img" aria-label="World level, 0 degrees">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle class="horizon-face" cx="50" cy="50" r="47" />
+        <g class="horizon-ticks">${horizonTicks}</g>
+        <path class="horizon-reference" d="M 7 50 H 93" />
+        <g data-ui="horizon-needle">
+          <path class="horizon-ground" d="M 20 50 A 30 30 0 0 0 80 50 Z" />
+          <path class="horizon-line" d="M 19 50 H 81" />
+          <path class="horizon-up" d="M 50 23 L 46 30 H 54 Z" />
+        </g>
+        <circle class="horizon-pivot" cx="50" cy="50" r="2.5" />
+      </svg>
+      <strong data-ui="horizon-angle">0°</strong>
+      <span data-ui="horizon-label">LEVEL</span>
+    </div>
 
     <div class="level-banner" aria-live="polite">
       <span class="level-banner-index" data-ui="level-number">01 / ${String(levels.length).padStart(2, '0')}</span>
@@ -93,6 +115,8 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
   const get = (name: string) => host.querySelector<HTMLElement>(`[data-ui="${name}"]`)!;
   const menu = get('menu');
   const stateOverlay = get('state-overlay');
+  const horizon = get('horizon');
+  const horizonNeedle = host.querySelector<SVGGElement>('[data-ui="horizon-needle"]')!;
   const campaignGrid = get('campaign-grid');
   const levelButtons: HTMLButtonElement[] = [];
   levels.forEach((level, index) => {
@@ -210,7 +234,7 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
   on(document, 'visibilitychange', () => { if (document.hidden) releaseAll(); });
 
   host.tabIndex = -1;
-  const background = ['.hud', '.level-banner', '.timeline', '.control-dock', '.utility-bar', '.debug-panel']
+  const background = ['.hud', '.horizon-gauge', '.level-banner', '.timeline', '.control-dock', '.utility-bar', '.debug-panel']
     .map(selector => host.querySelector<HTMLElement>(selector)!).filter(Boolean);
   const focusable = (overlay: HTMLElement) => Array.from(overlay.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'))
     .filter(button => !button.hidden);
@@ -256,6 +280,14 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
     text('apples', `${state.apples} / ${state.totalApples}`);
     text('time', timeText(state.elapsed));
     text('angle', `${Math.round(((safe(state.worldAngle) * 180 / Math.PI) % 360 + 360) % 360)}°`);
+    const degrees = safe(state.worldAngle) * 180 / Math.PI;
+    const signedDegrees = Math.round(((degrees + 180) % 360 + 360) % 360 - 180) || 0;
+    const horizonValue = `${signedDegrees > 0 ? '+' : ''}${signedDegrees}°`;
+    horizonNeedle.setAttribute('transform', `rotate(${degrees % 360} 50 50)`);
+    text('horizon-angle', horizonValue);
+    text('horizon-label', state.surveying ? 'WORLD TILT' : signedDegrees === 0 ? 'LEVEL' : 'WORLD TILT');
+    horizon.classList.toggle('is-level', signedDegrees === 0);
+    horizon.setAttribute('aria-label', `World tilt ${signedDegrees} degrees from level. Shaded half is ground; triangle points up.`);
     text('level-number', `${String(state.levelIndex + 1).padStart(2, '0')} / ${String(levels.length).padStart(2, '0')}`);
     text('level-name', selected?.name ?? 'Newton’s Ride');
     const allApples = state.totalApples > 0 && state.apples >= state.totalApples;

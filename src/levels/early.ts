@@ -6,7 +6,7 @@ const box = (minX: number, minY: number, maxX: number, maxY: number) => ({ min: 
 export type Terrace = readonly [number, number];
 export const orchardProfile: Terrace[] = [[-5, 0], [5, 0], [14, 4], [21, 4], [30, -1.5], [35, -1.5], [45, 3], [50, 3]];
 export const wonderProfile: Terrace[] = [[-5, 0], [4, 0], [13, 5], [19, 5], [31, -5], [36, -5], [48, 3], [55, 3]];
-export const gardenProfile: Terrace[] = [[-5, 0], [4, 0], [14, 4], [19, 4], [26, 1], [34, 1], [44, -3], [51, -3]];
+export const gardenProfile: Terrace[] = [[-5, 0], [4, 0], [14, 4], [19, 4], [26, 1], [38, 1], [48, -3], [51, -3]];
 export const millProfile: Terrace[] = [[-5, 0], [4, 0], [12, 3], [36, 3], [44, 3]];
 export const roomProfile: Terrace[] = [[-5, 0], [4, 0], [13, -3], [20, -3], [29, 0], [38, 0]];
 export function profileAt(profile: Terrace[], x: number): { y: number; angle: number } {
@@ -72,13 +72,13 @@ export const earlyLevels: Level[] = [
     exit: p(-1.5, .8), difficulty: 2, accent: '#e9b866',
   },
   {
-    id: 'hanging-garden', name: 'The Hanging Garden', subtitle: 'An apple beyond the hanging bridge',
-    mechanic: 'Cross a bicycle-sized suspended deck between the upper garden and the sunken orchard, then come back.',
-    hint: 'Approach the hanging deck gently. Keep the tilt small while aboard; brake on the terraces to plan the return.',
+    id: 'hanging-garden', name: 'The Hanging Garden', subtitle: 'Ride the cradle across and back',
+    mechanic: 'Board the cradle, hold BRAKE and tilt to swing across the chasm. Bring every apple back to the door.',
+    hint: 'Stop at the edge and tilt toward your bank to call the cradle. Roll aboard gently, hold BRAKE, then tilt toward the far bank. Release to ride off; repeat on the way home.',
     spawn: p(0, .72), bounds: box(-7, -8, 54, 11), surfaces: [
-      ...terrain('garden', gardenProfile, [[29, 32]]), hazard('garden-water', 30.5, -4, 4),
+      ...terrain('garden', gardenProfile, [[27, 34]]), hazard('garden-water', 30.5, -4, 8),
     ],
-    swings: [{ id: 'garden-swing', anchor: p(30.5, 3.88), length: 3, width: 2.8, damping: .8 }],
+    swings: [{ id: 'garden-swing', anchor: p(30.5, 7.16), length: 7, width: 2.8, mass: 20, damping: 10, angle: -.3 }],
     apples: [6, 17, 27, 36, 47.5].map((x, i) => fruit(`garden-${i}`, gardenProfile, x)),
     exit: p(-1.5, .8), difficulty: 3, accent: '#8dc68c',
   },
@@ -120,8 +120,8 @@ const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n
 const profiles = [orchardProfile, wonderProfile, gardenProfile, millProfile, roomProfile];
 /** Only observes snapshots and supplies the same angle/brake inputs available to a phone player. */
 export function createEarlyReplayPilot(index: number) {
-  let previous: Snapshot | undefined, returning = false, stage = 0, catchStage = 0;
-  let previousBikeAngle = 0;
+  let previous: Snapshot | undefined, returning = false, stage = 0, catchStage = 0, gardenStage = 0;
+  let previousBikeAngle = 0, gardenBoardingReleased = false;
   const turnX = [0, 0, 0, 44, 38][index], turnY = [0, 0, 0, 9, 6][index];
   return (state: Snapshot): Controls => {
     const vx = previous ? (state.bike.x - previous.bike.x) * 120 : 0;
@@ -138,7 +138,38 @@ export function createEarlyReplayPilot(index: number) {
       const direction = returning ? -1 : 1;
       speed = direction * Math.min(2.4, Math.max(.5, (returning ? state.bike.x + 1.5 : far - state.bike.x + .5) * .9));
       brake = returning && vx > .7;
-      if (index === 2 && state.bike.x > 26 && state.bike.x < 35) speed = direction * 1.5;
+      // Board gently before locking the wheels; call the empty cradle back from each bank.
+      if (index === 2) {
+        const deck = state.bodies.find(body => body.id === 'garden-swing')!;
+        const control = (angle: number, hold = false): Controls => ({ tilt: clamp((angle - state.worldAngle) * 8, -1, 1), brake: hold });
+        if (gardenStage === 0 && state.bike.x > 26) gardenStage = .5;
+        if (gardenStage === .5 && deck.x < 28.45 && Math.abs(vx) < .15) gardenStage = 1;
+        if (gardenStage === 1 && state.bike.x > deck.x - .45) gardenStage = 2;
+        if (gardenStage === 2 && deck.x > 32.45) gardenStage = 3;
+        if (gardenStage === 3 && state.bike.x > 35) gardenStage = 4;
+        if (gardenStage === 4 && returning && state.bike.x < 34.9) gardenStage = 5;
+        if (gardenStage === 5 && deck.x > 32.59 && Math.abs(vx) < .15) {
+          gardenStage = 6; gardenBoardingReleased = false;
+        }
+        if (gardenStage === 6 && state.bike.x < deck.x + .45) gardenStage = 7;
+        if (gardenStage === 7 && deck.x < 28.55) gardenStage = 8;
+        if (gardenStage === 8 && state.bike.x < 26) gardenStage = 9;
+        if (gardenStage === .5) return control(-.5, true);
+        if (gardenStage === 1 || gardenStage === 6) {
+          const boardingDirection = gardenStage === 1 ? 1 : -1;
+          // Level the world before releasing the bank-side brake. Then ease
+          // onto the sloped deck at a controlled speed, avoiding a hard stop
+          // that pitches a wheel up when the cradle starts its loaded trip.
+          if (state.worldAngle * boardingDirection >= 0) gardenBoardingReleased = true;
+          const target = bikeAngle + clamp((boardingDirection * 2 - vx) * .4, -.3, .3);
+          return control(target, !gardenBoardingReleased);
+        }
+        if (gardenStage === 2) return control(.5, true);
+        if (gardenStage === 3) return control(.55);
+        if (gardenStage === 5) return control(.5, true);
+        if (gardenStage === 7) return control(-.5, true);
+        if (gardenStage === 8) return control(-.55);
+      }
     } else {
       if (stage === 0 && state.bike.x >= turnX - .3) stage = 1;
       if (stage === 1) theta = Math.atan2(state.bike.x - turnX, turnY - state.bike.y);
