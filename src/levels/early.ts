@@ -78,7 +78,7 @@ export const earlyLevels: Level[] = [
     spawn: p(0, .72), bounds: box(-7, -8, 54, 11), surfaces: [
       ...terrain('garden', gardenProfile, [[27, 34]]), hazard('garden-water', 30.5, -4, 8),
     ],
-    swings: [{ id: 'garden-swing', anchor: p(30.5, 7.16), length: 7, width: 2.8, mass: 20, damping: 8, angle: -.3 }],
+    swings: [{ id: 'garden-swing', anchor: p(30.5, 7.16), length: 7, width: 2.8, mass: 20, damping: 9, angle: -.3 }],
     apples: [6, 17, 27, 36, 47.5].map((x, i) => fruit(`garden-${i}`, gardenProfile, x)),
     exit: p(-1.5, .8), difficulty: 3, accent: '#8dc68c',
   },
