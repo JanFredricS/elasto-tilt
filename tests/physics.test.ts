@@ -65,6 +65,13 @@ describe('actual Rapier bicycle simulation', () => {
     const hazard = await game(fixture({ spawn: { x: 0, y: .7 }, surfaces: [{ id: 'hazard', x: 0, y: -.1, w: 4, h: .2, kind: 'hazard' }] }));
     expect(run(hazard, .1).status).toBe('crashed');
   });
+  it('the taller visible hair can hit a low ceiling while clear space remains safe', async () => {
+    // Above the old head's 2.90 m top, but inside the philosopher's visible crown.
+    const crown = await game(fixture({ surfaces: [{ id: 'crown-edge', x: .126, y: 3.015, w: .08, h: .02 }] }));
+    const clear = await game(fixture({ surfaces: [{ id: 'clear-roof', x: .126, y: 3.08, w: .08, h: .02 }] }));
+    expect(run(crown, 1 / 120).status).toBe('crashed');
+    expect(run(clear, 1 / 120).status).toBe('playing');
+  });
   it('inverted props accelerate opposite ordinary props and swing length stays constrained', async () => {
     const p = await game(fixture({ props: [
       { id: 'normal', x: 20, y: 10, w: .5, h: .5, shape: 'ball' },

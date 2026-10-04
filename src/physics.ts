@@ -11,9 +11,10 @@ let initialized: Promise<void> | undefined;
 type RenderBody = { body: RAPIER.RigidBody; view: Omit<BodyView, 'x' | 'y' | 'angle'>; offset?: Vec };
 type Tag = { kind: 'bike' | 'helmet' | 'hazard' | 'apple' | 'exit' | 'time' | 'environment'; id: string };
 
-/** Spawn denotes frame centre. Wheel radius .34, axles (+/-.70, -.36), helmet (.10, .69). */
+/** Spawn denotes frame centre. Wheel radius .34, axles (+/-.70, -.36), head (.126126126, .795). */
 export async function createPhysics(): Promise<PhysicsGame> {
   await (initialized ??= RAPIER.init());
+  const visibleHead = new RAPIER.Ball(.231);
   let world: RAPIER.World | undefined;
   let queue: RAPIER.EventQueue | undefined;
   let level: Level;
@@ -66,10 +67,11 @@ export async function createPhysics(): Promise<PhysicsGame> {
       .setLinearDamping(.08).setAngularDamping(.12).setCcdEnabled(true));
     bikeColliders.push(register(RAPIER.ColliderDesc.cuboid(.58, .12).setMass(2.5).setFriction(.55)
       .setCollisionGroups(BIKE_GROUP), frame, { kind: 'bike', id: 'frame' }));
+    // Original upper-body collider retains mass, contact response and apple reach.
     bikeColliders.push(register(RAPIER.ColliderDesc.ball(.21).setTranslation(.10, .69).setMass(.35)
-      .setCollisionGroups(BIKE_GROUP), frame, { kind: 'helmet', id: 'head' }));
+      .setCollisionGroups(BIKE_GROUP), frame, { kind: 'helmet', id: 'neck' }));
     renderBodies.push({ body: frame, view: { id: 'frame', w: 1.4, h: .72, kind: 'frame', shape: 'box' } });
-    renderBodies.push({ body: frame, offset: { x: .1, y: .69 }, view: { id: 'head', w: .42, h: .42, kind: 'head', shape: 'ball' } });
+    renderBodies.push({ body: frame, offset: { x: .126126126, y: .795 }, view: { id: 'head', w: .462, h: .462, kind: 'head', shape: 'ball' } });
     for (const [i, x] of [-.7, .7].entries()) {
       const wheel = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(next.spawn.x + x, next.spawn.y - .36)
         .setAngularDamping(.015).setCcdEnabled(true));
@@ -196,6 +198,14 @@ export async function createPhysics(): Promise<PhysicsGame> {
       if (other.kind === 'apple') collected.add(other.id);
       else if (other.kind === 'hazard' || (bike.kind === 'helmet' && other.kind !== 'exit')) status = 'crashed';
     });
+    // A shape query extends the vulnerable head without adding a collider that
+    // would perturb the original assembly's mass/contact solver or apple reach.
+    const centre = frame.translation(), rotation = frame.rotation();
+    const headCentre = { x: centre.x + Math.cos(rotation) * .126126126 - Math.sin(rotation) * .795,
+      y: centre.y + Math.sin(rotation) * .126126126 + Math.cos(rotation) * .795 };
+    world.intersectionsWithShape(headCentre, rotation, visibleHead, () => {
+      status = 'crashed'; return false;
+    }, RAPIER.QueryFilterFlags.EXCLUDE_SENSORS, (2 << 16) | 1, undefined, frame);
     // Test exit occupancy every step so collecting the last apple inside it still completes.
     if (status === 'playing' && collected.size === level.apples.length) {
       for (const collider of bikeColliders) world.intersectionPairsWith(collider, other => {
