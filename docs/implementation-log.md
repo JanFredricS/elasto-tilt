@@ -95,3 +95,12 @@ Residual: physical iPhone Safari toolbar collapse and installed launch still nee
 ## Taller philosopher on original wheelbase — 2026-10-04
 
 Integrated the philosopher on the original 1.4 m axle spacing with a taller body and larger head. Preserved original mass, brakes, wheel radii, and apple reach, and added a matching visible-head collision query. Full 161-case campaign suite passes without map or pilot edits; the added crown-clearance and fast inverted-flight regressions also pass (163 total). The head check sweeps between physics steps, addressing the second Sol review finding. See `rider-integration.md` for validation and review limitations. Sol generated four start-page illustration variants under `docs/design/newton-start/`; these remain options for user selection.
+
+
+## Map 7: visible circular tunnel — 2026-10-04
+
+Astra lowered Escher’s outer roof from 18 m to 14 m and replaced the distant interior architecture with a continuous lining around all four rounded turns. The passage is approximately 2.4 m high; the shared slab remains the entry ceiling and the final terrace floor. All eight apples and the return door remain, with the wall and roof apples moved with their surfaces. A level-specific camera widens the riding view by 10% and shifts the rider slightly down so the approaching roof stays visible. Other maps retain the previous camera defaults.
+
+Native replay completes in 75.442 seconds over 110.812 m, reaching 6.296 radians of world rotation. The full 163-case unit suite passes after replacing obsolete absolute-height assertions with checks against the actual wall and roof surfaces. TypeScript and the Pages build pass. A new rendered phone test completes all eight apples, recording portrait/landscape entry, first bend, ceiling and return bend screenshots. Four existing map-overview checks also pass.
+
+Fresh Astra-low review inspected geometry, rider clearance, camera defaults and all route screenshots; no blocking findings or source fix cycles were required. Minor existing HUD overlap with architecture remains, but the rider and tunnel edges stay visible. Browser emulation does not establish physical-phone sensor feel. The final assertion correction checks the same face-placement contract against the intentionally lowered geometry.
