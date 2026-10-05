@@ -1,6 +1,12 @@
 /** Shared contract. Map-space is metres, x right, y UP; angles in radians. */
 export interface Vec { x: number; y: number }
-export interface Surface extends Vec { id: string; w: number; h: number; angle?: number; kind?: 'ground' | 'hazard' | 'cradle' }
+export interface Surface extends Vec {
+  id: string; w: number; h: number; angle?: number; kind?: 'ground' | 'hazard' | 'cradle';
+  /** Surfaces sharing a chain id form one continuous run (in list order, ridden on their +y faces).
+   *  They render as drawn; physics buries valley joints (or, for an all-convex run, uses one convex
+   *  hull) so wheels don't catch on the seams between segments. */
+  chain?: string;
+}
 export interface Apple extends Vec { id: string }
 export interface Prop extends Vec {
   id: string; shape: 'box' | 'ball'; w: number; h: number; inverted?: boolean;
