@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { bankOffset, createInput, screenBank } from '../src/input';
+import { bankOffset, createInput, loadSteeringMode, saveSteeringMode, screenBank, STEERING_KEY, steeringOffset } from '../src/input';
 import type { InputController } from '../src/types';
 
 class Surface extends EventTarget {
@@ -268,4 +268,102 @@ describe('shared keyboard, touch, and calibrated motion command', () => {
     pose(40); expect(settle(input).worldAngle).toBeLessThan(4);
   });
 
+});
+
+describe('direct (1:1) steering mode', () => {
+  it('maps phone twist to world rotation exactly, with no dead zone or gain', () => {
+    for (const bank of [0, .1, .5, .75, 1, 10, 45, 75, 90, 180, 360, 540, 802, 1440, -.3, -90, -802]) {
+      expect(steeringOffset('direct', bank)).toBeCloseTo(bank * deg, 12);
+    }
+    expect(steeringOffset('direct', NaN)).toBe(0);
+    expect(steeringOffset('direct', Infinity)).toBe(0);
+    expect(steeringOffset('assisted', 30)).toBe(bankOffset(30));
+  });
+
+  it('turns the world exactly with the phone through several full turns', async () => {
+    const input = controller(); input.setSteering('direct'); await input.enableMotion();
+    pose(0, 45); expect(settle(input).worldAngle).toBe(0);
+    pose(.5, 45); expect(settle(input).worldAngle).toBeCloseTo(.5 * deg, 6); // no dead zone
+    expect(input.mode).toBe('Motion — 1:1 steering');
+    for (let bank = 3; bank <= 810; bank += 3) {
+      pose(bank, 45);
+      if (bank % 90 === 0) expect(settle(input).worldAngle).toBeCloseTo(bank * deg, 5);
+    }
+    expect(settle(input).worldAngle).toBeCloseTo(810 * deg, 5);
+    for (let bank = 807; bank >= -30; bank -= 3) pose(bank, 45);
+    expect(settle(input).worldAngle).toBeCloseTo(-30 * deg, 5);
+  });
+
+  it('switches mode mid-play without moving the world, then continues in the new mapping', async () => {
+    const input = controller(); await input.enableMotion();
+    pose(0); pose(40);
+    const assisted = settle(input).worldAngle!;
+    expect(assisted).toBeCloseTo(bankOffset(40), 5);
+    input.read(0, assisted);
+    input.setSteering('direct');
+    expect(input.steering).toBe('direct');
+    expect(input.mode).toBe('Motion — 1:1 steering');
+    for (let i = 0; i < 120; i++) expect(input.read(1 / 120, assisted).worldAngle).toBeCloseTo(assisted, 9);
+    pose(70); expect(settle(input).worldAngle).toBeCloseTo(assisted + 30 * deg, 5);
+    const direct = input.read(0).worldAngle!;
+    input.read(0, direct);
+    input.setSteering('assisted');
+    expect(input.mode).toBe('Motion — angle control');
+    expect(settle(input).worldAngle).toBeCloseTo(direct, 9);
+    // Re-referenced at the switch pose: inside the dead zone nothing moves, then the curve applies.
+    pose(70.5); expect(settle(input).worldAngle).toBeCloseTo(direct, 9);
+    pose(90); expect(settle(input).worldAngle).toBeCloseTo(direct + bankOffset(20), 5);
+    // Re-selecting the current mode is a no-op.
+    const before = input.read(0).worldAngle!;
+    input.setSteering('assisted'); expect(settle(input).worldAngle).toBeCloseTo(before, 6);
+  });
+
+  it('switching before any sensor sample waits for motion and auto-calibrates as usual', async () => {
+    const input = controller(); input.read(.01, .6);
+    input.setSteering('direct'); await input.enableMotion();
+    pose(15); expect(settle(input).worldAngle).toBeCloseTo(.6, 6);
+    pose(25); expect(settle(input).worldAngle).toBeCloseTo(.6 + 10 * deg, 5);
+  });
+
+  it('still freezes a flat phone and resumes from the frozen value', async () => {
+    const input = createInput('direct'); controllers.push(input); await input.enableMotion();
+    expect(input.steering).toBe('direct');
+    event('deviceorientation', { beta: 0, gamma: 0 }); expect(settle(input).worldAngle).toBeUndefined();
+    pose(0); pose(20); const held = settle(input).worldAngle!;
+    expect(held).toBeCloseTo(20 * deg, 6);
+    for (const [beta, gamma] of [[0, 0], [3, -5], [-4, 6], [1, 9]]) {
+      event('deviceorientation', { beta, gamma });
+      expect(settle(input).worldAngle).toBeCloseTo(held, 6);
+    }
+    pose(-70, 60); expect(settle(input).worldAngle).toBeCloseTo(held, 6);
+    pose(-60, 60); expect(settle(input).worldAngle).toBeCloseTo(30 * deg, 5);
+  });
+
+  it('keeps calibrate and touch override working in direct mode', async () => {
+    const input = createInput('direct'); controllers.push(input); await input.enableMotion();
+    pose(0); pose(50); expect(settle(input).worldAngle).toBeCloseTo(50 * deg, 5);
+    input.read(0, 50 * deg); input.calibrate();
+    expect(settle(input).worldAngle).toBeCloseTo(0, 5);
+    pose(60); expect(settle(input).worldAngle).toBeCloseTo(10 * deg, 5);
+    input.setTouchTilt(1); expect(settle(input).tilt).toBeCloseTo(1, 5);
+    input.read(.01, 2); input.setTouchTilt(0);
+    expect(settle(input).worldAngle).toBeCloseTo(2, 5);
+    pose(70); expect(settle(input).worldAngle).toBeCloseTo(2 + 10 * deg, 5);
+  });
+
+  it('persists the steering preference defensively', () => {
+    const store = new Map<string, string>();
+    const storage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => { store.set(k, v); } };
+    expect(loadSteeringMode(storage)).toBe('assisted');
+    saveSteeringMode(storage, 'direct');
+    expect(store.get(STEERING_KEY)).toBe('direct');
+    expect(STEERING_KEY).toBe('newtons-ride.steering.v1');
+    expect(loadSteeringMode(storage)).toBe('direct');
+    store.set(STEERING_KEY, 'garbage'); expect(loadSteeringMode(storage)).toBe('assisted');
+    const throwing = { getItem: () => { throw new Error('blocked'); }, setItem: () => { throw new Error('blocked'); } };
+    expect(loadSteeringMode(throwing)).toBe('assisted');
+    expect(() => saveSteeringMode(throwing, 'direct')).not.toThrow();
+    expect(loadSteeringMode(undefined)).toBe('assisted');
+    expect(createInput().steering).toBe('assisted');
+  });
 });

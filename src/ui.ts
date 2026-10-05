@@ -74,6 +74,7 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
         <button type="button" class="text-btn" data-action="survey" aria-label="View whole map" aria-pressed="false">MAP</button>
         <button type="button" class="text-btn" data-action="motion">ENABLE MOTION</button>
         <button type="button" class="text-btn" data-action="calibrate">CALIBRATE</button>
+        <button type="button" class="text-btn steering-btn" data-action="steering">STEERING: ASSISTED</button>
         <button type="button" class="text-btn" data-action="screen" hidden>SCREEN</button>
         <button type="button" class="text-btn debug-toggle" data-action="debug">FPS</button>
       </div>
@@ -148,6 +149,13 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
     toastTimer = window.setTimeout(() => { element.hidden = true; }, 3400);
   };
 
+  const steeringButton = host.querySelector<HTMLButtonElement>('[data-action="steering"]')!;
+  const syncSteering = (mode: UIState['steering']) => {
+    const label = mode === 'direct' ? 'STEERING: 1:1' : 'STEERING: ASSISTED';
+    if (steeringButton.textContent !== label) steeringButton.textContent = label;
+    steeringButton.classList.toggle('selected', mode === 'direct');
+  };
+
   on(host, 'click', (event: Event) => {
     const button = (event.target as Element).closest<HTMLButtonElement>('[data-action]');
     if (!button) return;
@@ -156,6 +164,13 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
       case 'restart': callbacks.restart(); break;
       case 'pause': callbacks.pause(); break;
       case 'calibrate': callbacks.calibrate(); toast('Set. This is your level horizon.'); break;
+      case 'steering': {
+        const next = current?.steering === 'direct' ? 'assisted' : 'direct';
+        callbacks.setSteering(next);
+        syncSteering(next);
+        toast(next === 'direct' ? 'Steering 1:1 — the world turns exactly with your phone.' : 'Steering assisted — small twists, eased turns.');
+        break;
+      }
       case 'debug': callbacks.debug(!current?.debug); break;
       case 'survey': callbacks.survey(); break;
       case 'state-primary': primaryAction?.(); break;
@@ -267,6 +282,7 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
     stateOverlay.hidden = state.status === 'menu' || playing;
     get('controls').hidden = !playing || state.surveying;
     get('utility').hidden = state.status === 'menu';
+    syncSteering(state.steering);
     host.classList.toggle('is-playing', playing);
     host.classList.toggle('is-menu', state.status === 'menu');
     host.classList.toggle('debug-on', state.debug);

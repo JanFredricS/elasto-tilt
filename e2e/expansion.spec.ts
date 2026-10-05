@@ -2,8 +2,8 @@ import { levels } from '../src/levels';
 import { expect, test } from '@playwright/test';
 
 const maps = [
-  [10, 'underside-return'], [11, 'spiral-sanctuary'],
-  [12, 'switchback-scaffold'], [13, 'the-hidden-way-home'], [14, 'stairway-to-heaven'],
+  [12, 'underside-return'], [13, 'spiral-sanctuary'],
+  [14, 'switchback-scaffold'], [15, 'the-hidden-way-home'], [16, 'stairway-to-heaven'],
 ] as const;
 for (const [index, id] of maps) {
   test(`${id} completes through the rendered campaign`, async ({ page }) => {
@@ -61,7 +61,7 @@ for (const [index, id] of maps) {
         return pilot(state);
       });
     }, index);
-    if (index === 14) {
+    if (index === 16) {
       await page.waitForFunction(() => {
         const state = (window as any).__NEWTON__.snapshot();
         return state.bike.y > 3 && state.bike.y < 8 &&
@@ -69,7 +69,7 @@ for (const [index, id] of maps) {
       }, undefined, { timeout: 60_000 });
       await page.screenshot({ path: 'docs/evidence/stairway-wall-climb.png' });
     }
-    if (index > 10 && index < 14) {
+    if (index > 12 && index < 16) {
       await page.waitForFunction(() => (window as any).__expansionTrace.maxAirborne > .15 ||
         (window as any).__NEWTON__.snapshot().status !== 'playing', undefined, { timeout: 240_000 });
       await page.screenshot({ path: `docs/evidence/${id}-flight.png` });
@@ -81,7 +81,7 @@ for (const [index, id] of maps) {
     expect(state.status, JSON.stringify({ state, trace })).toBe('complete');
     expect(state.collected).toHaveLength(trace.total);
     expect(trace.distance).toBeGreaterThan(30);
-    if (index > 10 && index < 14) expect(trace.maxAirborne).toBeGreaterThan(.15);
+    if (index > 12 && index < 16) expect(trace.maxAirborne).toBeGreaterThan(.15);
     expect(errors).toEqual([]);
     console.log(`${id} rendered evidence`, JSON.stringify({ elapsed: state.elapsed, ...trace }));
   });

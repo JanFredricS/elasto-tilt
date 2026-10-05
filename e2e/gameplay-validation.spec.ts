@@ -1,10 +1,11 @@
 import { expect, test } from '@playwright/test';
 
-const names = [
-  'Newton’s Orchard', 'One Wheel Wonder', 'The Hanging Garden', 'The Pendulum Mill',
-  'The Room on Its Side', 'Newton’s Attic', 'Escher’s Orchard',
-  'The Contrary Conservatory', 'The Gravity Engine', 'The Clockwork Apple',
-];
+// [campaign index, name]. The position in this list (slot) keys the per-map checks below.
+const maps = [
+  [0, 'Newton’s Orchard'], [1, 'One Wheel Wonder'], [10, 'The Hanging Garden'], [2, 'The Pendulum Mill'],
+  [3, 'The Room on Its Side'], [4, 'Newton’s Attic'], [5, 'Escher’s Orchard'],
+  [8, 'The Contrary Conservatory'], [9, 'The Gravity Engine'], [11, 'The Clockwork Apple'],
+] as const;
 
 type Trace = {
   distance: number; minY: number; maxY: number; maxAngle: number; minAngle: number;
@@ -70,13 +71,13 @@ async function finishReplay(page: import('@playwright/test').Page) {
 
 test.describe.configure({ mode: 'parallel' });
 
-for (const [index, name] of names.entries()) {
+for (const [slot, [index, name]] of maps.entries()) {
   test(`${name} completes through the rendered browser game`, async ({ page }) => {
     test.setTimeout(180_000);
     const errors: string[] = [];
     page.on('pageerror', error => errors.push(error.message));
     await startReplay(page, index);
-    if (index === 6) {
+    if (slot === 6) {
       await page.waitForFunction(() => (window as any).__replayTrace.collectedAngles['escher-c'] > 1.3,
         undefined, { timeout: 95_000 });
       await page.screenshot({ path: 'docs/evidence/v2-escher-wall.png' });
@@ -84,26 +85,26 @@ for (const [index, name] of names.entries()) {
         undefined, { timeout: 50_000 });
       await page.screenshot({ path: 'docs/evidence/v2-escher-ceiling.png' });
     }
-    if (index === 9) {
+    if (slot === 9) {
       await page.waitForFunction(() => (window as any).__replayTrace.highAppleY !== null,
         undefined, { timeout: 100_000 });
       await page.screenshot({ path: 'docs/evidence/v2-clockwork-high-apple.png' });
     }
     const { state, trace } = await finishReplay(page);
     expect(state.status, `${name}: ${JSON.stringify({ state, trace })}`).toBe('complete');
-    expect(state.collected, name).toHaveLength(index < 5 ? [5, 6, 5, 6, 6][index] : [6, 8, 7, 7, 5][index - 5]);
+    expect(state.collected, name).toHaveLength(slot < 5 ? [5, 6, 5, 6, 6][slot] : [6, 8, 7, 7, 5][slot - 5]);
     expect(trace.distance, name).toBeGreaterThan(60);
-    expect(state.elapsed, name).toBeGreaterThan(index === 0 ? 30 : 45);
+    expect(state.elapsed, name).toBeGreaterThan(slot === 0 ? 30 : 45);
     expect(state.elapsed, name).toBeLessThan(105);
-    if (index === 5) expect(trace.maxY - trace.minY, name).toBeGreaterThan(2);
-    else if (index !== 9) expect(trace.maxY - trace.minY, name).toBeGreaterThan(4);
-    if (index === 2) expect(trace.touchedSwings).toContain('garden-swing');
-    if (index === 3) expect(trace.touchedSwings.sort()).toEqual(['mill-long', 'mill-short']);
-    if (index === 8) {
+    if (slot === 5) expect(trace.maxY - trace.minY, name).toBeGreaterThan(2);
+    else if (slot !== 9) expect(trace.maxY - trace.minY, name).toBeGreaterThan(4);
+    if (slot === 2) expect(trace.touchedSwings).toContain('garden-swing');
+    if (slot === 3) expect(trace.touchedSwings.sort()).toEqual(['mill-long', 'mill-short']);
+    if (slot === 8) {
       expect(trace.crossedSwingGaps).toContain('engine-swing');
       expect(trace.touchedSwings).toContain('engine-swing');
     }
-    if (index === 6) {
+    if (slot === 6) {
       expect(trace.collectedAngles['escher-c']).toBeGreaterThan(1.3);
       expect(trace.collectedAngles['escher-d']).toBeGreaterThan(2.9);
       expect(trace.collectedAngles['escher-f']).toBeGreaterThan(4.4);
@@ -111,7 +112,7 @@ for (const [index, name] of names.entries()) {
       expect(trace.maxAngle).toBeGreaterThan(6);
       expect(state.bike.y).toBeGreaterThan(4);
     }
-    if (index === 9) {
+    if (slot === 9) {
       expect(trace.highAppleY).toBeGreaterThan(1.5);
       expect(trace.peakPhase).toBeGreaterThan(.9);
       expect(trace.reversed).toBe(true);

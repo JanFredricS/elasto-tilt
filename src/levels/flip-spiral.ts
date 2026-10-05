@@ -61,6 +61,7 @@ export const flipSpiralLevels: Level[] = [
     ],
   },
 ];
+export const [undersideReturnLevel, spiralSanctuaryLevel] = flipSpiralLevels;
 
 /** Observation-only pilot: issues exactly the controls available to a phone player. */
 export function createFlipSpiralPilot(index: 0 | 1): (state: Snapshot) => Controls {

@@ -260,7 +260,7 @@ button:focus-visible { outline: 3px solid #cc6258; outline-offset: 3px; }
 
 /* Input capability, rather than window width, distinguishes desktop controls. */
 @media (hover: hover) and (pointer: fine) {
-  .control-dock, [data-action="motion"], [data-action="calibrate"] { display: none !important; }
+  .control-dock, [data-action="motion"], [data-action="calibrate"], [data-action="steering"] { display: none !important; }
   .control-hint { display: block; }
 }
 @media (hover: none), (pointer: coarse) {
