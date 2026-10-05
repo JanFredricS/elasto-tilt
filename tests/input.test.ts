@@ -34,15 +34,40 @@ describe('shared keyboard, touch, and calibrated motion command', () => {
     expect(bankOffset(45) * 180 / Math.PI).toBeCloseTo(110.786, 3);
     expect(bankOffset(75)).toBe(2 * Math.PI);
     expect(bankOffset(-75)).toBe(-2 * Math.PI);
-    expect(bankOffset(80)).toBeCloseTo(2 * Math.PI + 5 * 5 * Math.PI / 74.25, 10);
     expect(bankOffset(-80)).toBe(-bankOffset(80));
-    expect(bankOffset(75.0001) - bankOffset(75)).toBeCloseTo(.0001 * 5 * Math.PI / 74.25, 8);
+    // After a 12° blend from the cubic's end slope (5π/74.25 rad/°) the curve
+    // cruises at a steady 1.25 world°/phone°.
+    const blendEnd = 2 * Math.PI + 12 * (5 * Math.PI / 74.25 + 1.25 * deg) / 2;
+    expect(bankOffset(87)).toBeCloseTo(blendEnd, 10);
+    expect(bankOffset(287)).toBeCloseTo(blendEnd + 200 * 1.25 * deg, 10);
     expect(bankOffset(NaN)).toBe(0);
+    for (const value of [Infinity, -Infinity, 1e6, -1e6]) expect(Number.isFinite(bankOffset(value))).toBe(true);
     for (let bank = 1; bank <= 400; bank++) {
       expect(bankOffset(bank)).toBeGreaterThan(bankOffset(bank - 1));
       expect(bankOffset(-bank)).toBe(-bankOffset(bank));
     }
     expect(bankOffset(55) - bankOffset(50)).toBeGreaterThan(3 * (bankOffset(10) - bankOffset(5)));
+  });
+
+  it('is C¹ through the full-turn knee and the cruise join, then steady near 1:1', () => {
+    const h = 1e-5;
+    const slope = (x: number) => (bankOffset(x + h) - bankOffset(x - h)) / (2 * h);
+    const left = (x: number) => (bankOffset(x) - bankOffset(x - h)) / h;
+    const right = (x: number) => (bankOffset(x + h) - bankOffset(x)) / h;
+    for (const knee of [75, 87]) {
+      expect(right(knee)).toBeCloseTo(left(knee), 3);
+      expect(right(-knee)).toBeCloseTo(left(-knee), 3);
+    }
+    expect(slope(75)).toBeCloseTo(5 * Math.PI / 74.25, 3);
+    // The blend decreases the gain monotonically and never undershoots cruise.
+    for (let bank = 75.5; bank < 87; bank += .5) {
+      expect(slope(bank)).toBeLessThan(slope(bank - .5) + 1e-6);
+      expect(slope(bank)).toBeGreaterThan(1.25 * deg - 1e-6);
+    }
+    for (const bank of [90, 180, 360, 720, 1080]) expect(slope(bank) / deg).toBeCloseTo(1.25, 6);
+    // Spiral Sanctuary (~802° of world rotation) fits in about one physical turn.
+    let bank = 0; while (bankOffset(bank) < 802 * deg) bank += .1;
+    expect(bank).toBeLessThan(400);
   });
   it('maps arrows / A D and space, prevents scrolling, and releases on blur', () => {
     const input = controller();

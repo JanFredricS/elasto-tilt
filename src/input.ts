@@ -4,10 +4,23 @@ const clamp = (value: number) => Math.max(-1, Math.min(1, value));
 const radians = Math.PI / 180;
 const DEAD_ZONE = .75;
 const FULL_BANK = 75;
-// Beyond FULL_BANK the curve continues linearly with its end slope
-// (d/dx of 2π(.25x + .75x³) at x = 1 is 5π per curve unit), so a determined
-// twist keeps turning the world instead of saturating.
+// Within ±FULL_BANK the cubic is precision steering for ordinary maps: a full
+// world turn in a comfortable wrist twist. Past it the player is physically
+// turning the phone hand-over-hand like a steering wheel (spiral maps need
+// 2+ world turns), so the gain should drop to ≈1 and stay steady: at the
+// cubic's own end slope (d/dx of 2π(.25x + .75x³) at x = 1 is 5π per curve
+// unit ≈ 12 world°/phone°) hand tremor would become ±10° world wobble.
+// CRUISE_GAIN 1.25 world°/phone° keeps a little assist while staying tremor-
+// tolerant; Spiral Sanctuary's ~802° then needs ≈376° of phone twist (about
+// one physical turn). Over BLEND_WIDTH the slope eases from the cubic's end
+// slope to the cruise slope along a smoothstep, so the knee is C¹ (no notch)
+// and the cruise join is C². 12° is short enough to reach cruise quickly yet
+// long enough that the deceleration is not felt as a detent.
 const END_SLOPE = 5 * Math.PI / (FULL_BANK - DEAD_ZONE);
+const CRUISE_GAIN = 1.25;
+const CRUISE_SLOPE = CRUISE_GAIN * radians;
+const BLEND_WIDTH = 12;
+const BLEND_END = 2 * Math.PI + BLEND_WIDTH * (END_SLOPE + CRUISE_SLOPE) / 2;
 // Near flat, the screen-plane gravity vector vanishes and its direction is
 // noise. Freeze below sin(10°), resume above sin(14°) (hysteresis around 12°).
 const FLAT_ENTER = Math.sin(10 * radians);
@@ -35,8 +48,16 @@ export function bankOffset(delta: number) {
   if (!Number.isFinite(delta)) return 0;
   const magnitude = Math.abs(delta);
   // Gentle precision near neutral, progressively stronger steering, reaching a
-  // full turn at 75° of bank and continuing linearly (C¹) beyond it.
-  if (magnitude > FULL_BANK) return Math.sign(delta) * (2 * Math.PI + (magnitude - FULL_BANK) * END_SLOPE);
+  // full turn at 75° of bank, then easing (C¹) to a steady ~1:1 cruise.
+  if (magnitude >= FULL_BANK + BLEND_WIDTH) {
+    return Math.sign(delta) * (BLEND_END + (magnitude - FULL_BANK - BLEND_WIDTH) * CRUISE_SLOPE);
+  }
+  if (magnitude > FULL_BANK) {
+    // slope(t) = CRUISE + (END − CRUISE)(1 − 3t² + 2t³), integrated over t.
+    const t = (magnitude - FULL_BANK) / BLEND_WIDTH;
+    const eased = t - t * t * t + t * t * t * t / 2;
+    return Math.sign(delta) * (2 * Math.PI + BLEND_WIDTH * (CRUISE_SLOPE * t + (END_SLOPE - CRUISE_SLOPE) * eased));
+  }
   const x = Math.max(0, magnitude - DEAD_ZONE) / (FULL_BANK - DEAD_ZONE);
   return Math.sign(delta) * 2 * Math.PI * (.25 * x + .75 * x * x * x);
 }
