@@ -55,10 +55,23 @@ describe("Newton's Ouroboros", () => {
     expect(ouroborosLevel.exit.x).toBeGreaterThan(ouroborosLower.rampTop.x);
     expect(ouroborosLevel.exit.y).toBeGreaterThan(ouroborosLower.pocketY);
     expect(ouroborosLevel.exit.y).toBeLessThan(floorY);
-    // A YIELD hint points down into the hole.
-    const yieldHint = ouroborosLevel.routeHints!.find(h => h.label === 'YIELD')!;
-    expect(yieldHint.x).toBeGreaterThan(tip.x); expect(yieldHint.x).toBeLessThan(lip.x);
-    expect(yieldHint.angle).toBeCloseTo(-Math.PI / 2, 5);
+    // Only ROUND and HOME are signposted: nothing points into the hole.
+    expect(ouroborosLevel.routeHints!.map(h => h.label).sort()).toEqual(['HOME', 'ROUND']);
+  });
+
+  it('opens a hole to nowhere: a sheer, undercut shaft with nothing under the hole for over 12 m', () => {
+    const { floor, edgeEnd, wallEnd, corridorY, roofY } = ouroborosLower;
+    // The shaft wall drops from the rounded edge and leans away from the hole.
+    expect(edgeEnd.x - tip.x).toBeLessThan(.6);
+    expect(wallEnd.x).toBeLessThan(edgeEnd.x);
+    expect(edgeEnd.y - wallEnd.y).toBeGreaterThan(7);
+    // Nothing ridden lies under the hole (right of the wall, left of the far lip) within 12 m of the floor,
+    // and the corridor roof starts clear of the hole's whole span.
+    for (const q of floor) if (q.x > edgeEnd.x + 1e-6 && q.x < lip.x + 1) expect(q.y).toBeLessThan(floorY - 12);
+    for (const s of ouroborosLevel.surfaces.filter(s => !s.chain)) expect(s.x - s.w / 2).toBeGreaterThan(lip.x + 3);
+    expect(roofY).toBeLessThan(floorY - 8);
+    expect(corridorY).toBeLessThan(floorY - 14);
+    expect(ouroborosLevel.bounds.min.y).toBeLessThan(corridorY - 3);
   });
 
   it('hangs one apple at the very top of the loop and one at its very bottom', () => {
@@ -83,6 +96,17 @@ describe("Newton's Ouroboros", () => {
     expect(dropped).toBeGreaterThan(0);
     expect(frames[dropped].collected).toEqual(expect.arrayContaining(['ouroboros-top', 'ouroboros-bottom']));
     expect(Math.max(...frames.slice(0, dropped).map(s => s.worldAngle))).toBeGreaterThan(2 * Math.PI - .3);
+    // Tipping in is a genuine free fall: from leaving the floor until the first impact (the first step
+    // whose vertical speed jumps up) well over a second passes and the bike drops more than 10 m,
+    // gathering nearly all the speed gravity alone would give it, with the world held upright.
+    const vy = (i: number) => (frames[i].bike.y - frames[i - 1].bike.y) * hz;
+    const left = frames.findIndex(s => s.bike.y < floorY - 1);
+    let landed = left + 1;
+    while (landed < frames.length && vy(landed) - vy(landed - 1) < 1) landed++;
+    const seconds = (landed - left) / hz;
+    expect(seconds).toBeGreaterThan(1.2);
+    expect(frames[left].bike.y - frames[landed].bike.y).toBeGreaterThan(10);
+    expect(-vy(landed - 1) - -vy(left)).toBeGreaterThan(.9 * 9.81 * seconds);
     const { min, max } = ouroborosLevel.bounds;
     for (const s of frames) {
       expect(s.bike.x).toBeGreaterThan(min.x); expect(s.bike.x).toBeLessThan(max.x);

@@ -11,8 +11,9 @@ const STEP = .3;
  * Newton's Ouroboros: one counter-clockwise loop ridden on its inside, a rounded rectangle whose
  * floor is broken by a hole. The loop ends on a small kicker at the hole's near lip; beyond the
  * hole its own beginning, a little lower, catches anyone who flies across and sends them round
- * again, forever. The only way on is to yield: brake, tip over the kicker and drop onto the slide
- * that waits just under the hole, down to the corridor, the ramp and the door.
+ * again, forever. The only way on is to yield: brake, tip over the kicker and fall. Under the hole
+ * there is nothing for over thirteen metres; the bike somersaults once on the way down, is caught by
+ * the curve at the shaft's foot and its sloping run-out, and rides the corridor, the ramp and the door.
  *
  * Every piece is an exact arc or straight, so the ring closes by construction (no solver).
  */
@@ -35,20 +36,28 @@ export const OUROBOROS_SHAPE: OuroborosShape = {
   deckAngle: 0, deckLength: 0, deckRadius: 1,
 };
 
-/** The way down: a rounded edge off the kicker tip onto a steep slide, a pipe onto the corridor,
- *  the slanted ramp and the door's walled pocket. */
+/** The way down: a rounded edge off the kicker tip into a sheer, slightly undercut shaft. Nothing
+ *  waits under the hole for `shaft` metres; there a curved catcher turns the wall onto a sloping
+ *  run-out that a wide bend lays onto the corridor, then the slanted ramp and the door's walled pocket.
+ *  The yielding bike drifts ~4 m forward and turns a full somersault in its ~1.5 s, 16 m fall, coming
+ *  down a little nose-first: the run-out slopes to meet it so it lands on both wheels. */
 export interface OuroborosWell {
-  /** Radius of the convex edge that rolls the yielding bike off the tip onto the slide (angle, deg). */
-  edgeRadius: number; angle: number; pipeRadius: number;
+  /** Radius of the convex edge that rolls the yielding bike off the tip; the shaft wall's angle (deg,
+   *  just past straight down so it falls away from the bike) and its depth below the ring floor. */
+  edgeRadius: number; wall: number; shaft: number;
+  /** Catcher radius, run-out angle (deg) and the radius of the bend that flattens it onto the corridor. */
+  catchRadius: number; runout: number; bendRadius: number;
   /** Corridor floor depth below the ring floor; ramp foot x, ramp angle (deg), rise to the pocket. */
   floor: number; rampFrom: number; rampAngle: number; rise: number;
-  /** Pocket length, back-wall bend radius and lip height above the bend; roof height above the pocket. */
-  pocketLength: number; backRadius: number; lip: number; headroom: number;
+  /** Pocket length, back-wall bend radius and lip height above the bend; roof height above the pocket,
+   *  and how far past the bend the corridor stays open to the shaft before the roof begins. */
+  pocketLength: number; backRadius: number; lip: number; headroom: number; open: number;
 }
 export const OUROBOROS_WELL: OuroborosWell = {
-  edgeRadius: 1.2, angle: -72, pipeRadius: 3,
-  floor: 6, rampFrom: 19, rampAngle: 16, rise: 2,
-  pocketLength: 4, backRadius: 1.5, lip: 2.2, headroom: 3.3,
+  edgeRadius: .4, wall: -92, shaft: 13.4,
+  catchRadius: 3, runout: -12, bendRadius: 6,
+  floor: 18.3, rampFrom: 20, rampAngle: 16, rise: 2,
+  pocketLength: 4, backRadius: 1.5, lip: 2.2, headroom: 3.3, open: 7,
 };
 
 /** Points along an arc about centre (radians), every ~STEP metres, including both ends. */
@@ -118,44 +127,54 @@ const chainOf = (id: string, points: Vec[], thick = THICK) =>
   points.slice(1).map((q, i) => plank(`${id}-${i}`, points[i], q, id, thick));
 
 export interface OuroborosLower {
-  /** Ridden top-face points from the kicker tip over the edge, down the slide, along the corridor,
-   *  up the ramp and into the pocket (they continue the ring's chain). */
-  floor: Vec[]; edgeEnd: Vec; corridorY: number; corridorFrom: number; rampFoot: Vec; rampTop: Vec;
+  /** Ridden top-face points from the kicker tip over the edge, down the shaft wall, round the catcher,
+   *  along the corridor, up the ramp and into the pocket (they continue the ring's chain). */
+  floor: Vec[]; edgeEnd: Vec; wallEnd: Vec; catchEnd: Vec; corridorY: number; corridorFrom: number; rampFoot: Vec; rampTop: Vec;
   pocketY: number; back: number; door: Vec; roofY: number;
 }
 
 function lowerRoute(track: OuroborosTrack, shape: OuroborosShape, well: OuroborosWell): { surfaces: Surface[]; lower: OuroborosLower } {
-  const k = shape.kick * DEG, a = well.angle * DEG, dir = p(Math.cos(a), Math.sin(a)), r = well.edgeRadius;
+  const k = shape.kick * DEG, w = well.wall * DEG, a = well.runout * DEG, r = well.edgeRadius, R = well.catchRadius;
+  const wallDir = p(Math.cos(w), Math.sin(w)), dir = p(Math.cos(a), Math.sin(a));
   // Convex edge: its centre lies to the right of travel (below the tip).
   const edge = p(track.tip.x + r * Math.sin(k), track.tip.y - r * Math.cos(k));
-  const edgeEnd = p(edge.x + r * Math.cos(a + Math.PI / 2), edge.y + r * Math.sin(a + Math.PI / 2));
+  const edgeEnd = p(edge.x + r * Math.cos(w + Math.PI / 2), edge.y + r * Math.sin(w + Math.PI / 2));
+  // The sheer wall, then the catcher: a concave curve (centre left of travel) turning it onto the run-out.
+  const wallEnd = p(edgeEnd.x + wallDir.x * (edgeEnd.y - track.floorY + well.shaft) / -wallDir.y, track.floorY - well.shaft);
+  const catcher = p(wallEnd.x - wallDir.y * R, wallEnd.y + wallDir.x * R);
+  const catchEnd = p(catcher.x + R * Math.cos(a - Math.PI / 2), catcher.y + R * Math.sin(a - Math.PI / 2));
   const corridorY = track.floorY - well.floor;
-  // Concave pipe onto the corridor: its centre sits pipeRadius above the floor, left of travel.
-  const centreY = corridorY + well.pipeRadius, normal = p(-dir.y, dir.x);
-  const along = (centreY - well.pipeRadius * normal.y - edgeEnd.y) / dir.y;
-  const pipeStart = p(edgeEnd.x + dir.x * along, edgeEnd.y + dir.y * along);
-  const pipe = p(pipeStart.x + normal.x * well.pipeRadius, centreY);
+  // A wide concave bend flattens the run-out onto the corridor: its centre sits bendRadius above the floor.
+  const centreY = corridorY + well.bendRadius, normal = p(-dir.y, dir.x);
+  const along = (centreY - well.bendRadius * normal.y - catchEnd.y) / dir.y;
+  if (!(along > 0)) throw new RangeError('Ouroboros run-out is too short');
+  const bendStart = p(catchEnd.x + dir.x * along, catchEnd.y + dir.y * along);
+  const bend = p(bendStart.x + normal.x * well.bendRadius, centreY);
   const rampFoot = p(well.rampFrom, corridorY);
+  if (!(rampFoot.x > bend.x)) throw new RangeError('Ouroboros ramp starts inside the bend');
   const pocketY = corridorY + well.rise, rampTop = p(rampFoot.x + well.rise / Math.tan(well.rampAngle * DEG), pocketY);
   const backCentre = p(rampTop.x + well.pocketLength, pocketY + well.backRadius);
   const back = backCentre.x + well.backRadius;
   const floor: Vec[] = [track.tip];
-  extend(floor, arc(edge, r, k + Math.PI / 2, a + Math.PI / 2));
-  extend(floor, line(edgeEnd, pipeStart));
-  extend(floor, arc(pipe, well.pipeRadius, a - Math.PI / 2, -Math.PI / 2));
-  extend(floor, line(p(pipe.x, corridorY), rampFoot));
+  extend(floor, arc(edge, r, k + Math.PI / 2, w + Math.PI / 2));
+  extend(floor, line(edgeEnd, wallEnd));
+  extend(floor, arc(catcher, R, w - Math.PI / 2, a - Math.PI / 2));
+  extend(floor, line(catchEnd, bendStart));
+  extend(floor, arc(bend, well.bendRadius, a - Math.PI / 2, -Math.PI / 2));
+  extend(floor, line(p(bend.x, corridorY), rampFoot));
   extend(floor, line(rampFoot, rampTop));
   extend(floor, line(rampTop, p(backCentre.x, pocketY)));
   extend(floor, arc(backCentre, well.backRadius, -Math.PI / 2, 0));
   extend(floor, line(p(back, backCentre.y), p(back, backCentre.y + well.lip)));
   const roofY = pocketY + well.headroom;
-  // The corridor roof runs from the ring's outer wall to past the pocket's back wall.
+  // The corridor roof covers the ramp and the pocket, ending well short of the open sky the bike
+  // falls through (and of the ring's outer wall).
   const [, c1] = track.corners, outer = shape.radius + THICK;
-  const roofFrom = c1.x + Math.sqrt(Math.max(0, outer ** 2 - (roofY + .5 - c1.y) ** 2));
+  const roofFrom = Math.max(bend.x + well.open, c1.x + Math.sqrt(Math.max(0, outer ** 2 - (roofY + .5 - c1.y) ** 2)));
   const surfaces: Surface[] = [
     { id: 'ouroboros-corridor-roof', x: (roofFrom + back + 1) / 2, y: roofY + .25, w: back + 1 - roofFrom, h: .5, kind: 'ground' },
   ];
-  return { surfaces, lower: { floor, edgeEnd, corridorY, corridorFrom: pipe.x, rampFoot, rampTop, pocketY, back,
+  return { surfaces, lower: { floor, edgeEnd, wallEnd, catchEnd, corridorY, corridorFrom: bend.x, rampFoot, rampTop, pocketY, back,
     door: p(rampTop.x + well.pocketLength * .5, pocketY + .9), roofY } };
 }
 
@@ -186,7 +205,6 @@ export const OUROBOROS_APPLES: Apple[] = [
 ];
 export const OUROBOROS_HINTS: RouteHint[] = [
   { x: track0.lip.x + 1.6, y: track0.deckY + 2.6, angle: 0, label: 'ROUND' },
-  { x: track0.tip.x + OUROBOROS_SHAPE.gap / 2, y: track0.floorY + 2.2, angle: -Math.PI / 2, label: 'YIELD' },
   { x: 0, y: 0, angle: 0, label: 'HOME' },
 ];
 const built = buildOuroboros(OUROBOROS_SHAPE, OUROBOROS_WELL, OUROBOROS_APPLES, OUROBOROS_HINTS);
@@ -194,7 +212,7 @@ const built = buildOuroboros(OUROBOROS_SHAPE, OUROBOROS_WELL, OUROBOROS_APPLES, 
   const { lower } = built;
   Object.assign(OUROBOROS_APPLES[2], p((lower.corridorFrom + lower.rampFoot.x) / 2, lower.corridorY + .8));
   Object.assign(OUROBOROS_APPLES[3], p((lower.rampFoot.x + lower.rampTop.x) / 2, (lower.rampFoot.y + lower.rampTop.y) / 2 + .9));
-  Object.assign(OUROBOROS_HINTS[2], p(OUROBOROS_APPLES[2].x - 2.5, lower.corridorY + 2.2));
+  Object.assign(OUROBOROS_HINTS[1], p(OUROBOROS_APPLES[2].x - 2.5, lower.corridorY + 2.2));
 }
 export const ouroborosTrack = built.track;
 export const ouroborosLower = built.lower;
@@ -217,19 +235,20 @@ export const OUROBOROS_PILOT: OuroborosPilotTuning = { speed: 5.5, lean: .3, yie
 /**
  * Observation-only pilot. Rides the loop by keeping gravity just ahead of the bike's heading and
  * holds the world upright over the hole. With `escape` it yields once both loop apples are in:
- * brakes down the last corner, tips over the kicker, falls onto the slide and rides to the door.
+ * brakes down the last corner, tips over the kicker, falls down the shaft with the world held upright
+ * and rides from the landing to the door.
  * Without it, it carries its speed over the hole every lap and orbits forever.
  */
 export function ouroborosPilotFor(track: OuroborosTrack, lower: OuroborosLower, tuning: OuroborosPilotTuning,
   escape = true): (state: Snapshot) => Controls {
-  let previous: Vec | undefined, lastTime = 0, angle = 0, lastRaw = 0, vx = 0, along = 0;
+  let previous: Vec | undefined, lastTime = 0, angle = 0, lastRaw = 0, vy = 0, along = 0;
   let phase: 'loop' | 'yield' | 'fall' = 'loop', home = 0;
   return state => {
     const raw = state.bodies.find(body => body.id === 'frame')!.angle;
     angle += Math.atan2(Math.sin(raw - lastRaw), Math.cos(raw - lastRaw)); lastRaw = raw;
     const dt = state.elapsed - lastTime;
     if (previous && dt > 0) {
-      vx = (state.bike.x - previous.x) / dt;
+      vy = (state.bike.y - previous.y) / dt;
       along = ((state.bike.x - previous.x) * Math.cos(angle) + (state.bike.y - previous.y) * Math.sin(angle)) / dt;
     }
     previous = state.bike; lastTime = state.elapsed;
@@ -255,12 +274,15 @@ export function ouroborosPilotFor(track: OuroborosTrack, lower: OuroborosLower, 
       target = floor ? home + clamp(tuning.nudge + (tuning.creep - along) * .5, 0, .45) : Math.min(angle + .15, home);
       brake = along > (x < track.tip.x - 2.5 ? 2 : tuning.creep + .3) && x < track.tip.x - .3;
     } else {
-      // Hold the world upright down the slide, then lean with the corridor and ramp; brake in the pocket.
-      const pocket = x > lower.door.x - .6, corridor = y < lower.corridorY + 3 && x > lower.corridorFrom;
-      const heading = home + clamp(angle - home, -.5, .5);
-      const slide = !corridor && !pocket && x < lower.corridorFrom + 1;
-      target = slide ? Math.max(home - 1.4, Math.min(home, angle + .35)) : pocket || !corridor ? home : heading + clamp((tuning.corridor - along) * .3, -.35, .35);
-      brake = pocket || (corridor && along > tuning.corridor + 3);
+      // Hold the world upright through the free fall and the catch. Once down on the corridor, lean
+      // the world by the ground's own slope (never by the bike's pitch, which would only feed a
+      // wheelie after the hard landing) plus a little for speed; brake in the pocket.
+      const pocket = x > lower.door.x - .6, down = x > lower.corridorFrom && Math.abs(vy) < 3 &&
+        (y < lower.corridorY + 1.6 || x > lower.rampFoot.x - .5);
+      const ramp = x > lower.rampFoot.x - .5 && x < lower.rampTop.x
+        ? Math.atan2(lower.rampTop.y - lower.rampFoot.y, lower.rampTop.x - lower.rampFoot.x) : 0;
+      target = pocket || !down ? home : home + ramp + clamp((tuning.corridor - along) * .3, -.35, .35);
+      brake = pocket || (down && along > tuning.corridor + 3);
     }
     return { tilt: clamp((target - state.worldAngle) * 8, -1, 1), brake };
   };
