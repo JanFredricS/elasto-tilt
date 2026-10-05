@@ -108,3 +108,59 @@ it.each([0, 1] as const)('map %i rejects idle, full tilt and fixed-gravity short
    const result = await replay(1, 1 / 60);
    expect(result.state.status, result.trace.join(' → ')).toBe('complete');
  });
+
+// Wheels rolling across abutting terrain cuboids get kicked off every seam by Rapier's
+// speculative contacts (≈.8 m/s per-step radial jolts and ~4 cm hops at 7 m/s before the
+// chain fix). Genuine curvature and gravity steering stay below ~.15 m/s per step here.
+it('rolls the spiral ribbon at speed without seam kicks or hops', async () => {
+  const level = flipSpiralLevels[1], game = await createPhysics(); game.load(level);
+  let state = game.snapshot(), previous = state.bike, progress = 0, lastPolar = 0, speed = 0;
+  const radial = [NaN, NaN], radialVelocity = [NaN, NaN];
+  let worstKick = 0, worstLift = 0, samples = 0;
+  while (progress < 1.7 && state.status === 'playing' && state.elapsed < 30) {
+    const track = progress + Math.atan2(1.65, 26 - 1.65 * progress);
+    const target = track + Math.max(-.35, Math.min(.35, (7 - speed) * .3));
+    state = game.step(1 / 120, { tilt: Math.max(-1, Math.min(1, (target - state.worldAngle) * 8)), brake: false });
+    speed = Math.hypot(state.bike.x - previous.x, state.bike.y - previous.y) * 120; previous = state.bike;
+    const polar = Math.atan2(state.bike.x, -state.bike.y);
+    progress += Math.atan2(Math.sin(polar - lastPolar), Math.cos(polar - lastPolar)); lastPolar = polar;
+    state.bodies.filter(b => b.kind === 'wheel').forEach((wheel, i) => {
+      const r = Math.hypot(wheel.x, wheel.y), v = (r - radial[i]) * 120;
+      if (progress > .5 && Number.isFinite(v - radialVelocity[i])) {
+        worstKick = Math.max(worstKick, Math.abs(v - radialVelocity[i])); samples++;
+        worstLift = Math.max(worstLift, Math.min(...level.surfaces.map(s => distanceToSurface(wheel, s))) - .34);
+      }
+      radial[i] = r; radialVelocity[i] = v;
+    });
+  }
+  game.destroy();
+  expect(state.status).toBe('playing');
+  expect(speed).toBeGreaterThan(6);
+  expect(samples).toBeGreaterThan(400);
+  expect(worstKick).toBeLessThan(.3);
+  expect(worstLift).toBeLessThan(.01);
+});
+
+it('lands each spiral gap without rebounding off the stone', async () => {
+  const level = flipSpiralLevels[1], game = await createPhysics(); game.load(level);
+  const pilot = createFlipSpiralPilot(1);
+  let state = game.snapshot(), progress = 0, lastPolar = 0;
+  const rebound = spiralGaps.map(() => 0), touched = spiralGaps.map(() => false);
+  for (let k = 0; k < 120 * 120 && state.status === 'playing'; k++) {
+    state = game.step(1 / 120, pilot(state));
+    const polar = Math.atan2(state.bike.x, -state.bike.y);
+    progress += Math.atan2(Math.sin(polar - lastPolar), Math.cos(polar - lastPolar)); lastPolar = polar;
+    for (const [i, gap] of spiralGaps.entries()) {
+      if (progress < gap.to || progress > gap.to + .8) continue;
+      // Height of the lower wheel above stone: both wheels leaving after touchdown is a bounce.
+      const clearance = Math.min(...state.bodies.filter(b => b.kind === 'wheel')
+        .map(w => Math.min(...level.surfaces.map(s => distanceToSurface(w, s))) - .34));
+      if (clearance < .01) touched[i] = true;
+      else if (touched[i]) rebound[i] = Math.max(rebound[i], clearance);
+    }
+  }
+  game.destroy();
+  expect(state.status).toBe('complete');
+  expect(touched).toEqual(spiralGaps.map(() => true));
+  for (const height of rebound) expect(height).toBeLessThan(.1);
+});

@@ -1,15 +1,88 @@
 import RAPIER from '@dimforge/rapier2d-compat';
 import { carriedTravel, RouteClock } from './physics-time';
-import type { BodyView, Controls, Level, PhysicsGame, Snapshot, Vec } from './types';
+import type { BodyView, Controls, Level, PhysicsGame, Prop, Snapshot, Surface, Vec } from './types';
 
 const GRAVITY = 9.81;
-const BIKE_GROUP = (2 << 16) | 5;
-const ENV_GROUP = (1 << 16) | 7;
+const BIKE_GROUP = (2 << 16) | 13;
+const ENV_GROUP = (1 << 16) | 15;
+// Loose puzzle props use their own membership bit, so the visible-head sweep
+// (which only queries ENV membership) treats them as pushable, not lethal.
+const PROP_GROUP = (8 << 16) | 11;
 const SENSOR_GROUP = (4 << 16) | 2;
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 let initialized: Promise<void> | undefined;
 type RenderBody = { body: RAPIER.RigidBody; view: Omit<BodyView, 'x' | 'y' | 'angle'>; offset?: Vec };
-type Tag = { kind: 'bike' | 'helmet' | 'hazard' | 'apple' | 'exit' | 'time' | 'environment'; id: string };
+type Tag = { kind: 'bike' | 'helmet' | 'hazard' | 'apple' | 'exit' | 'time' | 'environment' | 'prop'; id: string };
+type Socketed = { body: RAPIER.RigidBody; collider: RAPIER.Collider; socket: NonNullable<Prop['socket']>; view: RenderBody['view'] };
+
+/** Closing speed (m/s) the airborne-wheel soft-CCD look-ahead must cover; the
+ * distance scales with the step so larger timesteps stay protected too. */
+const LANDING_SPEED = 12;
+/** How far (m) a chain segment's ridden face is extended into the stone past each valley joint. */
+export const CHAIN_REACH = 1;
+/**
+ * Collision boxes for a chain of rotated cuboids laid end to end (list order) and ridden on
+ * their local +y faces. Rapier resolves contacts speculatively, so a wheel rolling across an
+ * exposed corner that is level with its own support (the next segment's leading corner) is
+ * shoved upward and backward — a "ghost" bump at every seam, which polylines and heightfields
+ * suffer from too. Where the chain bends toward its ridden side (a valley), each segment's
+ * ridden face is instead extended `reach` metres past the joint on that side, where it lies
+ * buried below the neighbouring faces, so its corners sit well under the rolling surface and
+ * only real face contacts remain. Ends of the chain and convex joints keep the authored span.
+ */
+export function chainBoxes(surfaces: Surface[], reach = CHAIN_REACH): Surface[] {
+  const faces = surfaces.map(surface => {
+    const a = surface.angle ?? 0, dx = Math.cos(a), dy = Math.sin(a);
+    return { surface, dx, dy, x: surface.x - dy * surface.h / 2, y: surface.y + dx * surface.h / 2 };
+  });
+  type Face = typeof faces[number];
+  /** Signed distance along `a` from its face centre to its line's intersection with `b`. */
+  const meet = (a: Face, b: Face) => {
+    const cross = a.dx * b.dy - a.dy * b.dx;
+    return Math.abs(cross) < 1e-9 ? undefined : ((b.x - a.x) * b.dy - (b.y - a.y) * b.dx) / cross;
+  };
+  const valley = (a: Face, b: Face) => a.dx * b.dy - a.dy * b.dx > 1e-6;
+  // Joint parameters along each face; chain length before/after each joint bounds the reach
+  // so a buried extension never pokes out past the chain's own ends.
+  const spans = faces.map(f => ({ from: -f.surface.w / 2, to: f.surface.w / 2 }));
+  for (let i = 1; i < faces.length; i++) {
+    const a = faces[i - 1], b = faces[i];
+    if (!valley(a, b)) continue;
+    const ta = meet(a, b), tb = meet(b, a);
+    if (ta === undefined || tb === undefined || Math.abs(ta - a.surface.w / 2) > a.surface.w / 2 ||
+      Math.abs(tb + b.surface.w / 2) > b.surface.w / 2) continue;
+    spans[i - 1].to = ta; spans[i].from = tb;
+  }
+  // Stone available behind/ahead of each segment through consecutive valley joints only.
+  const lengths = spans.map(s => s.to - s.from), n = faces.length;
+  const before = new Array<number>(n).fill(0), after = new Array<number>(n).fill(0);
+  for (let i = 1; i < n; i++) before[i] = valley(faces[i - 1], faces[i]) ? before[i - 1] + lengths[i - 1] : 0;
+  for (let i = n - 2; i >= 0; i--) after[i] = valley(faces[i], faces[i + 1]) ? after[i + 1] + lengths[i + 1] : 0;
+  return faces.map((f, i) => {
+    const span = { ...spans[i] };
+    span.from -= Math.min(reach, before[i]); span.to += Math.min(reach, after[i]);
+    const mid = (span.from + span.to) / 2, h = f.surface.h;
+    return { ...f.surface, w: span.to - span.from, x: f.x + f.dx * mid + f.dy * h / 2, y: f.y + f.dy * mid - f.dx * h / 2 };
+  });
+}
+
+/**
+ * A chain that bends away from its ridden side at every joint (a crest or rounded nose) cannot
+ * bury its seams, so it collides as ONE convex polygon instead: the hull of every segment
+ * corner. Returns undefined when the chain is not convex throughout.
+ */
+export function convexChainHull(surfaces: Surface[]): Vec[] | undefined {
+  if (surfaces.length < 2) return undefined;
+  for (let i = 1; i < surfaces.length; i++) {
+    const a = surfaces[i - 1].angle ?? 0, b = surfaces[i].angle ?? 0;
+    if (Math.sin(b - a) > -1e-6) return undefined;
+  }
+  return surfaces.flatMap(s => {
+    const c = Math.cos(s.angle ?? 0), n = Math.sin(s.angle ?? 0);
+    return [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([u, v]) =>
+      ({ x: s.x + c * u * s.w / 2 - n * v * s.h / 2, y: s.y + n * u * s.w / 2 + c * v * s.h / 2 }));
+  });
+}
 
 /** Spawn denotes frame centre. Wheel radius .34, axles (+/-.70, -.36), head (.126126126, .795). */
 export async function createPhysics(): Promise<PhysicsGame> {
@@ -21,9 +94,10 @@ export async function createPhysics(): Promise<PhysicsGame> {
   let frame: RAPIER.RigidBody;
   let wheels: RAPIER.RigidBody[] = [];
   let brakeAngles: number[] | undefined;
-  let bikeColliders: RAPIER.Collider[] = [];
+  let bikeColliders: RAPIER.Collider[] = [], wheelColliders: RAPIER.Collider[] = [];
   let renderBodies: RenderBody[] = [];
   let temporal: { body: RAPIER.RigidBody; from: Vec; to: Vec; lastTravel: number }[] = [];
+  let sockets: Socketed[] = [];
   let tags = new Map<number, Tag>();
   let collected = new Set<string>();
   let status: Snapshot['status'] = 'playing';
@@ -31,6 +105,7 @@ export async function createPhysics(): Promise<PhysicsGame> {
   let previousTravel = 0;
   let clock = new RouteClock();
   let previousSupport: number | undefined;
+  let predictLandings = false;
   let axis: Vec = { x: 1, y: 0 };
   const register = (desc: RAPIER.ColliderDesc, body: RAPIER.RigidBody | undefined, tag: Tag) => {
     const collider = world!.createCollider(desc.setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS), body);
@@ -57,17 +132,37 @@ export async function createPhysics(): Promise<PhysicsGame> {
     angle = next.initialAngle ?? 0; elapsed = phase = direction = physicsMs = 0;
     clock = new RouteClock(); previousSupport = undefined;
     status = 'playing'; collected = new Set(); tags = new Map();
-    wheels = []; brakeAngles = undefined; bikeColliders = []; renderBodies = []; temporal = [];
+    wheels = []; brakeAngles = undefined; bikeColliders = []; wheelColliders = []; renderBodies = []; temporal = []; sockets = [];
     world = new RAPIER.World({ x: GRAVITY * Math.sin(angle), y: -GRAVITY * Math.cos(angle) });
     world.numSolverIterations = 8;
     queue = new RAPIER.EventQueue(true);
     const a = next.timeAxis ?? { x: 1, y: 0 }, length = Math.hypot(a.x, a.y);
     axis = length > 0 ? { x: a.x / length, y: a.y / length } : { x: 1, y: 0 };
     previousTravel = next.spawn.x * axis.x + next.spawn.y * axis.y;
-    for (const surface of next.surfaces) register(
-      RAPIER.ColliderDesc.cuboid(surface.w / 2, surface.h / 2).setTranslation(surface.x, surface.y)
+    const chains = new Map<string, Surface[]>();
+    for (const surface of next.surfaces) {
+      // Chained surfaces are built below as one seam-free run.
+      if (surface.chain) { chains.get(surface.chain)?.push(surface) ?? chains.set(surface.chain, [surface]); continue; }
+      register(RAPIER.ColliderDesc.cuboid(surface.w / 2, surface.h / 2).setTranslation(surface.x, surface.y)
         .setRotation(surface.angle ?? 0).setFriction(1.1).setCollisionGroups(ENV_GROUP), undefined,
       { kind: surface.kind === 'hazard' ? 'hazard' : 'environment', id: surface.id });
+    }
+    for (const [id, members] of chains) {
+      const hull = convexChainHull(members);
+      const desc = hull && RAPIER.ColliderDesc.convexHull(new Float32Array(hull.flatMap(v => [v.x, v.y])));
+      if (desc) {
+        register(desc.setFriction(1.1).setCollisionGroups(ENV_GROUP), undefined,
+          { kind: members[0].kind === 'hazard' ? 'hazard' : 'environment', id });
+        continue;
+      }
+      for (const box of chainBoxes(members)) register(
+        RAPIER.ColliderDesc.cuboid(box.w / 2, box.h / 2).setTranslation(box.x, box.y)
+          .setRotation(box.angle ?? 0).setFriction(1.1).setCollisionGroups(ENV_GROUP), undefined,
+        { kind: box.kind === 'hazard' ? 'hazard' : 'environment', id: box.id });
+    }
+    // Buried chain boxes overlap, so a wheel sinking into them meets several faces at once
+    // and their summed depenetration throws it back out. Such levels predict landings.
+    predictLandings = chains.size > 0;
     frame = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(next.spawn.x, next.spawn.y)
       .setLinearDamping(.08).setAngularDamping(.12).setCcdEnabled(true));
     bikeColliders.push(register(RAPIER.ColliderDesc.cuboid(.58, .12).setMass(2.5).setFriction(.55)
@@ -80,8 +175,9 @@ export async function createPhysics(): Promise<PhysicsGame> {
     for (const [i, x] of [-.7, .7].entries()) {
       const wheel = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(next.spawn.x + x, next.spawn.y - .36)
         .setAngularDamping(.015).setCcdEnabled(true));
-      bikeColliders.push(register(RAPIER.ColliderDesc.ball(.34).setMass(.65).setFriction(1.5)
-        .setCollisionGroups(BIKE_GROUP), wheel, { kind: 'bike', id: `wheel-${i}` }));
+      const tyre = register(RAPIER.ColliderDesc.ball(.34).setMass(.65).setFriction(1.5)
+        .setCollisionGroups(BIKE_GROUP), wheel, { kind: 'bike', id: `wheel-${i}` });
+      bikeColliders.push(tyre); wheelColliders.push(tyre);
       world.createImpulseJoint(RAPIER.JointData.revolute({ x, y: -.36 }, { x: 0, y: 0 }), frame, wheel, true);
       wheels.push(wheel);
       renderBodies.push({ body: wheel, view: { id: `wheel-${i}`, w: .68, h: .68, kind: 'wheel', shape: 'ball' } });
@@ -93,9 +189,15 @@ export async function createPhysics(): Promise<PhysicsGame> {
     for (const prop of next.props ?? []) {
       const body = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(prop.x, prop.y)
         .setGravityScale(prop.inverted ? -1 : 1).setLinearDamping(.12).setCcdEnabled(true));
-      register((prop.shape === 'ball' ? RAPIER.ColliderDesc.ball(prop.w / 2) : RAPIER.ColliderDesc.cuboid(prop.w / 2, prop.h / 2))
-        .setDensity(1.5).setFriction(.9).setCollisionGroups(ENV_GROUP), body, { kind: 'environment', id: prop.id });
-      renderBodies.push({ body, view: { id: prop.id, w: prop.w, h: prop.h, shape: prop.shape, kind: 'prop', inverted: prop.inverted } });
+      const desc = (prop.shape === 'ball' ? RAPIER.ColliderDesc.ball(prop.w / 2) : RAPIER.ColliderDesc.cuboid(prop.w / 2, prop.h / 2))
+        .setDensity(prop.density ?? 1.5).setFriction(prop.friction ?? .9).setCollisionGroups(PROP_GROUP);
+      // An authored friction is a material choice (e.g. a slick barrel), so it
+      // wins over the grippy tyres and stone instead of being averaged away.
+      if (prop.friction !== undefined) desc.setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min);
+      const collider = register(desc, body, { kind: 'prop', id: prop.id });
+      const view: RenderBody['view'] = { id: prop.id, w: prop.w, h: prop.h, shape: prop.shape, kind: 'prop', inverted: prop.inverted };
+      renderBodies.push({ body, view });
+      if (prop.socket) sockets.push({ body, collider, socket: prop.socket, view });
     }
     for (const swing of next.swings ?? []) {
       // A damped pendulum can fall below Rapier’s sleep-speed threshold before
@@ -191,9 +293,34 @@ export async function createPhysics(): Promise<PhysicsGame> {
       platform.lastTravel = (next.x - previous.x) * axis.x + (next.y - previous.y) * axis.y;
       platform.body.setNextKinematicTranslation(next);
     }
+    // A wheel falling onto stone at several m/s sinks centimetres into it within one
+    // step, and Rapier's depenetration then flings it back out — a visible rebound
+    // despite zero restitution. While a wheel is airborne, predictive (soft-CCD)
+    // contacts catch the landing before it penetrates. Rolling wheels (any contact
+    // within 2.5 cm) skip it: a long prediction would let exposed seams ahead kick them.
+    if (predictLandings) for (const [index, collider] of wheelColliders.entries()) {
+      let rolling = false;
+      world.contactPairsWith(collider, other => world!.contactPair(collider, other, manifold => {
+        for (let i = 0; i < manifold.numContacts(); i++) rolling ||= manifold.contactDist(i) < .025;
+      }));
+      wheels[index].setSoftCcdPrediction(rolling ? 0 : Math.max(.1, LANDING_SPEED * dt));
+    }
     const previousHead = headPosition();
     world.step(queue);
     elapsed += dt;
+    // A prop that comes to rest in its socket becomes terrain: fixed, solid
+    // to the head like any floor, and no longer movable by later contacts.
+    sockets = sockets.filter(({ body, collider, socket, view }) => {
+      const p = body.translation(), v = body.linvel();
+      if (Math.hypot(p.x - socket.x, p.y - socket.y) > socket.tolerance ||
+        Math.hypot(v.x, v.y) > (socket.speed ?? .2) || Math.abs(body.angvel()) > 1) return true;
+      body.setLinvel({ x: 0, y: 0 }, false); body.setAngvel(0, false);
+      body.setBodyType(RAPIER.RigidBodyType.Fixed, false);
+      collider.setCollisionGroups(ENV_GROUP);
+      tags.set(collider.handle, { kind: 'environment', id: tags.get(collider.handle)!.id });
+      view.settled = true;
+      return false;
+    });
     queue!.drainCollisionEvents((a, b, started) => {
       if (!started) return;
       const ta = tags.get(a), tb = tags.get(b);
@@ -202,7 +329,8 @@ export async function createPhysics(): Promise<PhysicsGame> {
       const other = bike === ta ? tb : ta;
       if (!bike) return;
       if (other.kind === 'apple') collected.add(other.id);
-      else if (other.kind === 'hazard' || (bike.kind === 'helmet' && other.kind !== 'exit')) status = 'crashed';
+      // Loose props are puzzle objects: pushing them with the head is harmless.
+      else if (other.kind === 'hazard' || (bike.kind === 'helmet' && other.kind !== 'exit' && other.kind !== 'prop')) status = 'crashed';
     });
     // A shape query extends the vulnerable head without adding a collider that
     // would perturb the original assembly's mass/contact solver or apple reach.

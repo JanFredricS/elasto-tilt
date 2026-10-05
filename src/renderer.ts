@@ -18,6 +18,9 @@ const C = {
   ghost: 0xc9bcaa,
 };
 
+/** Puzzle props: higher contrast than any stone palette. */
+const PROP = { loose: 0xb0703c, rim: 0x4f2f1c, hoop: 0x5e3a22, settled: 0xe8cf9e };
+
 const TAU = Math.PI * 2;
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const finite = (value: number, fallback = 0) => Number.isFinite(value) ? value : fallback;
@@ -80,6 +83,76 @@ function distanceToSurface(point: Vec, surface: Surface): number {
   return Math.hypot(outsideX, outsideY);
 }
 
+/** Door art is drawn with its threshold at local y = -DOOR_BASE (map space, y-up). */
+const DOOR_BASE = .55;
+const DOOR_HALF_WIDTH = .42;
+/** Exits farther than this from every surface are treated as free-standing and stay upright. */
+const DOOR_ATTACH_RANGE = 2.5;
+
+export interface ExitPose { x: number; y: number; rotation: number; surfaceId?: string; distance: number }
+
+function nearestSurfacePoint(target: Vec, surfaces: Surface[]): { point: Vec; distance: number; id: string } | undefined {
+  let best: { point: Vec; distance: number; id: string } | undefined;
+  for (const surface of surfaces) {
+    if (surface.kind === 'hazard') continue;
+    const angle = surface.angle ?? 0;
+    const c = Math.cos(angle), s = Math.sin(angle);
+    const dx = target.x - surface.x, dy = target.y - surface.y;
+    // Clamp in the surface's own frame, then rotate back: the nearest point of a rotated box.
+    const lx = clamp(c * dx + s * dy, -surface.w / 2, surface.w / 2);
+    const ly = clamp(-s * dx + c * dy, -surface.h / 2, surface.h / 2);
+    const point = { x: surface.x + c * lx - s * ly, y: surface.y + s * lx + c * ly };
+    const distance = Math.hypot(target.x - point.x, target.y - point.y);
+    if (!best || distance < best.distance) best = { point, distance, id: surface.id };
+  }
+  return best;
+}
+
+/**
+ * Stands the exit door on the stone it belongs to: the door's "up" points from the nearest
+ * point on any (rotated) surface toward the authored exit, and its threshold is set onto that
+ * surface. Rotation follows the map convention (radians, counterclockwise), matching surfaces.
+ * Only the drawing moves; the physics exit sensor stays at the authored point.
+ */
+export function exitDoorPose(exit: Vec, surfaces: Surface[]): ExitPose {
+  const best = nearestSurfacePoint(exit, surfaces);
+  // Free-standing, or authored inside stone: nothing sensible to lean on.
+  if (!best || best.distance > DOOR_ATTACH_RANGE || best.distance < 1e-6) {
+    return { x: exit.x, y: exit.y, rotation: 0, distance: best?.distance ?? Infinity };
+  }
+  const up = { x: (exit.x - best.point.x) / best.distance, y: (exit.y - best.point.y) / best.distance };
+  // Where the exit sits at the very end of a ledge (the spiral's tip), slide the door back along
+  // the face, up to half its width, so both threshold corners rest on stone instead of overhanging.
+  // Each corner probes a short column beneath it, which tolerates a concave or tightening face
+  // such as the spiral's inner ribbon but still finds nothing past the end of a straight ledge.
+  const along = { x: up.y, y: -up.x };
+  const solid = (p: Vec) => surfaces.some(s => s.kind !== 'hazard' && distanceToSurface(p, s) < .02);
+  const footed = (shift: number) => [-1, 1].every(side => [.04, .12, .2, .28, .36].some(depth => solid({
+    x: best.point.x + along.x * (shift + side * DOOR_HALF_WIDTH) - up.x * depth,
+    y: best.point.y + along.y * (shift + side * DOOR_HALF_WIDTH) - up.y * depth,
+  })));
+  let shift = 0;
+  for (let step = 0; step <= DOOR_HALF_WIDTH + 1e-9; step += .02) {
+    const found = [step, -step].find(footed);
+    if (found !== undefined) { shift = found; break; }
+  }
+  let base = { x: best.point.x + along.x * shift, y: best.point.y + along.y * shift };
+  // A slid threshold may hover over a tightening curve: lower it onto the stone beneath.
+  for (let depth = 0; shift !== 0 && depth <= .4; depth += .01) {
+    const p = { x: base.x - up.x * depth, y: base.y - up.y * depth };
+    if (solid(p)) { base = p; break; }
+  }
+  // Local +y maps to (-sin r, cos r) under a counterclockwise rotation r.
+  const rotation = Math.atan2(-up.x, up.y);
+  return {
+    x: base.x + up.x * DOOR_BASE,
+    y: base.y + up.y * DOOR_BASE,
+    rotation: Math.abs(rotation) < 1e-9 ? 0 : rotation,
+    surfaceId: best.id,
+    distance: best.distance,
+  };
+}
+
 function openRouteSide(origin: Vec, angle: number, surfaces: Surface[]): Vec {
   const normal = { x: -Math.sin(angle), y: Math.cos(angle) };
   const clearance = (side: number) => {
@@ -125,6 +198,7 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
   let routeArrows: Graphics[] = [];
   let routeLabels: { view: Text; arrow: Graphics; normal: Vec; width: number; height: number }[] = [];
   const dynamicViews = new Map<string, Graphics>();
+  const settledViews = new Set<string>();
   let swingAnchors = new Map<string, Vec>();
   let camera: Vec = { x: 0, y: 0 };
   let cameraReady = false;
@@ -176,6 +250,7 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
     dynamic.clear();
     dynamic.removeChildren().forEach(child => child.destroy());
     dynamicViews.clear();
+    settledViews.clear();
     exit.clear();
     appleLayer.removeChildren().forEach(child => child.destroy());
     appleViews = new Map();
@@ -238,7 +313,10 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
     arch(exit, .21, -.46, .19, .47).fill(0xf4dba6);
     exit.rect(-.42, -.55, .84, .065).fill(palette.light);
     line(exit, { x: -.19, y: -.42 }, { x: .19, y: -.42 }, 0xfff8df, .027);
-    exit.position.set(nextLevel.exit.x, nextLevel.exit.y);
+    // Hang the door from whichever stone face it belongs to (floors, ceilings, walls, ramps).
+    const door = exitDoorPose(nextLevel.exit, nextLevel.surfaces);
+    exit.position.set(door.x, door.y);
+    exit.rotation = door.rotation;
 
     for (const swing of nextLevel.swings ?? []) {
       circle(ornaments, swing.anchor.x, swing.anchor.y, .105, C.gold, C.ink, .026);
@@ -269,13 +347,31 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
     for (const body of state.bodies) {
       if (body.kind !== 'prop' && body.kind !== 'swing' && body.kind !== 'time') continue;
       let item = dynamicViews.get(body.id);
+      // A prop that seats in its socket is redrawn once in its settled colours.
+      if (item && body.kind === 'prop' && settledViews.has(body.id) !== !!body.settled) {
+        item.destroy(); dynamicViews.delete(body.id); item = undefined;
+      }
       if (!item) {
-        const fill = body.kind === 'time' ? 0xe2ba7d : body.kind === 'swing' ? palette.stone : body.inverted ? C.red : palette.shade;
-        const rim = body.kind === 'time' ? 0xa67a6d : palette.edge;
+        // Loose props are warm wood against the cool stone so they read as
+        // movable; seated ones take a pale, stone-like face with a gold rim.
+        const prop = body.kind === 'prop' && !body.inverted;
+        const fill = body.kind === 'time' ? 0xe2ba7d : body.kind === 'swing' ? palette.stone : body.inverted ? C.red
+          : body.settled ? PROP.settled : PROP.loose;
+        const rim = body.kind === 'time' ? 0xa67a6d : prop ? (body.settled ? C.gold : PROP.rim) : palette.edge;
         item = new Graphics();
+        if (body.settled) settledViews.add(body.id); else settledViews.delete(body.id);
         if (body.shape === 'ball') {
-          ellipsePath(item, 0, 0, body.w / 2, body.w / 2).fill(fill);
-          ellipsePath(item, 0, 0, body.w / 2, body.w / 2).stroke({ color: rim, width: .045 });
+          const r = body.w / 2;
+          ellipsePath(item, 0, 0, r, r).fill(fill);
+          if (prop && r > .3) {
+            // Barrel staves and hoops make the rolling visible.
+            for (const offset of [-.45, .45]) {
+              const half = Math.sqrt(1 - offset * offset) * r * .92;
+              line(item, { x: offset * r, y: -half }, { x: offset * r, y: half }, PROP.hoop, Math.max(.03, r * .05), .8);
+            }
+            ellipsePath(item, 0, 0, r * .72, r * .72).stroke({ color: PROP.hoop, width: Math.max(.02, r * .025), alpha: .45 });
+          }
+          ellipsePath(item, 0, 0, r, r).stroke({ color: rim, width: prop ? Math.max(.05, r * .06) : .045 });
           ellipsePath(item, -body.w * .1, body.w * .1, Math.max(.025, body.w * .06), Math.max(.025, body.w * .06), 20).fill({ color: C.ivory, alpha: .45 });
         } else {
           item.rect(-body.w / 2, -body.h / 2, body.w, body.h).fill(fill);

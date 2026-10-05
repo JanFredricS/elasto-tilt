@@ -34,7 +34,7 @@ With the development server running, use `pnpm test:browser` for the Chrome/Chro
 - **Touch fallback:** hold the direction buttons to rotate the world; hold Brake to lock the wheels relative to the frame. Hard braking at speed can pitch the bike.
 - **Multiple phone turns:** pause, hold the phone in a comfortable pose, and resume to reanchor motion while preserving the world angle. Advanced routes explain this in their pause hints.
 - **MAP:** inspect the complete route, remaining apples, and your position while physics is paused; tap RIDE to continue.
-- Collect every apple before reaching the exit. A helmet hit ends the attempt.
+- Collect every apple before reaching the exit. Touching an obstacle with Newton’s head ends the attempt.
 
 Progress saves locally on the current browser. There is no account or server requirement. The game pauses when the tab loses focus. The development build exposes `window.__NEWTON__` for diagnostics and map testing; production builds do not expose it.
 

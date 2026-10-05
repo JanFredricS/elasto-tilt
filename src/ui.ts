@@ -69,7 +69,7 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
     </div>
 
     <div class="utility-bar" data-ui="utility">
-      <span class="control-hint">A / D <i>tilt</i> · SPACE <i>brake</i></span>
+      <span class="control-hint">A / D <i>tilt</i> · SPACE <i>brake</i> · M <i>map</i></span>
       <div class="utility-buttons">
         <button type="button" class="text-btn" data-action="survey" aria-label="View whole map" aria-pressed="false">MAP</button>
         <button type="button" class="text-btn" data-action="motion">ENABLE MOTION</button>
@@ -81,25 +81,20 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
     <div class="mode-toast" data-ui="mode-toast" role="status" aria-live="polite" hidden></div>
     <section class="menu-overlay" data-ui="menu" role="dialog" aria-modal="true" aria-labelledby="menu-title">
       <div class="menu-card">
-        <div class="menu-topline"><span>THE ORCHARD LAB <span aria-hidden="true">✳</span></span><span>AN EXPERIMENT IN MOTION</span></div>
         <div class="menu-main">
           <div class="menu-hero">
             <div class="menu-intro">
-              <p class="eyebrow">TURN THE WORLD. FIND YOUR WAY.</p>
               <h1 id="menu-title">Newton’s<br><em>Ride.</em></h1>
-              <p class="menu-lead">A little ride through the rules of gravity. Tilt the world, gather every apple, then return to the door.</p>
+              <p class="menu-lead">Tilt the world. Gather every apple. Ride home.</p>
               <button type="button" class="primary-btn" data-action="start"><span>LET’S RIDE</span><span aria-hidden="true">↗</span></button>
-              <p class="menu-instruction"><span class="menu-keyboard-guide">A / D to tilt · Space to brake · M to view the map</span><span class="menu-touch-guide">Use the tilt and brake buttons as you ride. The MAP button shows the whole route.</span></p>
             </div>
             <div class="menu-art-wrap"><img class="menu-art" src="${welcomeIllustration}" width="1280" height="714" alt="Newton sits beside his fallen bicycle and looks up at a falling apple." /></div>
           </div>
           <div class="campaign">
             <div class="campaign-heading"><span>CHOOSE A MAP</span><span data-ui="progress-label">01 / ${String(levels.length).padStart(2, '0')} OPEN</span></div>
             <div class="campaign-grid" data-ui="campaign-grid"></div>
-            <p class="campaign-foot">Every apple first. Then ride back to the door to complete the map.</p>
           </div>
         </div>
-        <div class="menu-footer"><span>NEWTON’S RIDE</span><span>${levels.length} GRAVITY JOURNEYS</span></div>
       </div>
     </section>
 

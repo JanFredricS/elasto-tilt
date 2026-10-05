@@ -5,7 +5,7 @@ const clamp = (x: number, a: number, b: number) => Math.max(a, Math.min(b, x));
 const cap = Array.from({ length: 32 }, (_, i): Surface => {
   const theta = Math.PI / 2 - (i + .5) * Math.PI / 32;
   return { id: `return-nose-${i}`, x: 24 + 3.7 * Math.cos(theta), y: 3.7 * Math.sin(theta),
-    w: 2 * 3.7 * Math.tan(Math.PI / 64) + .045, h: .6, angle: theta - Math.PI / 2 };
+    w: 2 * 3.7 * Math.tan(Math.PI / 64) + .045, h: .6, angle: theta - Math.PI / 2, chain: 'return-nose' };
 });
 export const spiralPoint = (t: number, inward = 0): Vec => {
   const theta = t - Math.PI / 2, r = 26 - 1.65 * t - inward;
@@ -17,6 +17,8 @@ const spiralSurfaces: Surface[] = [];
 for (let t = -.1, i = 0; t < spiralEnd; t += .025, i++) {
   const end = Math.min(t + .025, spiralEnd);
   if (spiralGaps.some(gap => end > gap.from && t < gap.to)) continue;
+  // Each unbroken stretch between gaps is one physics chain, so its seams are buried.
+  const run = spiralGaps.filter(gap => t >= gap.to).length;
   const lift = (u: number) => {
     const gap = spiralGaps.find(g => u <= g.from && u > g.from - 4 / (26 - 1.65 * g.from));
     if (!gap) return 0;
@@ -26,7 +28,7 @@ for (let t = -.1, i = 0; t < spiralEnd; t += .025, i++) {
   };
   const a = spiralPoint(t, lift(t)), b = spiralPoint(end, lift(end)), angle = Math.atan2(b.y - a.y, b.x - a.x);
   spiralSurfaces.push({ id: `spiral-ribbon-${i}`, x: (a.x + b.x) / 2 + Math.sin(angle) * .24,
-    y: (a.y + b.y) / 2 - Math.cos(angle) * .24, w: Math.hypot(b.x - a.x, b.y - a.y) + .03, h: .48, angle });
+    y: (a.y + b.y) / 2 - Math.cos(angle) * .24, w: Math.hypot(b.x - a.x, b.y - a.y) + .03, h: .48, angle, chain: `spiral-run-${run}` });
 }
 export const flipSpiralLevels: Level[] = [
   {
@@ -45,7 +47,7 @@ export const flipSpiralLevels: Level[] = [
   {
     id: 'spiral-sanctuary', name: 'Spiral Sanctuary', subtitle: 'Beyond the broken arcs', difficulty: 12, accent: '#94b8c8',
     mechanic: 'Follow a circular stone spiral inward through more than two revolutions. Its two missing sections require airborne gravity steering.',
-    hint: 'Begin turning early before each break. Ease gravity along the gap, then back toward the stone for landing. The door waits in the centre. On phone, pause and resume to recenter after each full turn.',
+    hint: 'Begin turning early before each break. Ease gravity along the gap, then back toward the stone for landing. The door waits in the centre. On phone, keep turning steadily hand over hand like a steering wheel.',
     spawn: spiralPoint(0, .84), initialAngle: Math.atan2(1.65, 26),
     bounds: { min: p(-32, -32), max: p(32, 32) }, surfaces: spiralSurfaces,
     apples: [0.5, 1.8, 3.2, 5.2, 6.4, 8.1, 10.3, 12, 13.6].map((t, i) => ({ id: `spiral-apple-${i}`, ...spiralPoint(t, .9) })),

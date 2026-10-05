@@ -65,14 +65,14 @@ describe('authored campaign', () => {
       { x: 1, y: 0, w: 2, h: 0.2, angle: Math.PI / 4 })).toBe(true);
   });
 
-  it('preserves the original ten maps and appends five progressive gravity challenges', () => {
+  it('preserves the original ten maps and appends six progressive gravity challenges', () => {
     expect(levels.map((level) => level.id)).toEqual([
       'newtons-orchard', 'one-wheel-wonder', 'hanging-garden', 'pendulum-mill',
       'room-on-its-side', 'newtons-attic', 'eschers-orchard',
       'contrary-conservatory', 'gravity-engine', 'clockwork-apple',
-      'underside-return', 'spiral-sanctuary', 'switchback-scaffold', 'the-hidden-way-home', 'stairway-to-heaven',
+      'underside-return', 'spiral-sanctuary', 'switchback-scaffold', 'the-hidden-way-home', 'stairway-to-heaven', 'newtons-cannonball',
     ]);
-    expect(levels.map((level) => level.difficulty)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
+    expect(levels.map((level) => level.difficulty)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
   });
 
   it.each(levels)('$name has finite, bounded geometry and no initial bike overlap', (level) => {
