@@ -65,14 +65,15 @@ describe('authored campaign', () => {
       { x: 1, y: 0, w: 2, h: 0.2, angle: Math.PI / 4 })).toBe(true);
   });
 
-  it('preserves the original ten maps and appends six progressive gravity challenges', () => {
+  it('orders the seventeen campaign maps by rising difficulty', () => {
     expect(levels.map((level) => level.id)).toEqual([
-      'newtons-orchard', 'one-wheel-wonder', 'hanging-garden', 'pendulum-mill',
-      'room-on-its-side', 'newtons-attic', 'eschers-orchard',
-      'contrary-conservatory', 'gravity-engine', 'clockwork-apple',
-      'underside-return', 'spiral-sanctuary', 'switchback-scaffold', 'the-hidden-way-home', 'stairway-to-heaven', 'newtons-cannonball',
+      'newtons-orchard', 'one-wheel-wonder', 'pendulum-mill', 'room-on-its-side', 'newtons-attic',
+      'eschers-orchard', 'newtons-cannonball', 'newtons-ouroboros', 'contrary-conservatory', 'gravity-engine',
+      'hanging-garden', 'clockwork-apple', 'underside-return', 'spiral-sanctuary', 'switchback-scaffold',
+      'the-hidden-way-home', 'stairway-to-heaven',
     ]);
-    expect(levels.map((level) => level.difficulty)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+    expect(levels.map((level) => level.difficulty)).toEqual([1, 2, 4, 5, 6, 7, 7.25, 7.5, 8, 9, 9.5, 10, 11, 12, 13, 14, 15]);
+    expect(new Set(levels.map((level) => level.id)).size).toBe(levels.length);
   });
 
   it.each(levels)('$name has finite, bounded geometry and no initial bike overlap', (level) => {
@@ -142,7 +143,7 @@ describe('authored campaign', () => {
   });
 
   it('puts Escher objectives along each tunnel face and on both sides of the shared gallery', () => {
-    const escher = levels[6];
+    const escher = levels[5];
     const shared = escher.surfaces.find(s => s.id === 'escher-shared-floor-ceiling')!;
     expect(escher.apples.filter(a => a.x > shared.x - shared.w / 2 && a.x < shared.x + shared.w / 2 && a.y < shared.y)).toHaveLength(2);
     expect(escher.apples.some(a => a.y > shared.y && a.y < shared.y + 2)).toBe(true);
@@ -156,7 +157,7 @@ describe('authored campaign', () => {
   });
 
   it('has a moving clockwork lift and a return route after the high apple', () => {
-    const clock = levels[9];
+    const clock = levels[11];
     expect(clock.timeAxis).toEqual({ x: 1, y: 0 });
     expect(clock.timeTravel).toBeGreaterThan(0);
     expect(clock.timePlatforms!.length).toBeGreaterThan(0);

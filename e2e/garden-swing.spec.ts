@@ -9,8 +9,8 @@ test('Hanging Garden carries the rider across the widened gap and back', async (
   await page.evaluate(async () => {
     const { createReplayPilot } = await import('/src/dev/replay.ts');
     const api = (window as any).__NEWTON__;
-    api.load(2);
-    const pilot = createReplayPilot(2);
+    api.load(10);
+    const pilot = createReplayPilot(10);
     const trace = { supportedMinX: Infinity, supportedMaxX: -Infinity, brakeSeconds: 0,
       outboundTravel: 0, returnTravel: 0, peakPhysicsMs: 0 };
     (window as any).__gardenTrace = trace;

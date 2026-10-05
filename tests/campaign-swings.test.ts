@@ -8,10 +8,10 @@ import type { Controls } from '../src/types';
 // Removing one deck changes geometry only; replay the exact successful inputs
 // so a controller waiting for a missing object cannot fake a failed crossing.
 it.each([
-  { index: 2, id: 'garden-swing' },
-  { index: 3, id: 'mill-short' },
-  { index: 3, id: 'mill-long' },
-  { index: 8, id: 'engine-swing' },
+  { index: 10, id: 'garden-swing' },
+  { index: 2, id: 'mill-short' },
+  { index: 2, id: 'mill-long' },
+  { index: 9, id: 'engine-swing' },
 ])('the demonstrated route needs the $id seat to cross its gap', async ({ index, id }) => {
   const level = levels[index];
   const removed = level.swings!.find(s => s.id === id)!;

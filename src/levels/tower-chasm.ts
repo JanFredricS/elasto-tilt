@@ -56,6 +56,7 @@ export const towerChasmLevels: Level[] = [
       { x: 31, y: -12, angle: pi / 2, label: 'ROTATE' }, { x: 31, y: 19, angle: pi / 2, label: 'UP' }],
   },
 ];
+export const [switchbackScaffoldLevel, hiddenWayHomeLevel] = towerChasmLevels;
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 /** Phone-target reference route, sampled at 120 Hz. Inputs never mutate bodies.
  * Launch momentum comes from the ramp and wheel contact. Gravity redirects the

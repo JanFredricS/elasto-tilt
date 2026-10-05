@@ -68,7 +68,7 @@ export function buildCannonball(shape: CannonShape, apples: Apple[] = [], routeH
     { id: 'cannon-pocket-wall', x: -7.25, y: pocketFloor + 2.5, w: .5, h: 5.5, kind: 'ground' },
   ];
   const level: Level = {
-    id: 'newtons-cannonball', name: 'Newton’s Cannonball', subtitle: 'Every fall is a curve', difficulty: 16, accent: '#d6a86c',
+    id: 'newtons-cannonball', name: 'Newton’s Cannonball', subtitle: 'Every fall is a curve', difficulty: 7.25, accent: '#d6a86c',
     mechanic: 'Leap between alternating slanted ledges, twisting gravity in flight to meet each slope.',
     hint: 'Leap, turn the world to meet the slope, land rolling.',
     spawn: p(breech.x - 2.6, breech.y + .3 + .78), initialAngle: 0,

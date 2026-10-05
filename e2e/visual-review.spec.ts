@@ -4,7 +4,7 @@ test('Clockwork timeline and utilities occupy separate rows on narrow landscape'
   await page.setViewportSize({ width: 667, height: 375 });
   await page.goto('/?debug');
   await page.waitForFunction(() => Boolean((window as any).__NEWTON__));
-  await page.evaluate(() => (window as any).__NEWTON__.load(9));
+  await page.evaluate(() => (window as any).__NEWTON__.load(11));
   const timeline = page.locator('[data-ui="timeline-wrap"]');
   const utility = page.locator('[data-ui="utility"]');
   await expect(timeline).toBeVisible();

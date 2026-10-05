@@ -80,7 +80,7 @@ export const earlyLevels: Level[] = [
     ],
     swings: [{ id: 'garden-swing', anchor: p(30.5, 7.16), length: 7, width: 2.8, mass: 20, damping: 10, angle: -.3 }],
     apples: [6, 17, 27, 36, 47.5].map((x, i) => fruit(`garden-${i}`, gardenProfile, x)),
-    exit: p(-1.5, .8), difficulty: 3, accent: '#8dc68c',
+    exit: p(-1.5, .8), difficulty: 9.5, accent: '#8dc68c',
   },
   {
     id: 'pendulum-mill', name: 'The Pendulum Mill', subtitle: 'Across the mill, around the wheel',
@@ -115,6 +115,7 @@ export const earlyLevels: Level[] = [
     exit: p(0, 11.15), difficulty: 5, accent: '#a99cdb',
   },
 ];
+export const [newtonsOrchardLevel, oneWheelWonderLevel, hangingGardenLevel, pendulumMillLevel, roomOnItsSideLevel] = earlyLevels;
 
 // Deterministic input-only route demonstration, also available to browser QA.
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
