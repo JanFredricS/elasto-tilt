@@ -1,4 +1,4 @@
-import type { InputController } from './types';
+import type { InputController, SteeringMode } from './types';
 
 const clamp = (value: number) => Math.max(-1, Math.min(1, value));
 const radians = Math.PI / 180;
@@ -62,8 +62,28 @@ export function bankOffset(delta: number) {
   return Math.sign(delta) * 2 * Math.PI * (.25 * x + .75 * x * x * x);
 }
 
+/** Steering-mode command offset in radians for `delta` degrees of phone twist.
+ * 'direct' is exact 1:1 (no dead zone, curve or gain): the world turns
+ * precisely as far as the phone does. 'assisted' is the eased `bankOffset`. */
+export function steeringOffset(mode: SteeringMode, delta: number) {
+  if (mode !== 'direct') return bankOffset(delta);
+  return Number.isFinite(delta) ? delta * radians : 0;
+}
+
+export const STEERING_KEY = 'newtons-ride.steering.v1';
+export const parseSteeringMode = (value: unknown): SteeringMode => value === 'direct' ? 'direct' : 'assisted';
+/** Stored steering preference; private mode or blocked storage fall back to assisted. */
+export function loadSteeringMode(storage: Pick<Storage, 'getItem'> | undefined): SteeringMode {
+  try { return parseSteeringMode(storage?.getItem(STEERING_KEY)); } catch { return 'assisted'; }
+}
+export function saveSteeringMode(storage: Pick<Storage, 'setItem'> | undefined, mode: SteeringMode) {
+  try { storage?.setItem(STEERING_KEY, parseSteeringMode(mode)); } catch { /* Preferences are optional. */ }
+}
+const motionLabel = (mode: SteeringMode) => mode === 'direct' ? 'Motion — 1:1 steering' : 'Motion — angle control';
+
 /** Phone pose controls an angle; held keys/buttons control rotation speed. */
-export function createInput(): InputController {
+export function createInput(initialSteering: SteeringMode = 'assisted'): InputController {
+  let steering = parseSteeringMode(initialSteering);
   const keys = new Set<string>();
   let touchBrake = false, touchTilt = 0, smoothedRate = 0;
   let motionEnabled = false, raw: number | undefined, baseline: number | undefined;
@@ -112,7 +132,7 @@ export function createInput(): InputController {
     raw = raw === undefined ? direction : lastDirection === undefined ? raw : raw + wrap180(direction - lastDirection);
     lastDirection = direction;
     if (baseline === undefined) baseline = raw;
-    inputMode = 'Motion — angle control';
+    inputMode = motionLabel(steering);
   };
   const visibility = () => { if (document.hidden) reset(); };
   window.addEventListener('keydown', keydown);
@@ -129,7 +149,7 @@ export function createInput(): InputController {
       const smoothing = 1 - Math.exp(-duration / .065);
       const brake = touchBrake || keys.has('Space');
       if (!manual && motionEnabled && raw !== undefined && baseline !== undefined) {
-        const offset = bankOffset(raw - baseline);
+        const offset = steeringOffset(steering, raw - baseline);
         if (manualOverride) {
           // Touch/keyboard can reposition the room without fighting the sensor
           // or snapping back when the button is released.
@@ -168,6 +188,20 @@ export function createInput(): InputController {
       }
     },
     calibrate,
+    setSteering(mode) {
+      const next = parseSteeringMode(mode);
+      if (next === steering) return;
+      steering = next;
+      // Re-reference at the actual world pose: the current phone twist now
+      // commands exactly the current world angle, and further twist proceeds
+      // in the new mapping. Unlike calibrate(), no snap to a flat turn.
+      baseline = raw;
+      anchor = smoothedAngle = currentAngle;
+      smoothedRate = 0;
+      manualOverride = false;
+      if (inputMode.startsWith('Motion — ')) inputMode = motionLabel(steering);
+    },
+    get steering() { return steering; },
     setBrake(pressed) { touchBrake = pressed; },
     setTouchTilt(value) { touchTilt = Number.isFinite(value) ? clamp(value) : 0; },
     reset,

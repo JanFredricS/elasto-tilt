@@ -49,10 +49,15 @@ export interface PhysicsGame {
   snapshot(): Snapshot;
   destroy(): void;
 }
+/** 'assisted': eased curve with dead zone and cruise gain. 'direct': phone twist = world rotation, 1:1. */
+export type SteeringMode = 'assisted' | 'direct';
 export interface InputController {
   read(dt: number, currentWorldAngle?: number): Controls;
   enableMotion(): Promise<string>;
   calibrate(): void;
+  /** Switch the motion mapping without moving the world. */
+  setSteering(mode: SteeringMode): void;
+  readonly steering: SteeringMode;
   setBrake(pressed: boolean): void;
   setTouchTilt(value: number): void;
   reset(worldAngle?: number): void;
@@ -70,7 +75,7 @@ export interface UICallbacks {
   start(): void; selectLevel(index: number): void; restart(): void;
   menu(): void;
   pause(): void; resume(): void; enableMotion(): Promise<string>;
-  calibrate(): void; brake(pressed: boolean): void; tilt(value: number): void;
+  calibrate(): void; setSteering(mode: SteeringMode): void; brake(pressed: boolean): void; tilt(value: number): void;
   debug(enabled: boolean): void;
   survey(): void;
 }
@@ -79,6 +84,6 @@ export interface UIState {
   elapsed: number; status: 'menu' | 'playing' | 'paused' | 'crashed' | 'complete';
   fps: number; frameMs: number; physicsMs: number; worldAngle: number;
   timeline: number; timeDirection: number; inputMode: string; debug: boolean;
-  surveying: boolean;
+  surveying: boolean; steering: SteeringMode;
 }
 export interface GameUI { update(state: UIState): void; destroy(): void }

@@ -1,6 +1,6 @@
 import './style.css';
 import { createPhysics } from './physics';
-import { createInput } from './input';
+import { createInput, loadSteeringMode, saveSteeringMode } from './input';
 import { createRenderer } from './renderer';
 import { createUI } from './ui';
 import { levels } from './levels';
@@ -14,7 +14,8 @@ async function boot() {
   const [physics, renderer] = await Promise.all([
     createPhysics(), createRenderer(document.querySelector<HTMLElement>('#game')!),
   ]);
-  const input = createInput();
+  const storage = (() => { try { return localStorage; } catch { return undefined; } })();
+  const input = createInput(loadSteeringMode(storage));
   let levelIndex = 0;
   let unlocked = 1;
   try {
@@ -74,6 +75,7 @@ async function boot() {
     pause, resume,
     enableMotion: async () => input.enableMotion(),
     calibrate: () => input.calibrate(),
+    setSteering: mode => { input.setSteering(mode); saveSteeringMode(storage, input.steering); },
     brake: pressed => input.setBrake(status === 'playing' && !surveying && pressed),
     tilt: value => input.setTouchTilt(status === 'playing' && !surveying ? value : 0),
     debug: enabled => { debug = enabled; },
@@ -122,7 +124,7 @@ async function boot() {
       status, fps: Math.round(1000 / frameMs), frameMs, physicsMs: renderState.physicsMs,
       worldAngle: renderState.worldAngle, timeline: renderState.timeline,
       timeDirection: renderState.timeDirection, inputMode: input.mode, debug,
-      surveying,
+      surveying, steering: input.steering,
     });
     requestAnimationFrame(frame);
   }
