@@ -1,9 +1,10 @@
 # Redesigned campaign routes
 
-This replaces the short original routes. Coordinates are metres, positive y up. All fifteen have real Rapier replays that collect every apple and reach the exit using normal control commands. Timing below measures controlled demonstrations, not a forced minimum or speedrun record. Earlier review documents describe the superseded first layouts.
+This replaces the short original routes. Coordinates are metres, positive y up. Every campaign map has a real Rapier replay (`src/dev/replay.ts`) that collect every apple and reach the exit using normal control commands. Timing below measures controlled demonstrations, not a forced minimum or speedrun record. Earlier review documents describe the superseded first layouts.
 
 | Map | Route | Apples | Demonstrated distance / time |
 | --- | --- | --- | --- |
+| Newton’s First Lesson | *A body at rest stays at rest.* The opening lesson: tilt right a little to start rolling, then a gentle 8° hill with a long level run-out into the door; a back wall stops a wrong-way start. No brake needed, no hazards; its brake is soft (`brakeScale` .3), so grabbing it at speed off the hill top slows the rider instead of pitching them over the bars. For its first 8 s it alone shows the objective line. | 3 | 39 m / 18 s |
 | Newton’s Orchard | Climb to a 4 m terrace, descend into a hollow, reach the far hill, brake and return home. | 5 | 98 m / 45 s |
 | One Wheel Wonder | Brake the rear wheel against a gold stop and pivot up to the high apple; descend into the deep bowl, climb the far bank and return. | 6 | 58 s |
 | The Hanging Garden | Upper garden, compact suspended crossing, sunken orchard, then cross the moving deck again on the return. | 5 | 98 m / 49 s |
@@ -14,10 +15,12 @@ This replaces the short original routes. Coordinates are metres, positive y up. 
 | The Contrary Conservatory | Lower greenhouse, rising weights, end wall and roof; reverse out of the final roof pocket. | 7 | 102 m / 68 s |
 | The Gravity Engine | Compact hanging deck, long approach around an axle, wall climb and overhead gallery return. | 7 | 83 m / 56 s |
 | The Clockwork Apple | Long approach raises a lift; collect the high apple and reverse the entire journey to lower it and return. | 5 | 74 m / 49 s |
+| The Clockwork Wedge | Second time map. Riding right lowers a counterweight onto the door, which the spawn deck cannot reach. Ride west off the deck, come back beneath it and push a wooden wedge from under the deck to the weight (it seats as stone), ride over the weight and a one-way drop, loop a half-pipe onto the roof, ride left to lift the weight until a catch over the door stops you, then keep turning the world and fall onto the door. No brake needed. See [clockwork-wedge.md](clockwork-wedge.md). | 6 | 160 m / 79 s |
 | The Other Side | Turn around the exposed end of one solid strip and return along its underside. | 5 | 61 m / 31 s |
 | Spiral Sanctuary | More than two inward circular turns, two airborne gap crossings, central door. | 9 | 192 m / 95 s |
 | Switchback Scaffold | Wall climb, free-air somersault, wheels-on-top landing, upper-storey return. | 6 | 182 m / 108 s |
 | The Hidden Way Home | Two opposing wall jumps, final wall apple, inverted ascent to a hidden ledge, original door. | 6 | about 387 m / 132 s |
+| Hooke’s Springboard | Spring pads: slide into a brass pad, lean gravity forward in the throw to clear a spike pit, scrub the landing speed, then repeat over a wider pit to the door. The first throw forgives any lean from ≈ .35 to .8 rad; the second needs ≥ .5. See [hookes-springboard.md](hookes-springboard.md). | 4 | 59 m / 12 s |
 | Stairway to Heaven | Four giant steps: turn onto each vertical riser, ease over each crest, collect the summit apple, and descend home. | 8 | 197 m / 160 s |
 
 The map 2 correction and measured one-wheel apple collection are documented in [one-wheel-fix.md](one-wheel-fix.md).
@@ -33,3 +36,5 @@ Design reference: Elasto Mania’s traversal, balance, and collectible-route tra
 Expansion route details and control coverage: [flip and spiral](flip-spiral.md), [scaffold and chasm](tower-chasm.md), [rendered validation](expansion-gameplay.md).
 
 [Stairway to Heaven](stairway.md) adds demonstrated contact on every riser, tread and local corner, including the return descent.
+
+Campaign order (20 maps): First Lesson; Orchard; One Wheel Wonder; Pendulum Mill; Room on Its Side; Attic; Escher’s Orchard; Cannonball; Ouroboros; Contrary Conservatory; Gravity Engine; Hanging Garden; Clockwork Apple; Clockwork Wedge; The Other Side; Spiral Sanctuary; Switchback Scaffold; The Hidden Way Home; Hooke’s Springboard; Stairway to Heaven. Saves store only an unlocked count, so inserting the First Lesson at the front shifts an existing save's unlocked set by one map.

@@ -5,6 +5,10 @@
   --scene-bg-top: #dcecea;
   --scene-bg-bottom: #efe8e1;
   --scene-glow: #fff5e6;
+  /* Safe-area insets as seen by #app. The orientation hold (orientation-hold.ts)
+     overrides these on #app with the physical insets remapped to its rotation. */
+  --safe-top: env(safe-area-inset-top); --safe-right: env(safe-area-inset-right);
+  --safe-bottom: env(safe-area-inset-bottom); --safe-left: env(safe-area-inset-left);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -23,6 +27,10 @@ button:focus-visible { outline: 3px solid #cc6258; outline-offset: 3px; }
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
+  /* Layout breakpoints query #app, not the viewport: while the orientation
+     hold counter-rotates #app against an OS auto-rotate, the game keeps the
+     layout of the orientation it is held in (see src/orientation-hold.ts). */
+  container: app / size;
   background:
     radial-gradient(ellipse at 72% 20%, var(--scene-glow), transparent 50%),
     linear-gradient(155deg, var(--scene-bg-top), var(--scene-bg-bottom));
@@ -41,7 +49,7 @@ button:focus-visible { outline: 3px solid #cc6258; outline-offset: 3px; }
   top: 0; left: 0; right: 0;
   min-height: 76px;
   display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
-  padding: max(12px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) 11px max(24px, env(safe-area-inset-left));
+  padding: max(12px, var(--safe-top)) max(24px, var(--safe-right)) 11px max(24px, var(--safe-left));
   border-bottom: 1px solid rgba(61,88,99,.16);
   background: rgba(248,250,247,.89);
   box-shadow: 0 8px 28px rgba(66,88,101,.055);
@@ -50,7 +58,7 @@ button:focus-visible { outline: 3px solid #cc6258; outline-offset: 3px; }
 .hud-brand { display: flex; align-items: center; gap: 10px; font-size: 13px; letter-spacing: .18em; font-weight: 500; white-space: nowrap; }
 .hud-brand b { font-weight: 750; }
 .hud-brand-mark { color: #cb786e; font-family: Georgia, serif; font-size: 27px; line-height: 1; }
-.hud-stats { display: flex; align-items: center; gap: clamp(16px, 3vw, 48px); }
+.hud-stats { display: flex; align-items: center; gap: clamp(16px, 3cqw, 48px); }
 .hud-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 62px; }
 .hud-stat-label { font-size: 9px; font-weight: 700; letter-spacing: .16em; color: #526b76; }
 .hud-stat strong { font-size: 17px; font-variant-numeric: tabular-nums; line-height: 1; }
@@ -58,24 +66,35 @@ button:focus-visible { outline: 3px solid #cc6258; outline-offset: 3px; }
 .icon-btn { display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 1px solid rgba(68,94,105,.21); border-radius: 50%; background: rgba(255,255,255,.77); color: #314956; font-size: 21px; line-height: 1; box-shadow: 0 3px 13px rgba(67,86,97,.06); transition: background .15s, transform .15s, border-color .15s; }
 .icon-btn:hover { background: #fff; border-color: #9caeb3; transform: translateY(-1px); }
 
-.level-banner { position: absolute; z-index: 2; top: 97px; left: max(28px, env(safe-area-inset-left)); display: flex; flex-direction: column; gap: 3px; text-shadow: 0 1px 0 rgba(255,255,255,.7); }
+.level-banner { position: absolute; z-index: 2; top: 97px; left: max(28px, var(--safe-left)); display: flex; flex-direction: column; gap: 3px; text-shadow: 0 1px 0 rgba(255,255,255,.7); }
 .level-banner-index { color: #a95053; font-size: 10px; font-weight: 750; letter-spacing: .19em; }
-.level-banner-name { font-family: Georgia, "Iowan Old Style", serif; font-size: clamp(19px, 2.3vw, 29px); font-weight: 500; line-height: 1.1; }
-.level-banner-mechanic { max-width: 220px; color: #566e77; font-size: 11px; line-height: 1.3; }
+.level-banner-name { font-family: Georgia, "Iowan Old Style", serif; font-size: clamp(19px, 2.3cqw, 29px); font-weight: 500; line-height: 1.1; }
+.level-banner-mechanic { max-width: 245px; color: #566e77; font-size: 11px; font-weight: 600; line-height: 1.3; }
 
-.timeline { position: absolute; z-index: 2; top: 100px; right: max(28px, env(safe-area-inset-right)); display: flex; align-items: center; gap: 10px; padding: 10px 13px; border: 1px solid rgba(68,94,105,.16); border-radius: 10px; background: rgba(249,251,249,.91); box-shadow: 0 8px 25px rgba(66,88,101,.075); }
+.timeline { position: absolute; z-index: 2; top: 100px; right: max(28px, var(--safe-right)); display: flex; align-items: center; gap: 10px; padding: 10px 13px; border: 1px solid rgba(68,94,105,.16); border-radius: 10px; background: rgba(249,251,249,.91); box-shadow: 0 8px 25px rgba(66,88,101,.075); }
 .timeline-label { color: #61757f; font-size: 9px; font-weight: 700; letter-spacing: .14em; }
-.timeline-track { position: relative; width: clamp(65px, 12vw, 130px); height: 5px; border-radius: 5px; background: #d5dfe0; }
+.timeline-track { position: relative; width: clamp(65px, 12cqw, 130px); height: 5px; border-radius: 5px; background: #d5dfe0; }
 .timeline-fill { height: 100%; border-radius: inherit; background: #d07c72; }
 .timeline-needle { position: absolute; top: -4px; width: 3px; height: 13px; border-radius: 2px; background: #314956; }
 .timeline-direction { min-width: 14px; font-weight: 700; }
 
-.control-dock { position: absolute; z-index: 3; left: max(24px, env(safe-area-inset-left)); right: max(24px, env(safe-area-inset-right)); bottom: max(22px, env(safe-area-inset-bottom)); display: flex; justify-content: space-between; align-items: end; }
-.tilt-control { display: flex; gap: 9px; }
+.control-dock { --dock-left: max(24px, var(--safe-left)); --dock-right: max(24px, var(--safe-right)); --dock-bottom: max(22px, var(--safe-bottom)); --tilt-gap: 9px;
+  position: absolute; z-index: 3; left: var(--dock-left); right: var(--dock-right); bottom: var(--dock-bottom); display: flex; justify-content: space-between; align-items: end; }
+.tilt-control { display: flex; gap: var(--tilt-gap); }
 .game-ui .control-dock { pointer-events: none; }
-.control-button { display: flex; flex-direction: column; justify-content: center; align-items: center; touch-action: none; -webkit-tap-highlight-color: transparent; border: 1px solid rgba(68,94,105,.2); color: #314956; background: rgba(250,252,250,.95); box-shadow: 0 6px 22px rgba(54,81,94,.14), inset 0 1px 0 rgba(255,255,255,.8); transition: transform .1s, box-shadow .1s, background .1s; }
+.control-button { position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; touch-action: none; -webkit-tap-highlight-color: transparent; border: 1px solid rgba(68,94,105,.2); color: #314956; background: rgba(250,252,250,.95); box-shadow: 0 6px 22px rgba(54,81,94,.14), inset 0 1px 0 rgba(255,255,255,.8); transition: transform .1s, box-shadow .1s, background .1s; }
 .control-button.pressed { transform: translateY(2px); box-shadow: 0 2px 8px rgba(54,81,94,.14); background: #e3ebeb; }
-.tilt-button { width: 82px; height: 76px; border-radius: 15px; }
+.tilt-button { width: 140px; height: 84px; border-radius: 16px; }
+/* Invisible extended hit zones (pseudo-elements hit-test as their button, so
+   the pointer-capture hold logic in ui.ts is unchanged): TILT LEFT reaches the
+   bottom-left corner and edges, TILT RIGHT the gap and a margin to its right,
+   BRAKE the bottom-right corner. A thumb that lands short of a button, or in
+   the corner, still holds it. They reach up only a little, never the HUD or
+   the utility bar. -1px/-2px compensate each button's border. */
+.tilt-button::before, .brake-button::before { content: ""; position: absolute; }
+.tilt-button[data-hold="left"]::before { left: calc(-1px - var(--dock-left)); bottom: calc(-1px - var(--dock-bottom)); top: -12px; right: calc(-1px - var(--tilt-gap) / 2); }
+.tilt-button[data-hold="right"]::before { left: calc(-1px - var(--tilt-gap) / 2); bottom: calc(-1px - var(--dock-bottom)); top: -12px; right: -24px; }
+.brake-button::before { right: calc(-2px - var(--dock-right)); bottom: calc(-2px - var(--dock-bottom)); top: -14px; left: -14px; }
 .control-arrow { height: 39px; font-family: Georgia, serif; font-size: 35px; line-height: 1; }
 .control-button small { font-size: 9px; font-weight: 750; letter-spacing: .1em; }
 .brake-button { width: 118px; height: 118px; border-radius: 50%; border: 2px solid rgba(255,255,255,.84); outline: 1px solid #bc6a67; color: #fffdf7; background: #b25954; box-shadow: 0 10px 28px rgba(129,79,84,.24), inset 0 1px 0 rgba(255,255,255,.3); font-size: 18px; font-weight: 750; letter-spacing: .07em; }
@@ -83,17 +102,20 @@ button:focus-visible { outline: 3px solid #cc6258; outline-offset: 3px; }
 .brake-glyph { margin-top: -4px; font-family: Georgia, serif; font-size: 33px; line-height: 1; }
 .brake-button small { color: #fffdf7; font-size: 9px; margin-top: 3px; }
 
-.utility-bar { position: absolute; z-index: 2; bottom: max(34px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 7px; width: min(420px, 45vw); }
+.utility-bar { position: absolute; z-index: 2; bottom: max(34px, var(--safe-bottom)); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 7px; width: min(420px, 45cqw); }
+/* Touch tablets: the wider tilt buttons span the bottom-left, so the centred
+   utility bar sits above the dock row instead of beside it. */
+@media (hover: none), (pointer: coarse) { .utility-bar { bottom: calc(max(22px, var(--safe-bottom)) + 110px); } }
 .control-hint { color: #536a75; font-size: 10px; font-weight: 700; letter-spacing: .07em; white-space: nowrap; }
 .control-hint i { font-style: normal; font-weight: 500; }
 .utility-buttons { display: flex; gap: 6px; }
 .text-btn { padding: 8px 9px; border: 1px solid rgba(68,94,105,.2); border-radius: 7px; background: rgba(250,252,250,.9); color: #3e5966; font-size: 9px; font-weight: 750; letter-spacing: .05em; white-space: nowrap; box-shadow: 0 3px 12px rgba(54,81,94,.06); }
 .text-btn:hover, .text-btn.selected { background: #405d6b; color: #fffdf7; }
-.mode-toast { position: absolute; z-index: 8; left: 50%; bottom: 165px; transform: translateX(-50%); padding: 10px 15px; max-width: min(90vw, 380px); border-radius: 9px; color: #fffdf7; background: #405d6b; box-shadow: 0 8px 25px rgba(54,81,94,.18); font-size: 12px; font-weight: 700; text-align: center; }
+.mode-toast { position: absolute; z-index: 8; left: 50%; bottom: 165px; transform: translateX(-50%); padding: 10px 15px; max-width: min(90cqw, 380px); border-radius: 9px; color: #fffdf7; background: #405d6b; box-shadow: 0 8px 25px rgba(54,81,94,.18); font-size: 12px; font-weight: 700; text-align: center; }
 .debug-panel { position: absolute; z-index: 8; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 12px; padding: 7px 12px; border: 1px solid rgba(68,94,105,.16); border-radius: 7px; color: #314956; background: rgba(250,252,250,.94); font: 10px/1.25 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
 .debug-panel b { font-size: 9px; letter-spacing: .1em; }
 .debug-on .hud-stats { visibility: hidden; }
-@media (max-width: 1080px) { .debug-on .hud-brand { visibility: hidden; } }
+@container app (max-width: 1080px) { .debug-on .hud-brand { visibility: hidden; } }
 
 .menu-overlay, .state-overlay { position: absolute; z-index: 10; inset: 0; display: grid; place-items: center; background: rgba(49,70,81,.39); backdrop-filter: blur(11px); pointer-events: auto; }
 .menu-overlay { display: block; background: #fcfdfb; backdrop-filter: none; }
@@ -131,38 +153,38 @@ button:focus-visible { outline: 3px solid #cc6258; outline-offset: 3px; }
 .tile-mark { align-self: start; color: #a95053; font-weight: 750; }
 .is-menu .hud, .is-menu .level-banner, .is-menu .timeline { display: none; }
 
-@media (max-width: 1050px) {
+@container app (max-width: 1050px) {
   .menu-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); min-height: 0; padding: 46px 0; }
   .menu-intro h1 { font-size: clamp(56px, 7.2vw, 78px); }
   .campaign-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 .state-overlay { background: rgba(49,70,81,.34); }
-.state-card { width: min(470px, calc(100vw - 40px)); padding: 43px; border: 1px solid rgba(255,255,255,.75); border-radius: 16px; background: #fbfaf5; box-shadow: 0 20px 80px rgba(44,64,77,.22); }
+.state-card { width: min(470px, calc(100cqw - 40px)); padding: 43px; border: 1px solid rgba(255,255,255,.75); border-radius: 16px; background: #fbfaf5; box-shadow: 0 20px 80px rgba(44,64,77,.22); }
 .state-card h2 { font-size: clamp(42px, 5vw, 58px); }
 .state-copy { min-height: 42px; margin: 20px 0 28px; color: #56707a; font-size: 14px; line-height: 1.5; }
 .state-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
 .state-actions .primary-btn { min-width: 185px; }
 .secondary-btn { border: 0; border-bottom: 1px solid #8099a1; padding: 8px 0; color: #3e5966; background: transparent; font-size: 10px; font-weight: 750; letter-spacing: .09em; }
 
-@media (max-width: 760px) {
-  .hud { min-height: 61px; padding: max(8px, env(safe-area-inset-top)) max(11px, env(safe-area-inset-right)) 8px max(11px, env(safe-area-inset-left)); grid-template-columns: 1fr auto; gap: 6px; }
+@container app (max-width: 760px) {
+  .hud { min-height: 61px; padding: max(8px, var(--safe-top)) max(11px, var(--safe-right)) 8px max(11px, var(--safe-left)); grid-template-columns: 1fr auto; gap: 6px; }
   .hud-brand { display: none; }
   .hud-stats { justify-self: start; gap: 9px; }
   .hud-stat { min-width: 48px; }
   .hud-stat-label { font-size: 8px; }
   .hud-stat strong { font-size: 13px; }
   .icon-btn { width: 33px; height: 33px; font-size: 18px; }
-  .level-banner { top: 77px; left: max(13px, env(safe-area-inset-left)); }
+  .level-banner { top: 77px; left: max(13px, var(--safe-left)); }
   .level-banner-name { font-size: 19px; }
-  .level-banner-mechanic { display: none; }
-  .level-banner-mechanic.is-objective { display: block; max-width: 245px; font-weight: 600; }
   .timeline { top: 78px; right: 10px; padding: 7px; gap: 5px; }
   .timeline-label { font-size: 7px; }
   .timeline-track { width: 50px; }
-  .control-dock { left: max(13px, env(safe-area-inset-left)); right: max(13px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); }
-  .tilt-control { gap: 6px; }
-  .tilt-button { width: 64px; height: 62px; border-radius: 11px; }
+  .control-dock { --dock-left: max(13px, var(--safe-left)); --dock-right: max(13px, var(--safe-right)); --dock-bottom: max(12px, var(--safe-bottom)); --tilt-gap: 6px; }
+  /* ~1.7× the old 64px, but never into the brake on a 320px-wide portrait. */
+  .tilt-button { width: min(108px, calc((100cqw - 160px) / 2)); height: 68px; border-radius: 12px; }
+  /* At 320px wide the brake zone starts ~10px past this one's edge. */
+  .tilt-button[data-hold="right"]::before { right: -16px; }
   .control-arrow { height: 32px; font-size: 29px; }
   .control-button small { font-size: 7px; }
   .brake-button { width: 91px; height: 91px; font-size: 14px; }
@@ -170,7 +192,7 @@ button:focus-visible { outline: 3px solid #cc6258; outline-offset: 3px; }
   .utility-bar { left: auto; right: 11px; top: 134px; bottom: auto; width: auto; transform: none; align-items: flex-end; }
   .control-hint { display: none; }
   .text-btn { padding: 6px; font-size: 7px; }
-  .debug-panel { left: max(11px, env(safe-area-inset-left)); top: 50%; transform: translateY(-50%); max-width: calc(100% - 92px); gap: 5px; padding: 3px 4px; border: 0; background: transparent; font-size: 8px; flex-wrap: wrap; white-space: normal; }
+  .debug-panel { left: max(11px, var(--safe-left)); top: 50%; transform: translateY(-50%); max-width: calc(100% - 92px); gap: 5px; padding: 3px 4px; border: 0; background: transparent; font-size: 8px; flex-wrap: wrap; white-space: normal; }
   .debug-panel b, .debug-panel [data-ui="debug-input"] { display: none; }
   .mode-toast { bottom: 117px; }
   .menu-main { padding: 0 22px 36px; }
@@ -186,28 +208,33 @@ button:focus-visible { outline: 3px solid #cc6258; outline-offset: 3px; }
   .tile-label { font-size: 11px; }
 }
 
-@media (max-width: 650px) and (orientation: portrait) {
+@container app (max-width: 650px) and (orientation: portrait) {
   .menu-main { padding-inline: 20px; }
   .menu-hero { padding-top: 29px; }
   .menu-intro h1 { font-size: clamp(58px, 14vw, 74px); }
   .menu-lead { font-size: 14px; }
   .menu-art-wrap { max-width: 340px; }
   .campaign { padding-bottom: 20px; }
-  .utility-bar { top: auto; bottom: max(117px, calc(env(safe-area-inset-bottom) + 108px)); right: 12px; }
+  .utility-bar { top: auto; bottom: max(117px, calc(var(--safe-bottom) + 108px)); right: 12px; }
   .utility-buttons { flex-wrap: wrap; justify-content: flex-end; max-width: 230px; }
   .level-banner { top: 82px; }
   .timeline { top: 150px; left: 13px; right: auto; }
   .debug-panel { top: 50%; }
 }
 
-@media (max-height: 460px) and (orientation: landscape) {
-  .hud { min-height: 47px; padding-top: max(5px, env(safe-area-inset-top)); padding-bottom: 5px; }
+@container app (max-height: 460px) and (orientation: landscape) {
+  .hud { min-height: 47px; padding-top: max(5px, var(--safe-top)); padding-bottom: 5px; }
   .hud-stat strong { font-size: 12px; }
   .level-banner { top: 62px; }
   .level-banner-name { font-size: 17px; }
   .timeline { top: 62px; }
-  .utility-bar { top: 106px; right: max(12px, env(safe-area-inset-right)); left: auto; bottom: auto; width: auto; transform: none; align-items: flex-end; }
-  .tilt-button { width: 62px; height: 55px; }
+  /* In the dock row, between TILT RIGHT's touch zone (2 × 104 + 9 + 24 px) and
+     BRAKE's (79 + 14 px), wrapping onto two or three rows: under the top-right
+     row it ran under the level banner at 667×375 and narrower, and anywhere
+     higher it covers the road the rider is on. */
+  .utility-bar { top: auto; bottom: max(10px, var(--safe-bottom)); left: calc(max(24px, var(--safe-left)) + 247px); right: calc(max(24px, var(--safe-right)) + 97px); width: auto; transform: none; align-items: center; }
+  .utility-buttons { flex-wrap: wrap; justify-content: center; align-content: flex-end; }
+  .tilt-button { width: 104px; height: 60px; }
   .brake-button { width: 79px; height: 79px; }
   .control-arrow { height: 26px; font-size: 27px; }
   .tilt-button small { font-size: 7px; letter-spacing: .04em; }
@@ -215,7 +242,7 @@ button:focus-visible { outline: 3px solid #cc6258; outline-offset: 3px; }
   .brake-button { font-size: 12px; line-height: 1; }
   .brake-button small { font-size: 7px; margin-top: 1px; }
   .debug-panel { top: 50%; }
-  .control-dock { bottom: max(10px, env(safe-area-inset-bottom)); }
+  .control-dock { --dock-bottom: max(10px, var(--safe-bottom)); }
   .menu-hero { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 13px; padding: 14px 0 20px; }
   .menu-intro h1 { font-size: clamp(47px, 6vw, 65px); }
   .menu-lead { font-size: 12px; margin: 10px 0 12px; line-height: 1.4; }
@@ -226,8 +253,8 @@ button:focus-visible { outline: 3px solid #cc6258; outline-offset: 3px; }
 }
 
 /* Always-visible orientation reference, independent of phone or keyboard input. */
-.game-ui { --orientation-top: max(76px, calc(env(safe-area-inset-top) + 50px)); }
-.horizon-gauge { position: absolute; z-index: 2; top: calc(var(--orientation-top) + 16px); left: max(20px, env(safe-area-inset-left)); width: 88px; display: flex; flex-direction: column; align-items: center; color: #314956; pointer-events: none; }
+.game-ui { --orientation-top: max(76px, calc(var(--safe-top) + 50px)); }
+.horizon-gauge { position: absolute; z-index: 2; top: calc(var(--orientation-top) + 16px); left: max(20px, var(--safe-left)); width: 88px; display: flex; flex-direction: column; align-items: center; color: #314956; pointer-events: none; }
 .horizon-gauge svg { display: block; width: 100%; overflow: visible; }
 .horizon-face { fill: #faf8f0; fill-opacity: .94; stroke: #b5c2c3; stroke-width: 1; }
 .horizon-ticks { stroke: #80979c; stroke-width: 1; }
@@ -241,19 +268,19 @@ button:focus-visible { outline: 3px solid #cc6258; outline-offset: 3px; }
 .horizon-gauge.is-level .horizon-line { stroke: #497c77; }
 .horizon-gauge.is-level .horizon-up { fill: #497c77; }
 .horizon-gauge.is-level .horizon-ground { fill: #77a59a; }
-.level-banner { top: calc(var(--orientation-top) + 21px); left: max(125px, calc(env(safe-area-inset-left) + 105px)); max-width: min(300px, calc(100vw - 145px)); }
+.level-banner { top: calc(var(--orientation-top) + 21px); left: max(125px, calc(var(--safe-left) + 105px)); max-width: min(300px, calc(100cqw - 145px)); }
 .is-menu .horizon-gauge { display: none; }
-@media (max-width: 760px) {
-  .game-ui { --orientation-top: max(61px, calc(env(safe-area-inset-top) + 42px)); }
-  .horizon-gauge { top: calc(var(--orientation-top) + 15px); left: max(11px, env(safe-area-inset-left)); width: 72px; }
+@container app (max-width: 760px) {
+  .game-ui { --orientation-top: max(61px, calc(var(--safe-top) + 42px)); }
+  .horizon-gauge { top: calc(var(--orientation-top) + 15px); left: max(11px, var(--safe-left)); width: 72px; }
   .horizon-gauge strong { font-size: 13px; }
-  .level-banner { left: max(96px, calc(env(safe-area-inset-left) + 85px)); max-width: calc(100vw - 112px); }
+  .level-banner { left: max(96px, calc(var(--safe-left) + 85px)); max-width: calc(100cqw - 112px); }
 }
-@media (max-width: 650px) and (orientation: portrait) {
+@container app (max-width: 650px) and (orientation: portrait) {
   .timeline { top: calc(var(--orientation-top) + 154px); }
 }
-@media (max-height: 460px) and (orientation: landscape) {
-  .game-ui { --orientation-top: max(47px, calc(env(safe-area-inset-top) + 44px)); }
+@container app (max-height: 460px) and (orientation: landscape) {
+  .game-ui { --orientation-top: max(47px, calc(var(--safe-top) + 44px)); }
   .horizon-gauge { top: calc(var(--orientation-top) + 12px); width: 62px; }
   .level-banner { top: calc(var(--orientation-top) + 15px); max-width: 250px; }
 }
@@ -266,7 +293,7 @@ button:focus-visible { outline: 3px solid #cc6258; outline-offset: 3px; }
 @media (hover: none), (pointer: coarse) {
   .control-hint { display: none; }
 }
-.screen-guide { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: max(18px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); background: radial-gradient(ellipse at 80% 10%, #fff8eb, #f1eee5); color: #173f45; touch-action: pan-y; overflow-y: auto; }
+.screen-guide { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: max(18px, var(--safe-top)) max(24px, var(--safe-right)) max(18px, var(--safe-bottom)) max(24px, var(--safe-left)); background: radial-gradient(ellipse at 80% 10%, #fff8eb, #f1eee5); color: #173f45; touch-action: pan-y; overflow-y: auto; }
 .screen-guide-card { width: min(100%, 540px); text-align: center; }
 .screen-guide h2 { font: 32px/1.1 Georgia, serif; margin: 8px 0 12px; }
 .screen-guide p { font-size: 15px; line-height: 1.45; margin: 10px auto 16px; }

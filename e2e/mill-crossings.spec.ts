@@ -10,8 +10,8 @@ test('Mill carries the braked rider on both cradles before the ceiling return', 
   await page.evaluate(async () => {
     const { createReplayPilot } = await import('/src/dev/replay.ts');
     const api = (window as any).__NEWTON__;
-    api.load(2);
-    const pilot = createReplayPilot(2);
+    api.load(3);
+    const pilot = createReplayPilot(3);
     const trace = Object.fromEntries(['mill-short', 'mill-long'].map(id => [id,
       { start: null as number | null, travel: 0, brakeSeconds: 0 }]));
     (window as any).__millTrace = trace;

@@ -65,10 +65,12 @@ test('visible start, touch release, campaign return and debug toggle work', asyn
 
 });
 
-test('finishing Orchard unlocks the next room and persists across reload', async ({ page }) => {
+test('finishing the First Lesson unlocks Newton’s Orchard and persists across reload', async ({ page }) => {
   test.setTimeout(110_000);
   await page.goto('/');
   await page.getByRole('button', { name: /LET’S RIDE/ }).click();
+  // The first map alone states the objective for its first 8 s.
+  await expect(page.locator('[data-ui="mechanic"]')).toHaveText('Collect every apple, then return to the door.');
   await page.evaluate(async () => {
     const path = '/src/dev/replay.ts';
     const { createReplayPilot } = await import(/* @vite-ignore */ path);
@@ -78,12 +80,15 @@ test('finishing Orchard unlocks the next room and persists across reload', async
   await expect(page.getByRole('button', { name: /NEXT ROOM/ })).toBeVisible({ timeout: 100_000 });
   const complete = await page.evaluate(() => (window as any).__NEWTON__.snapshot());
   expect(complete.status).toBe('complete');
-  expect(complete.collected).toHaveLength(5);
-  expect(complete.elapsed).toBeGreaterThan(30);
+  expect(complete.collected).toHaveLength(3);
+  expect(complete.elapsed).toBeGreaterThan(8);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('newtons-ride.progress.v1')!).unlocked)).toBe(2);
   await page.reload();
-  await expect(page.getByRole('button', { name: 'Play One Wheel Wonder', exact: true })).toBeEnabled();
-  await expect(page.getByRole('button', { name: 'The Hanging Garden, locked', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Play Newton’s Orchard', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'One Wheel Wonder, locked', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'Play Newton’s Orchard', exact: true }).click();
+  await page.waitForTimeout(300);
+  await expect(page.locator('[data-ui="mechanic"]')).toBeHidden(); // later maps: no objective line
 });
 
 for (const [name, width, height] of [['landscape', 844, 390], ['portrait', 390, 844], ['desktop', 1440, 900]] as const) {

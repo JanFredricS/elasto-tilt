@@ -20,12 +20,12 @@ const { tip, lip, floorY, top, bottom, corners } = ouroborosTrack;
 const apple = (id: string) => ouroborosLevel.apples.find(a => a.id === id)!;
 
 describe("Newton's Ouroboros", () => {
-  it('is campaign map 8, between Escher’s Orchard and the Contrary Conservatory', () => {
-    expect(levels[7]).toBe(ouroborosLevel);
+  it('is campaign map 9, between Escher’s Orchard and the Contrary Conservatory', () => {
+    expect(levels[8]).toBe(ouroborosLevel);
     expect(ouroborosLevel.name).toBe('Newton’s Ouroboros');
-    expect(ouroborosLevel.difficulty).toBeGreaterThan(levels[5].difficulty);
-    expect(ouroborosLevel.difficulty).toBeLessThan(levels[8].difficulty);
-    expect(typeof createReplayPilot(7)).toBe('function');
+    expect(ouroborosLevel.difficulty).toBeGreaterThan(levels[6].difficulty);
+    expect(ouroborosLevel.difficulty).toBeLessThan(levels[9].difficulty);
+    expect(typeof createReplayPilot(8)).toBe('function');
   });
 
   it('is one closed loop whose floor is broken by a hole, with a lower way to a lipped exit', () => {

@@ -1,6 +1,6 @@
 import RAPIER from '@dimforge/rapier2d-compat';
-import { carriedTravel, RouteClock } from './physics-time';
-import type { BodyView, Controls, Level, PhysicsGame, Prop, Snapshot, Surface, Vec } from './types';
+import { carriedTravel, pathLength, pathPoint, RouteClock } from './physics-time';
+import type { BodyView, Controls, Level, PhysicsGame, Prop, Snapshot, Surface, TimePlatform, Vec } from './types';
 
 const GRAVITY = 9.81;
 const BIKE_GROUP = (2 << 16) | 13;
@@ -13,11 +13,19 @@ const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n
 let initialized: Promise<void> | undefined;
 type RenderBody = { body: RAPIER.RigidBody; view: Omit<BodyView, 'x' | 'y' | 'angle'>; offset?: Vec };
 type Tag = { kind: 'bike' | 'helmet' | 'hazard' | 'apple' | 'exit' | 'time' | 'environment' | 'prop'; id: string };
-type Socketed = { body: RAPIER.RigidBody; collider: RAPIER.Collider; socket: NonNullable<Prop['socket']>; view: RenderBody['view'] };
+type Socketed = { body: RAPIER.RigidBody; colliders: RAPIER.Collider[]; socket: NonNullable<Prop['socket']>; view: RenderBody['view'] };
 
 /** Closing speed (m/s) the airborne-wheel soft-CCD look-ahead must cover; the
  * distance scales with the step so larger timesteps stay protected too. */
 const LANDING_SPEED = 12;
+/** Default restitution of a 'spring' surface: a drop of h rebounds to ≈ e²h.
+ * Rapier restitution on the tyres alone bounces each wheel separately and the
+ * offset rider mass flips the bike (measured: upside down after one 2 m drop),
+ * so a pad instead reflects the whole rig's pre-impact velocity about its
+ * normal, uniformly: frame and wheels leave together, spin unchanged. */
+export const SPRING_RESTITUTION = .9;
+/** Normal approach speed (m/s) below which a pad is just floor (rolling on it never launches). */
+export const SPRING_MIN_SPEED = 1.2;
 /** How far (m) a chain segment's ridden face is extended into the stone past each valley joint. */
 export const CHAIN_REACH = 1;
 /**
@@ -84,6 +92,17 @@ export function convexChainHull(surfaces: Surface[]): Vec[] | undefined {
   });
 }
 
+/** ◢ in its w×h box, about the box centre (the body origin): right angle at
+ * the bottom-right, so pushed against a wall on its right it is a ramp up to it. */
+/** ◢ in its w×h box; a toe > 0 cuts a vertical bumper face that tall at the slope's foot. */
+export const wedgeVertices = (w: number, h: number, toe = 0): Vec[] => [{ x: -w / 2, y: -h / 2 }, { x: w / 2, y: -h / 2 }, { x: w / 2, y: h / 2 },
+  ...(toe > 0 ? [{ x: -w / 2, y: -h / 2 + toe }] : [])];
+function wedgeCollider(w: number, h: number, toe = 0) {
+  const desc = RAPIER.ColliderDesc.convexHull(new Float32Array(wedgeVertices(w, h, toe).flatMap(v => [v.x, v.y])));
+  if (!desc) throw new Error(`Degenerate wedge ${w}×${h}`);
+  return desc;
+}
+
 /** Spawn denotes frame centre. Wheel radius .34, axles (+/-.70, -.36), head (.126126126, .795). */
 export async function createPhysics(): Promise<PhysicsGame> {
   await (initialized ??= RAPIER.init());
@@ -96,8 +115,9 @@ export async function createPhysics(): Promise<PhysicsGame> {
   let brakeAngles: number[] | undefined;
   let bikeColliders: RAPIER.Collider[] = [], wheelColliders: RAPIER.Collider[] = [];
   let renderBodies: RenderBody[] = [];
-  let temporal: { body: RAPIER.RigidBody; from: Vec; to: Vec; lastTravel: number }[] = [];
+  let temporal: { body: RAPIER.RigidBody; path: TimePlatform; lastTravel: number }[] = [];
   let sockets: Socketed[] = [];
+  let springs = new Map<number, number>(), springReady = 0;
   let tags = new Map<number, Tag>();
   let collected = new Set<string>();
   let status: Snapshot['status'] = 'playing';
@@ -133,6 +153,7 @@ export async function createPhysics(): Promise<PhysicsGame> {
     clock = new RouteClock(); previousSupport = undefined;
     status = 'playing'; collected = new Set(); tags = new Map();
     wheels = []; brakeAngles = undefined; bikeColliders = []; wheelColliders = []; renderBodies = []; temporal = []; sockets = [];
+    springs = new Map(); springReady = 0;
     world = new RAPIER.World({ x: GRAVITY * Math.sin(angle), y: -GRAVITY * Math.cos(angle) });
     world.numSolverIterations = 8;
     queue = new RAPIER.EventQueue(true);
@@ -140,24 +161,28 @@ export async function createPhysics(): Promise<PhysicsGame> {
     axis = length > 0 ? { x: a.x / length, y: a.y / length } : { x: 1, y: 0 };
     previousTravel = next.spawn.x * axis.x + next.spawn.y * axis.y;
     const chains = new Map<string, Surface[]>();
+    // Stone friction: authored values (a slick rail) win over the tyres' grip, like a prop's.
+    const stone = (desc: RAPIER.ColliderDesc, surface: Surface) => surface.friction === undefined ? desc.setFriction(1.1)
+      : desc.setFriction(surface.friction).setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min);
     for (const surface of next.surfaces) {
       // Chained surfaces are built below as one seam-free run.
       if (surface.chain) { chains.get(surface.chain)?.push(surface) ?? chains.set(surface.chain, [surface]); continue; }
-      register(RAPIER.ColliderDesc.cuboid(surface.w / 2, surface.h / 2).setTranslation(surface.x, surface.y)
-        .setRotation(surface.angle ?? 0).setFriction(1.1).setCollisionGroups(ENV_GROUP), undefined,
+      const collider = register(stone(RAPIER.ColliderDesc.cuboid(surface.w / 2, surface.h / 2).setTranslation(surface.x, surface.y)
+        .setRotation(surface.angle ?? 0), surface).setCollisionGroups(ENV_GROUP), undefined,
       { kind: surface.kind === 'hazard' ? 'hazard' : 'environment', id: surface.id });
+      if (surface.kind === 'spring') springs.set(collider.handle, clamp(surface.restitution ?? SPRING_RESTITUTION, 0, 1));
     }
     for (const [id, members] of chains) {
       const hull = convexChainHull(members);
       const desc = hull && RAPIER.ColliderDesc.convexHull(new Float32Array(hull.flatMap(v => [v.x, v.y])));
       if (desc) {
-        register(desc.setFriction(1.1).setCollisionGroups(ENV_GROUP), undefined,
+        register(stone(desc, members[0]).setCollisionGroups(ENV_GROUP), undefined,
           { kind: members[0].kind === 'hazard' ? 'hazard' : 'environment', id });
         continue;
       }
       for (const box of chainBoxes(members)) register(
-        RAPIER.ColliderDesc.cuboid(box.w / 2, box.h / 2).setTranslation(box.x, box.y)
-          .setRotation(box.angle ?? 0).setFriction(1.1).setCollisionGroups(ENV_GROUP), undefined,
+        stone(RAPIER.ColliderDesc.cuboid(box.w / 2, box.h / 2).setTranslation(box.x, box.y)
+          .setRotation(box.angle ?? 0), box).setCollisionGroups(ENV_GROUP), undefined,
         { kind: box.kind === 'hazard' ? 'hazard' : 'environment', id: box.id });
     }
     // Buried chain boxes overlap, so a wheel sinking into them meets several faces at once
@@ -188,16 +213,22 @@ export async function createPhysics(): Promise<PhysicsGame> {
       .setCollisionGroups(SENSOR_GROUP), undefined, { kind: 'exit', id: 'exit' });
     for (const prop of next.props ?? []) {
       const body = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(prop.x, prop.y)
-        .setGravityScale(prop.inverted ? -1 : 1).setLinearDamping(.12).setCcdEnabled(true));
-      const desc = (prop.shape === 'ball' ? RAPIER.ColliderDesc.ball(prop.w / 2) : RAPIER.ColliderDesc.cuboid(prop.w / 2, prop.h / 2))
+        .setGravityScale(prop.inverted ? -1 : 1).setLinearDamping(prop.damping ?? .12).setCcdEnabled(true));
+      const desc = (prop.shape === 'ball' ? RAPIER.ColliderDesc.ball(prop.w / 2)
+        : prop.shape === 'wedge' ? wedgeCollider(prop.w, prop.h, prop.toe) : RAPIER.ColliderDesc.cuboid(prop.w / 2, prop.h / 2))
         .setDensity(prop.density ?? 1.5).setFriction(prop.friction ?? .9).setCollisionGroups(PROP_GROUP);
       // An authored friction is a material choice (e.g. a slick barrel), so it
       // wins over the grippy tyres and stone instead of being averaged away.
       if (prop.friction !== undefined) desc.setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min);
-      const collider = register(desc, body, { kind: 'prop', id: prop.id });
-      const view: RenderBody['view'] = { id: prop.id, w: prop.w, h: prop.h, shape: prop.shape, kind: 'prop', inverted: prop.inverted };
+      const colliders = [register(desc, body, { kind: 'prop', id: prop.id })];
+      // A wedge's toe is faced with a frictionless bumper plate: a tyre rolling
+      // against it pushes the wedge instead of being braked by the face.
+      if (prop.shape === 'wedge' && prop.toe) colliders.push(register(RAPIER.ColliderDesc.cuboid(.02, prop.toe / 2 - .01)
+        .setTranslation(-prop.w / 2 - .015, -prop.h / 2 + prop.toe / 2 + .01).setDensity(.1).setFriction(0)
+        .setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min).setCollisionGroups(PROP_GROUP), body, { kind: 'prop', id: prop.id }));
+      const view: RenderBody['view'] = { id: prop.id, w: prop.w, h: prop.h, shape: prop.shape, kind: 'prop', inverted: prop.inverted, ...(prop.toe ? { toe: prop.toe } : {}) };
       renderBodies.push({ body, view });
-      if (prop.socket) sockets.push({ body, collider, socket: prop.socket, view });
+      if (prop.socket) sockets.push({ body, colliders, socket: prop.socket, view });
     }
     for (const swing of next.swings ?? []) {
       // A damped pendulum can fall below Rapier’s sleep-speed threshold before
@@ -219,9 +250,35 @@ export async function createPhysics(): Promise<PhysicsGame> {
       const body = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(platform.from.x, platform.from.y));
       register(RAPIER.ColliderDesc.cuboid(platform.w / 2, platform.h / 2).setFriction(1.3).setCollisionGroups(ENV_GROUP),
         body, { kind: 'time', id: platform.id });
-      temporal.push({ body, from: platform.from, to: platform.to, lastTravel: 0 });
+      temporal.push({ body, path: platform, lastTravel: 0 });
       renderBodies.push({ body, view: { id: platform.id, w: platform.w, h: platform.h, shape: 'box', kind: 'time' } });
     }
+  }
+  /** Hooke's pads: on a fresh wheel contact with a pad, approached faster than
+   * SPRING_MIN_SPEED along its normal, the rig leaves with that normal
+   * component reversed and scaled by the pad's restitution. */
+  function bounce(approach: Vec, spin: number) {
+    let launch: { e: number; n: Vec } | undefined;
+    for (const collider of wheelColliders) world!.contactPairsWith(collider, other => {
+      const e = springs.get(other.handle);
+      if (e === undefined || launch) return;
+      world!.contactPair(collider, other, (manifold, flipped) => {
+        if (launch || manifold.numSolverContacts() === 0) return;
+        // The manifold normal points wheel → pad (unflipped); orient it pad → wheel.
+        const normal = manifold.normal(), sign = flipped ? 1 : -1;
+        launch = { e, n: { x: normal.x * sign, y: normal.y * sign } };
+      });
+    });
+    if (!launch) return;
+    const { e, n } = launch, along = approach.x * n.x + approach.y * n.y;
+    if (along > -SPRING_MIN_SPEED) return;
+    const v = { x: approach.x - (1 + e) * along * n.x, y: approach.y - (1 + e) * along * n.y };
+    // Rigid-body launch: every part leaves with the same velocity and the
+    // frame keeps its pre-impact spin, so the landing's contact torques
+    // (one wheel touching first) cannot cartwheel the rider.
+    for (const body of [frame, ...wheels]) body.setLinvel(v, true);
+    frame.setAngvel(spin, true);
+    springReady = elapsed + .12;
   }
   function step(dt: number, controls: Controls): Snapshot {
     if (!world || status !== 'playing' || !Number.isFinite(dt) || dt <= 0) return snapshot();
@@ -242,9 +299,12 @@ export async function createPhysics(): Promise<PhysicsGame> {
     }
     world.timestep = dt;
     frame.resetTorques(false);
-    if (controls.brake && !brakeAngles) brakeAngles = wheels.map(wheel => wheel.rotation() - frame.rotation());
-    if (!controls.brake) brakeAngles = undefined;
-    const brakeLimit = (frame.mass() + wheels.reduce((sum, wheel) => sum + wheel.mass(), 0)) * GRAVITY * .34 * 2;
+    // The brake does nothing for the instant of a spring pad's throw (its cooldown):
+    // a rider still holding it off the pad leaves with free wheels, not locked ones.
+    const braking = controls.brake && elapsed >= springReady;
+    if (braking && !brakeAngles) brakeAngles = wheels.map(wheel => wheel.rotation() - frame.rotation());
+    if (!braking) brakeAngles = undefined;
+    const brakeLimit = (frame.mass() + wheels.reduce((sum, wheel) => sum + wheel.mass(), 0)) * GRAVITY * .34 * 2 * (level.brakeScale ?? 1);
     for (const [index, wheel] of wheels.entries()) {
       wheel.resetTorques(false);
       if (brakeAngles) {
@@ -283,12 +343,13 @@ export async function createPhysics(): Promise<PhysicsGame> {
     const carry = carriedTravel(delta, platform?.lastTravel ?? 0, support !== undefined && previousSupport === support.handle);
     previousSupport = support?.handle;
     previousTravel = travel;
+    // The clock's rate limit is 2 m/s along the longest path; a level's
+    // timeSpeed scales it by stretching the length the limit sees.
     direction = clock.advance(delta - carry, level.timeTravel ?? 10,
-      Math.max(1, ...temporal.map(p => Math.hypot(p.to.x - p.from.x, p.to.y - p.from.y))), dt);
+      Math.max(1, ...temporal.map(p => pathLength(p.path))) * 2 / (level.timeSpeed ?? 2), dt);
     phase = clock.phase;
     for (const platform of temporal) {
-      const next = { x: platform.from.x + (platform.to.x - platform.from.x) * phase,
-        y: platform.from.y + (platform.to.y - platform.from.y) * phase };
+      const next = pathPoint(platform.path, phase);
       const previous = platform.body.translation();
       platform.lastTravel = (next.x - previous.x) * axis.x + (next.y - previous.y) * axis.y;
       platform.body.setNextKinematicTranslation(next);
@@ -306,18 +367,23 @@ export async function createPhysics(): Promise<PhysicsGame> {
       wheels[index].setSoftCcdPrediction(rolling ? 0 : Math.max(.1, LANDING_SPEED * dt));
     }
     const previousHead = headPosition();
+    const approach = { ...frame.linvel() }, spin = frame.angvel();
     world.step(queue);
     elapsed += dt;
+    if (springs.size && elapsed >= springReady) bounce(approach, spin);
     // A prop that comes to rest in its socket becomes terrain: fixed, solid
     // to the head like any floor, and no longer movable by later contacts.
-    sockets = sockets.filter(({ body, collider, socket, view }) => {
+    sockets = sockets.filter(({ body, colliders, socket, view }) => {
       const p = body.translation(), v = body.linvel();
       if (Math.hypot(p.x - socket.x, p.y - socket.y) > socket.tolerance ||
-        Math.hypot(v.x, v.y) > (socket.speed ?? .2) || Math.abs(body.angvel()) > 1) return true;
+        Math.hypot(v.x, v.y) > (socket.speed ?? .2) || Math.abs(body.angvel()) > 1 ||
+        (socket.angle !== undefined && Math.abs(body.rotation()) > socket.angle)) return true;
       body.setLinvel({ x: 0, y: 0 }, false); body.setAngvel(0, false);
       body.setBodyType(RAPIER.RigidBodyType.Fixed, false);
-      collider.setCollisionGroups(ENV_GROUP);
-      tags.set(collider.handle, { kind: 'environment', id: tags.get(collider.handle)!.id });
+      for (const collider of colliders) {
+        collider.setCollisionGroups(ENV_GROUP);
+        tags.set(collider.handle, { kind: 'environment', id: tags.get(collider.handle)!.id });
+      }
       view.settled = true;
       return false;
     });

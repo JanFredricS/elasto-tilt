@@ -22,16 +22,29 @@ const CRUISE_SLOPE = CRUISE_GAIN * radians;
 const BLEND_WIDTH = 12;
 const BLEND_END = 2 * Math.PI + BLEND_WIDTH * (END_SLOPE + CRUISE_SLOPE) / 2;
 // Near flat, the screen-plane gravity vector vanishes and its direction is
-// noise. Freeze below sin(10°), resume above sin(14°) (hysteresis around 12°).
-const FLAT_ENTER = Math.sin(10 * radians);
-const FLAT_EXIT = Math.sin(14 * radians);
+// noise. Only a phone within 3° of flat is truly unobservable: freeze below
+// sin(3°), resume above sin(4°) (a 5° exit could trap a phone held at 4° with
+// sensor noise of a degree: once it dipped under 3° it never got back out). The old 10°/14° freeze also discarded the
+// twist made while frozen, so a hand-over-hand turn with the phone held low
+// (lap, table edge) silently lost or "locked" its angle part-way round.
+// Between 3° and 10° the direction is real but noisier (sensor noise / sin
+// of the tilt), so instead of a hold it is followed through an extra low-pass
+// whose lag grows as confidence falls (to at most .15 s, so a fast turn
+// near flat trails by < 30° at 200°/s); above 10° it is followed exactly.
+const FLAT_ENTER = Math.sin(3 * radians);
+const FLAT_EXIT = Math.sin(4 * radians);
+const CONFIDENT = Math.sin(10 * radians);
+const LOW_CONFIDENCE_LAG = .15;
 
 /** Gravity's down direction in device x/y (W3C DeviceOrientation, Z-X'-Y''). */
 function deviceGravity(beta: number, gamma: number) {
   const b = beta * radians, g = gamma * radians;
   return { x: Math.cos(b) * Math.sin(g), y: -Math.sin(b) };
 }
-const wrap180 = (degrees: number) => degrees - 360 * Math.round(degrees / 360);
+/** Shortest signed equivalent of an angle step, in [-180, 180). Math.round
+ * sends both ±180 to -180, so an exact half-turn step is deterministic; at
+ * 60 Hz any real twist rate below 10 800°/s stays well inside the range. */
+export const wrap180 = (degrees: number) => degrees - 360 * Math.round(degrees / 360);
 
 /** Steering-wheel angle of the screen: direction of gravity within the screen
  * plane, 0 when the screen's bottom edge points down, positive as the phone
@@ -93,7 +106,10 @@ export function createInput(initialSteering: SteeringMode = 'assisted'): InputCo
   // deltas so it is continuous across any number of turns. It is measured in
   // fixed device axes: a rotation about the screen normal is the same angle in
   // every screen orientation, so OS auto-rotate cannot move the target.
-  let lastDirection: number | undefined, flat = false;
+  // `raw` is the measured unwrapped twist; `steady` follows it, exactly when
+  // the phone is well off flat and through a confidence-weighted lag near flat.
+  // `lastDirection` survives a freeze so the unwrap stays continuous across it.
+  let lastDirection: number | undefined, flat = false, confidence = 1, steady: number | undefined;
   const keydown = (event: KeyboardEvent) => {
     if ((event.target as HTMLElement | null)?.closest?.('input, textarea, select, [contenteditable="true"]')) return;
     if (event.code === 'Space' && (event.target as HTMLElement | null)?.closest?.('button, a, [role="button"]')) return;
@@ -104,12 +120,12 @@ export function createInput(initialSteering: SteeringMode = 'assisted'): InputCo
   const keyup = (event: KeyboardEvent) => { keys.delete(event.code); };
   const reset = (worldAngle = currentAngle) => {
     keys.clear(); touchBrake = false; touchTilt = 0; smoothedRate = 0; manualOverride = false;
-    raw = baseline = lastDirection = undefined; flat = false;
+    raw = baseline = lastDirection = steady = undefined; flat = false; confidence = 1;
     currentAngle = anchor = smoothedAngle = Number.isFinite(worldAngle) ? worldAngle : 0;
   };
   const blur = () => reset();
   const calibrate = () => {
-    baseline = raw;
+    baseline = steady = raw;
     // Flatten by the nearest equivalent turn, preserving full-turn progress.
     // Start smoothing at the actual pose, not a sensor target still catching up.
     anchor = Math.round(currentAngle / (2 * Math.PI)) * 2 * Math.PI;
@@ -122,15 +138,14 @@ export function createInput(initialSteering: SteeringMode = 'assisted'): InputCo
     const gravity = deviceGravity(event.beta, event.gamma);
     const planar = Math.hypot(gravity.x, gravity.y);
     flat = planar < (flat ? FLAT_EXIT : FLAT_ENTER);
-    if (flat) {
-      // Hold the last bank; resume from the next well-defined direction
-      // without counting the unobservable change made while flat.
-      lastDirection = undefined;
-      return;
-    }
+    // Hold the last bank while flat, but keep `lastDirection`: on leaving flat
+    // the twist made meanwhile is counted by the shortest step, not dropped.
+    if (flat) return;
+    confidence = Math.min(1, (planar - FLAT_ENTER) / (CONFIDENT - FLAT_ENTER));
     const direction = Math.atan2(gravity.x, -gravity.y) / radians;
-    raw = raw === undefined ? direction : lastDirection === undefined ? raw : raw + wrap180(direction - lastDirection);
+    raw = raw === undefined || lastDirection === undefined ? raw ?? direction : raw + wrap180(direction - lastDirection);
     lastDirection = direction;
+    if (steady === undefined) steady = raw;
     if (baseline === undefined) baseline = raw;
     inputMode = motionLabel(steering);
   };
@@ -149,7 +164,11 @@ export function createInput(initialSteering: SteeringMode = 'assisted'): InputCo
       const smoothing = 1 - Math.exp(-duration / .065);
       const brake = touchBrake || keys.has('Space');
       if (!manual && motionEnabled && raw !== undefined && baseline !== undefined) {
-        const offset = steeringOffset(steering, raw - baseline);
+        // Confidence 1 → no lag (exactly raw); towards 3° the lag reaches .15 s.
+        // A convex step toward raw keeps a monotone twist monotone.
+        const lag = LOW_CONFIDENCE_LAG * (1 - confidence);
+        steady = steady === undefined || lag <= 0 ? raw : steady + (raw - steady) * (1 - Math.exp(-duration / lag));
+        const offset = steeringOffset(steering, steady - baseline);
         if (manualOverride) {
           // Touch/keyboard can reposition the room without fighting the sensor
           // or snapping back when the button is released.
@@ -179,7 +198,7 @@ export function createInput(initialSteering: SteeringMode = 'assisted'): InputCo
           motionEnabled = false; return (inputMode = 'Motion denied — use arrows or touch');
         }
         motionEnabled = true;
-        raw = baseline = lastDirection = undefined; flat = false;
+        raw = baseline = lastDirection = steady = undefined; flat = false; confidence = 1;
         anchor = smoothedAngle = currentAngle;
         return (inputMode = 'Waiting for motion — hold comfortably, then tilt');
       } catch {
@@ -195,7 +214,7 @@ export function createInput(initialSteering: SteeringMode = 'assisted'): InputCo
       // Re-reference at the actual world pose: the current phone twist now
       // commands exactly the current world angle, and further twist proceeds
       // in the new mapping. Unlike calibrate(), no snap to a flat turn.
-      baseline = raw;
+      baseline = steady = raw;
       anchor = smoothedAngle = currentAngle;
       smoothedRate = 0;
       manualOverride = false;

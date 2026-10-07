@@ -23,7 +23,7 @@ function beam(id: string, a: Vec, b: Vec, kind: Surface['kind'] = 'ground', thic
     y: (a.y + b.y) / 2 - Math.cos(angle) * thickness / 2,
     w: Math.hypot(b.x - a.x, b.y - a.y) + .025, h: thickness, angle, kind };
 }
-function terrain(id: string, profile: Terrace[], gaps: [number, number][] = []): Surface[] {
+export function terrain(id: string, profile: Terrace[], gaps: [number, number][] = []): Surface[] {
   const surfaces: Surface[] = [];
   for (let i = 1; i < profile.length; i++) {
     const [x0] = profile[i - 1], [x1] = profile[i];

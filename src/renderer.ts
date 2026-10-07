@@ -190,7 +190,8 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
   const riderHead = riderArt.head;
   const exit = new Graphics();
   const location = new Graphics();
-  world.addChild(architecture, terrain, ornaments, wayfinding, appleLayer, dynamic, bikeWheels, bikeFrame, riderHead, exit, location);
+  // The door sits under dynamic bodies: a time platform lowered onto it covers it.
+  world.addChild(architecture, terrain, ornaments, wayfinding, exit, appleLayer, dynamic, bikeWheels, bikeFrame, riderHead, location);
   app.stage.addChild(world);
 
   let level: Level | undefined;
@@ -269,6 +270,17 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
       if (surface.kind === 'cradle') {
         piece.rect(-surface.w / 2, surface.h / 2 - .04, surface.w, .04).fill(C.gold);
       }
+      if (surface.kind === 'spring') {
+        // Hooke's pad: a brass plate on the ridden (+y) face over a row of coils.
+        const top = surface.h / 2, plate = Math.min(.12, surface.h / 3);
+        piece.rect(-surface.w / 2, top - plate, surface.w, plate).fill(C.gold);
+        for (let x = -surface.w / 2 + .25; x < surface.w / 2 - .1; x += .5) {
+          for (let k = 0; k < 4; k++) {
+            const y0 = top - plate - k * (surface.h - plate) / 4, y1 = y0 - (surface.h - plate) / 4;
+            line(piece, { x: x - .12, y: y0 }, { x: x + .12, y: y1 }, C.gold, .03, .85);
+          }
+        }
+      }
       piece.position.set(surface.x, surface.y);
       piece.rotation = surface.angle ?? 0;
       terrain.addChild(piece);
@@ -323,7 +335,8 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
     }
     for (const platform of nextLevel.timePlatforms ?? []) {
       // Endpoints show the platform's range without suggesting extra footing.
-      line(ornaments, platform.from, platform.to, C.rope, .018, .34);
+      const path = platform.via ? [platform.from, platform.via, platform.to] : [platform.from, platform.to];
+      for (let i = 1; i < path.length; i++) line(ornaments, path[i - 1], path[i], C.rope, .018, .34);
       circle(ornaments, platform.from.x, platform.from.y, .04, C.rope);
       circle(ornaments, platform.to.x, platform.to.y, .04, C.rope);
     }
@@ -373,6 +386,15 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
           }
           ellipsePath(item, 0, 0, r, r).stroke({ color: rim, width: prop ? Math.max(.05, r * .06) : .045 });
           ellipsePath(item, -body.w * .1, body.w * .1, Math.max(.025, body.w * .06), Math.max(.025, body.w * .06), 20).fill({ color: C.ivory, alpha: .45 });
+        } else if (body.shape === 'wedge') {
+          // ◢ with plank grain parallel to the ramp face.
+          const corners = [-body.w / 2, -body.h / 2, body.w / 2, -body.h / 2, body.w / 2, body.h / 2,
+            ...(body.toe ? [-body.w / 2, -body.h / 2 + body.toe] : [])];
+          item.poly(corners).fill(fill);
+          for (const t of [.3, .55, .8]) {
+            line(item, { x: -body.w / 2 + body.w * t, y: -body.h / 2 + .08 }, { x: body.w / 2 - .08, y: body.h / 2 - body.h * t }, PROP.hoop, .03, .55);
+          }
+          item.poly(corners).stroke({ color: rim, width: prop ? .06 : .045 });
         } else {
           item.rect(-body.w / 2, -body.h / 2, body.w, body.h).fill(fill);
           item.rect(-body.w / 2, -body.h / 2, body.w, body.h).stroke({ color: rim, width: .045 });

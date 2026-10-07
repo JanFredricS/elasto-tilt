@@ -9,6 +9,9 @@ import { hiddenWayHomeLevel, switchbackScaffoldLevel } from './levels/tower-chas
 import { stairwayLevel } from './levels/stairway';
 import { cannonballLevel } from './levels/cannonball';
 import { ouroborosLevel } from './levels/ouroboros';
+import { firstLessonLevel } from './levels/first-lesson';
+import { clockworkWedgeLevel } from './levels/clockwork-wedge';
+import { springboardLevel } from './levels/springboard';
 import type { Level } from './types';
 
 /**
@@ -16,21 +19,24 @@ import type { Level } from './types';
  * level IDs stay stable. Keep src/dev/replay.ts's pilot table in the same order.
  */
 export const levels: Level[] = [
-  newtonsOrchardLevel,        // 0
-  oneWheelWonderLevel,        // 1
-  pendulumMillLevel,          // 2
-  roomOnItsSideLevel,         // 3
-  newtonsAtticLevel,          // 4
-  eschersOrchardLevel,        // 5
-  cannonballLevel,            // 6
-  ouroborosLevel,             // 7
-  contraryConservatoryLevel,  // 8
-  gravityEngineLevel,         // 9
-  hangingGardenLevel,         // 10
-  clockworkAppleLevel,        // 11
-  undersideReturnLevel,       // 12
-  spiralSanctuaryLevel,       // 13
-  switchbackScaffoldLevel,    // 14
-  hiddenWayHomeLevel,         // 15
-  stairwayLevel,              // 16
+  firstLessonLevel,           // 0
+  newtonsOrchardLevel,        // 1
+  oneWheelWonderLevel,        // 2
+  pendulumMillLevel,          // 3
+  roomOnItsSideLevel,         // 4
+  newtonsAtticLevel,          // 5
+  eschersOrchardLevel,        // 6
+  cannonballLevel,            // 7
+  ouroborosLevel,             // 8
+  contraryConservatoryLevel,  // 9
+  gravityEngineLevel,         // 10
+  hangingGardenLevel,         // 11
+  clockworkAppleLevel,        // 12
+  clockworkWedgeLevel,        // 13
+  undersideReturnLevel,       // 14
+  spiralSanctuaryLevel,       // 15
+  switchbackScaffoldLevel,    // 16
+  hiddenWayHomeLevel,         // 17
+  springboardLevel,           // 18
+  stairwayLevel,              // 19
 ];

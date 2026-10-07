@@ -12,8 +12,8 @@ test('One Wheel Wonder completes with a braked single-wheel pivot', async ({ pag
     const { createReplayPilot } = await import(/* @vite-ignore */ replayPath);
     const { earlyLevels } = await import(/* @vite-ignore */ levelPath);
     const api = (window as any).__NEWTON__;
-    api.load(1);
-    const pilot = createReplayPilot(1), level = earlyLevels[1];
+    api.load(2);
+    const pilot = createReplayPilot(2), level = earlyLevels[1];
     const trace = { singleWheelFrames: 0, pivotRotation: 0, witnessed: false, highApple: null as null | { supportedWheels: number; onCatch: boolean; angle: number } };
     let segmentFrames = 0, segmentRotation = 0, previousAngle = 0;
     (window as any).__wheelTrace = trace;

@@ -3,6 +3,7 @@ import { createPhysics } from './physics';
 import { createInput, loadSteeringMode, saveSteeringMode } from './input';
 import { createRenderer } from './renderer';
 import { createUI } from './ui';
+import { createOrientationHold } from './orientation-hold';
 import { levels } from './levels';
 import type { Controls, Snapshot, UIState } from './types';
 
@@ -16,6 +17,9 @@ async function boot() {
   ]);
   const storage = (() => { try { return localStorage; } catch { return undefined; } })();
   const input = createInput(loadSteeringMode(storage));
+  // Counter-rotates #app against OS auto-rotate while motion steers a level;
+  // the renderer reads #game's (logical, rotated) client size on resize.
+  const hold = createOrientationHold(root, () => renderer.resize());
   let levelIndex = 0;
   let unlocked = 1;
   try {
@@ -41,6 +45,8 @@ async function boot() {
     physics.load(levels[levelIndex]);
     renderer.load(levels[levelIndex]);
     renderState = physics.snapshot();
+    // A restart (HUD ↺ or R) re-arms the orientation hold like a fresh start.
+    hold.reset();
     status = nextStatus;
     accumulator = 0;
     last = performance.now();
@@ -117,6 +123,7 @@ async function boot() {
         }
       }
     }
+    hold.update(status === 'playing' && !surveying && input.mode.startsWith('Motion — '), renderState.worldAngle);
     renderer.render(renderState, elapsed);
     ui.update({
       levelIndex, unlocked, apples: renderState.collected.length,
