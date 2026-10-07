@@ -10,7 +10,7 @@ direction = atan2(gx, −gy)                  (0 = bottom edge down, + = clockwi
 bank += wrap180(direction − previousDirection)   (unwrapped, unbounded)
 ```
 
-The unwrapped bank is accumulated in fixed device axes. A rotation about the screen normal is the same angle in every screen orientation, so OS auto-rotate (which fires around 45–60° of twist) no longer resets calibration or moves the target. Blur and hidden-page resets are kept. When the phone lies near flat, the in-plane gravity magnitude `hypot(gx, gy)` vanishes and the direction is noise: the bank freezes below sin(10°) and resumes above sin(14°) (hysteresis around 12°), re-referencing so leaving flat never jumps. A flat phone cannot calibrate; motion waits for the first non-flat sample.
+The unwrapped bank is accumulated in fixed device axes. A rotation about the screen normal is the same angle in every screen orientation, so OS auto-rotate (which fires around 45–60° of twist) no longer resets calibration or moves the target. Blur and hidden-page resets are kept. When the phone lies near flat, the in-plane gravity magnitude `hypot(gx, gy)` vanishes and the direction is noise: the bank freezes below sin(10°) and resumes above sin(14°) (hysteresis around 12°), re-referencing so leaving flat never jumps. *(Superseded: the freeze is now 3°/5° with a confidence-weighted lag up to 10°, and the twist made while flat is kept. See [controls-full-circle.md](controls-full-circle.md).)* A flat phone cannot calibrate; motion waits for the first non-flat sample.
 
 For signed bank displacement `b` in degrees from calibration:
 

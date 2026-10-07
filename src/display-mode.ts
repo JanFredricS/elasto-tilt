@@ -1,4 +1,8 @@
 import type { UIState, UICallbacks } from './types';
+import { orientationLatched } from './orientation-hold';
+
+type LockableOrientation = ScreenOrientation & { lock?: (orientation: string) => Promise<void>; unlock?: () => void };
+const screenOrientation = () => globalThis.screen?.orientation as LockableOrientation | undefined;
 
 /** Browser chrome needs a native page scroll on iPhone; it is not the Fullscreen API. */
 export function createDisplayMode(host: HTMLElement, callbacks: UICallbacks) {
@@ -68,6 +72,10 @@ export function createDisplayMode(host: HTMLElement, callbacks: UICallbacks) {
     if (fullscreenAvailable() && landscape.matches) {
       try {
         await document.documentElement.requestFullscreen();
+        // Full screen is the one place a real orientation lock is allowed
+        // (Android Chrome; iOS rejects). Either way the orientation hold still
+        // covers motion play, so a rejection is ignored.
+        try { void screenOrientation()?.lock?.('landscape')?.catch(() => undefined); } catch { /* unsupported */ }
         if (!abort.signal.aborted) close();
       } catch {
         if (abort.signal.aborted) return;
@@ -77,6 +85,10 @@ export function createDisplayMode(host: HTMLElement, callbacks: UICallbacks) {
       }
     } else close();
   }
+  document.addEventListener('fullscreenchange', () => {
+    if (document.fullscreenElement) return;
+    try { screenOrientation()?.unlock?.(); } catch { /* unsupported */ }
+  }, { signal: abort.signal });
   button.addEventListener('click', open, { signal: abort.signal });
   proceed.addEventListener('click', () => {
     if (proceed.textContent === 'KEEP PLAYING') close();
@@ -98,6 +110,12 @@ export function createDisplayMode(host: HTMLElement, callbacks: UICallbacks) {
   return {
     update(next: UIState['status']) {
       status = next;
+      // While the orientation hold is latched (the player is steering), the
+      // viewport's orientation is a transient the player never sees: do not
+      // hide the screen button, drop the Safari scroll space or offer the swipe
+      // guide. Latched, not merely applied: iOS can resize the viewport before
+      // it reports the new angle, and for that moment no transform is applied.
+      if (orientationLatched()) return;
       button.hidden = desktop.matches || !landscape.matches || installed() || !(iphone || fullscreenAvailable());
       if (!landscape.matches || installed()) {
         close();

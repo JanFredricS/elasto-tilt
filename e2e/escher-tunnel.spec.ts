@@ -8,15 +8,15 @@ test('Escher shows its low tunnel and completes the four curved gravity faces on
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await page.waitForFunction(() => Boolean((window as any).__NEWTON__));
-  await page.evaluate(() => (window as any).__NEWTON__.load(5));
+  await page.evaluate(() => (window as any).__NEWTON__.load(6));
   await page.waitForTimeout(150);
   await page.screenshot({ path: 'test-results/escher-tunnel-portrait.png' });
   await page.setViewportSize({ width: 844, height: 390 });
   await page.evaluate(async () => {
     const { createReplayPilot } = await import('/src/dev/replay.ts');
     const api = (window as any).__NEWTON__;
-    api.load(5);
-    api.drive(createReplayPilot(5));
+    api.load(6);
+    api.drive(createReplayPilot(6));
   });
   await page.screenshot({ path: 'test-results/escher-tunnel-landscape.png' });
   for (const [name, angle] of [['first-bend', .8], ['ceiling', 3.2], ['return-bend', 5.5]] as const) {

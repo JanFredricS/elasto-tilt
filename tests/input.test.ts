@@ -22,7 +22,7 @@ function steer(bank: number, pitch = 30) {
   return { beta: Math.asin(Math.cos(p) * Math.cos(t)) / deg, gamma: Math.atan2(Math.cos(p) * Math.sin(t), Math.sin(p)) / deg };
 }
 function pose(bank: number, pitch = 30) { event('deviceorientation', steer(bank, pitch)); }
-function settle(input: InputController) { for (let i = 0; i < 120; i++) input.read(1 / 120); return input.read(1 / 120); }
+function settle(input: InputController, seconds = 1) { for (let i = 0; i < 120 * seconds; i++) input.read(1 / 120); return input.read(1 / 120); }
 beforeEach(() => { surface = new Surface(); documentSurface = new Surface(); vi.stubGlobal('window', surface); vi.stubGlobal('document', documentSurface); });
 afterEach(() => { controllers.splice(0).forEach(c => c.destroy()); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 describe('shared keyboard, touch, and calibrated motion command', () => {
@@ -227,33 +227,34 @@ describe('shared keyboard, touch, and calibrated motion command', () => {
     settle(input); expect(settle(input).worldAngle).toBeCloseTo(0, 5);
   });
 
-  it('freezes a flat phone instead of jumping, then resumes from the frozen value', async () => {
+  it('freezes only a truly flat phone, then counts the twist made while frozen', async () => {
     const input = controller(); await input.enableMotion();
     // A flat phone cannot calibrate; motion waits for a well-defined pose.
     event('deviceorientation', { beta: 0, gamma: 0 }); expect(settle(input).worldAngle).toBeUndefined();
     pose(0); pose(20); const held = settle(input).worldAngle!;
     expect(held).toBeCloseTo(bankOffset(20), 5);
-    for (const [beta, gamma] of [[0, 0], [3, -5], [-4, 6], [1, 9], [-8, -3]]) {
+    // Within 3° of flat the direction is unobservable: hold, never jump.
+    for (const [beta, gamma] of [[0, 0], [1, -2], [-2, 1], [.5, 2.5], [-2, -1.5]]) {
       event('deviceorientation', { beta, gamma });
       expect(settle(input).worldAngle).toBeCloseTo(held, 6);
     }
-    // Leaving flat at a different steering direction does not jump either...
-    pose(-70, 60);
-    expect(settle(input).worldAngle).toBeCloseTo(held, 6);
-    // ...and further steering continues from the frozen bank.
-    pose(-60, 60); expect(settle(input).worldAngle).toBeCloseTo(bankOffset(30), 5);
+    // Leaving flat resumes the unwrap by the shortest step from the last
+    // observed direction (the old freeze dropped it and "locked" the angle).
+    pose(-70, 60); expect(settle(input).worldAngle).toBeCloseTo(bankOffset(-70), 5);
+    pose(-60, 60); expect(settle(input).worldAngle).toBeCloseTo(bankOffset(-60), 5);
   });
 
-  it('uses hysteresis around the flat threshold', async () => {
+  it('uses 3°/4° hysteresis and a lagged, never-held follow between 3° and 10°', async () => {
     const input = controller(); await input.enableMotion();
-    pose(0); pose(20, 77); const tracked = settle(input).worldAngle!;
-    expect(tracked).toBeCloseTo(bankOffset(20), 5);
-    pose(25, 79); expect(settle(input).worldAngle).toBeCloseTo(bankOffset(25), 5); // 11° from flat: still tracking
-    pose(30, 81); const frozen = settle(input).worldAngle!; // 9°: frozen
-    expect(frozen).toBeCloseTo(bankOffset(25), 5);
-    pose(35, 78); expect(settle(input).worldAngle).toBeCloseTo(frozen, 6); // 12°: still frozen
-    pose(35, 70); expect(settle(input).worldAngle).toBeCloseTo(frozen, 6); // resumes, re-referenced
-    pose(40, 70); expect(settle(input).worldAngle).toBeCloseTo(bankOffset(30), 5);
+    pose(0, 80); pose(20, 80); expect(settle(input).worldAngle).toBeCloseTo(bankOffset(20), 5); // 10°: exact
+    pose(25, 86); // 4° from flat: low confidence, so it lags, but it does follow
+    const lagging = input.read(1 / 60).worldAngle!;
+    expect(lagging).toBeGreaterThan(bankOffset(20)); expect(lagging).toBeLessThan(bankOffset(25));
+    expect(settle(input, 4).worldAngle).toBeCloseTo(bankOffset(25), 5);
+    pose(30, 88); expect(settle(input, 4).worldAngle).toBeCloseTo(bankOffset(25), 5); // 2°: frozen
+    pose(35, 86.5); expect(settle(input, 4).worldAngle).toBeCloseTo(bankOffset(25), 5); // 3.5°: still frozen (exit at 4°)
+    pose(40, 85.5); expect(settle(input, 4).worldAngle).toBeCloseTo(bankOffset(40), 5); // 4.5°: resumes, twist counted
+    pose(45, 70); expect(settle(input).worldAngle).toBeCloseTo(bankOffset(45), 5);
   });
 
   it('continues past 75° instead of clamping and permits touch override without snapping back', async () => {
@@ -325,18 +326,18 @@ describe('direct (1:1) steering mode', () => {
     pose(25); expect(settle(input).worldAngle).toBeCloseTo(.6 + 10 * deg, 5);
   });
 
-  it('still freezes a flat phone and resumes from the frozen value', async () => {
+  it('still freezes a flat phone and resumes continuously', async () => {
     const input = createInput('direct'); controllers.push(input); await input.enableMotion();
     expect(input.steering).toBe('direct');
     event('deviceorientation', { beta: 0, gamma: 0 }); expect(settle(input).worldAngle).toBeUndefined();
     pose(0); pose(20); const held = settle(input).worldAngle!;
     expect(held).toBeCloseTo(20 * deg, 6);
-    for (const [beta, gamma] of [[0, 0], [3, -5], [-4, 6], [1, 9]]) {
+    for (const [beta, gamma] of [[0, 0], [1, -2], [-2, 1], [.5, 2.5]]) {
       event('deviceorientation', { beta, gamma });
       expect(settle(input).worldAngle).toBeCloseTo(held, 6);
     }
-    pose(-70, 60); expect(settle(input).worldAngle).toBeCloseTo(held, 6);
-    pose(-60, 60); expect(settle(input).worldAngle).toBeCloseTo(30 * deg, 5);
+    pose(-70, 60); expect(settle(input).worldAngle).toBeCloseTo(-70 * deg, 5);
+    pose(-60, 60); expect(settle(input).worldAngle).toBeCloseTo(-60 * deg, 5);
   });
 
   it('keeps calibrate and touch override working in direct mode', async () => {

@@ -24,7 +24,7 @@ The separate expansion-input test exercises the real input controller: 60 Hz dis
 
 ## Rendered and integration checks
 
-Chrome completed the final route with all eight apples and the original door in **159.783 s**, travelling **196.53 m**. Gravity varied from −0.30 to 1.58 radians, and the measured route remained supported throughout. The maximum recorded physics step was 1.8 ms on this desktop; it does not establish low-end mobile performance. The fifteen-map menu, instructions, and overview also pass at 390×844.
+Chrome completed the final route with all eight apples and the original door in **159.783 s**, travelling **196.53 m**. Gravity varied from −0.30 to 1.58 radians, and the measured route remained supported throughout. The maximum recorded physics step was 1.8 ms on this desktop; it does not establish low-end mobile performance. The menu (then fifteen maps; the campaign now has twenty), instructions, and overview also pass at 390×844.
 
 Screenshots: `evidence/stairway-to-heaven-overview.png`, `evidence/stairway-wall-climb.png` (world rotated 89°, so the vertical map face appears horizontal on screen), and `evidence/stairway-phone-overview.png`.
 

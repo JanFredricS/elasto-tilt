@@ -18,7 +18,7 @@
 ## Verification
 
 - TypeScript and production build pass. The unit runner reports 157 successful cases: 155 acceptance passes and 2 explicitly expected failures for the known passive-carry defect. Unit coverage includes both redesigned campaign suites, curve and lifecycle regressions, gravity wake-up after rest, steep braking and stopping distance, loaded swings, all four seat-removal experiments, and Clockwork frozen-lift/omitted-return comparisons.
-- All fifteen actual Rapier routes complete with every apple. Escher collects at 0°, 90°, 180°, 270° and 360° and reverses in its final room. Clockwork raises its lift, reaches the high apple, then lowers it on the return journey.
+- All twenty actual Rapier routes complete with every apple. Escher collects at 0°, 90°, 180°, 270° and 360° and reverses in its final room. Clockwork raises its lift, reaches the high apple, then lowers it on the return journey.
 - All 25 distinct browser checks passed across the full-route and focused runs, including all ten rendered campaign completions, unlock/save persistence and the final tilt/calibration regression. Independent rendered browser gameplay evidence is in [gameplay-v2.md](gameplay-v2.md). Seven additional overview/motion/layout/lifecycle browser checks passed, including three viewport sizes, map-view pause and keyboard repeat, and idle-then-phone-tilt.
 - Fresh Astra-low reviews covered maps, controls and visuals. One bounded fix cycle resolved the map/visual findings; the follow-up found no new defect. See [implementation-log.md](implementation-log.md).
 - The production build excludes the development control hook and replay helpers. Synthetic phone events and desktop FPS samples are separate from physical device validation.

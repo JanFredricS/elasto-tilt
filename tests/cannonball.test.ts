@@ -19,10 +19,10 @@ async function ride(level: Level, pilot: (state: Snapshot) => Controls, dt = 1 /
 }
 
 describe("Newton's Cannonball", () => {
-  it('is campaign map 7 and replays through the dev pilot index', () => {
-    expect(levels[6]).toBe(cannonballLevel);
+  it('is campaign map 8 and replays through the dev pilot index', () => {
+    expect(levels[7]).toBe(cannonballLevel);
     expect(cannonballLevel.difficulty).toBe(7.25);
-    expect(typeof createReplayPilot(6)).toBe('function');
+    expect(typeof createReplayPilot(7)).toBe('function');
     expect(() => createReplayPilot(levels.length)).toThrow(RangeError);
   });
 

@@ -6,7 +6,7 @@ A mobile-first bicycle physics puzzle. Tilt the world, brake to pivot, collect N
 
 Every push to `main` runs the physics/campaign tests, builds the game, and deploys it over HTTPS. Deployment status is available in [GitHub Actions](https://github.com/JanFredricS/elasto-tilt/actions/workflows/pages.yml). A failed test or build leaves the previous deployment live. The workflow can also be run manually.
 
-This is a playable prototype with fifteen scripted, physics-validated routes. Advanced hanging transfers and some mechanism puzzles remain design work. Physical phone testing is still required. See [delivery and residuals](docs/DELIVERY.md).
+This is a playable prototype with twenty scripted, physics-validated routes. Advanced hanging transfers and some mechanism puzzles remain design work. Physical phone testing is still required. See [delivery and residuals](docs/DELIVERY.md).
 
 ## Run
 

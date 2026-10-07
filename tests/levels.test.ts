@@ -65,14 +65,14 @@ describe('authored campaign', () => {
       { x: 1, y: 0, w: 2, h: 0.2, angle: Math.PI / 4 })).toBe(true);
   });
 
-  it('orders the seventeen campaign maps by rising difficulty', () => {
+  it('orders the twenty campaign maps by rising difficulty', () => {
     expect(levels.map((level) => level.id)).toEqual([
-      'newtons-orchard', 'one-wheel-wonder', 'pendulum-mill', 'room-on-its-side', 'newtons-attic',
-      'eschers-orchard', 'newtons-cannonball', 'newtons-ouroboros', 'contrary-conservatory', 'gravity-engine',
-      'hanging-garden', 'clockwork-apple', 'underside-return', 'spiral-sanctuary', 'switchback-scaffold',
-      'the-hidden-way-home', 'stairway-to-heaven',
+      'newtons-first-lesson', 'newtons-orchard', 'one-wheel-wonder', 'pendulum-mill', 'room-on-its-side',
+      'newtons-attic', 'eschers-orchard', 'newtons-cannonball', 'newtons-ouroboros', 'contrary-conservatory',
+      'gravity-engine', 'hanging-garden', 'clockwork-apple', 'clockwork-wedge', 'underside-return',
+      'spiral-sanctuary', 'switchback-scaffold', 'the-hidden-way-home', 'hookes-springboard', 'stairway-to-heaven',
     ]);
-    expect(levels.map((level) => level.difficulty)).toEqual([1, 2, 4, 5, 6, 7, 7.25, 7.5, 8, 9, 9.5, 10, 11, 12, 13, 14, 15]);
+    expect(levels.map((level) => level.difficulty)).toEqual([.5, 1, 2, 4, 5, 6, 7, 7.25, 7.5, 8, 9, 9.5, 10, 10.5, 11, 12, 13, 14, 14.5, 15]);
     expect(new Set(levels.map((level) => level.id)).size).toBe(levels.length);
   });
 
@@ -135,7 +135,7 @@ describe('authored campaign', () => {
   });
 
   it('spreads Orchard objectives through hills and a hollow, with a return door', () => {
-    const orchard = levels[0];
+    const orchard = levels[1];
     expect(orchard.apples.length).toBeGreaterThanOrEqual(5);
     expect(Math.max(...orchard.apples.map(a => a.x)) - orchard.spawn.x).toBeGreaterThan(40);
     expect(Math.max(...orchard.apples.map(a => a.y)) - Math.min(...orchard.apples.map(a => a.y))).toBeGreaterThan(4);
@@ -143,7 +143,7 @@ describe('authored campaign', () => {
   });
 
   it('puts Escher objectives along each tunnel face and on both sides of the shared gallery', () => {
-    const escher = levels[5];
+    const escher = levels[6];
     const shared = escher.surfaces.find(s => s.id === 'escher-shared-floor-ceiling')!;
     expect(escher.apples.filter(a => a.x > shared.x - shared.w / 2 && a.x < shared.x + shared.w / 2 && a.y < shared.y)).toHaveLength(2);
     expect(escher.apples.some(a => a.y > shared.y && a.y < shared.y + 2)).toBe(true);
@@ -157,7 +157,7 @@ describe('authored campaign', () => {
   });
 
   it('has a moving clockwork lift and a return route after the high apple', () => {
-    const clock = levels[11];
+    const clock = levels[12];
     expect(clock.timeAxis).toEqual({ x: 1, y: 0 });
     expect(clock.timeTravel).toBeGreaterThan(0);
     expect(clock.timePlatforms!.length).toBeGreaterThan(0);

@@ -51,11 +51,11 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
     <div class="level-banner" aria-live="polite">
       <span class="level-banner-index" data-ui="level-number">01 / ${String(levels.length).padStart(2, '0')}</span>
       <span class="level-banner-name" data-ui="level-name">Newton’s Orchard</span>
-      <span class="level-banner-mechanic" data-ui="mechanic"></span>
+      <span class="level-banner-mechanic" data-ui="mechanic" hidden></span>
     </div>
 
     <div class="timeline" data-ui="timeline-wrap" aria-label="Time platform position" hidden>
-      <span class="timeline-label">CLOCKWORK</span>
+      <span class="timeline-label" data-ui="timeline-label">CLOCKWORK</span>
       <div class="timeline-track"><div class="timeline-fill" data-ui="timeline-fill"></div><i class="timeline-needle" data-ui="timeline-needle"></i></div>
       <span class="timeline-direction" data-ui="timeline-direction">—</span>
     </div>
@@ -307,11 +307,13 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
     horizon.setAttribute('aria-label', `World tilt ${signedDegrees} degrees from level. Shaded half is ground; triangle points up.`);
     text('level-number', `${String(state.levelIndex + 1).padStart(2, '0')} / ${String(levels.length).padStart(2, '0')}`);
     text('level-name', selected?.name ?? 'Newton’s Ride');
+    // The banner is just number + name; the in-play lines are the objective
+    // for the first 8 s of the very first map (teaching it once) and the
+    // all-apples cue. Mechanic and hint text live in the pause/crash card.
     const allApples = state.totalApples > 0 && state.apples >= state.totalApples;
-    const showObjective = state.elapsed < 8 || allApples || state.surveying;
-    get('mechanic').classList.toggle('is-objective', showObjective);
-    text('mechanic', allApples ? 'All apples collected! Return to the door to finish.'
-      : showObjective ? 'Collect every apple, then return to the door to finish.' : selected?.mechanic ?? '');
+    const objective = !allApples && state.levelIndex === 0 && state.status === 'playing' && state.elapsed < 8;
+    get('mechanic').hidden = !allApples && !objective;
+    text('mechanic', allApples ? 'All apples collected! Return to the door.' : objective ? 'Collect every apple, then return to the door.' : '');
     const survey = host.querySelector<HTMLButtonElement>('[data-action="survey"]')!;
     const surveyLabel = state.surveying ? 'RIDE' : 'MAP';
     if (survey.textContent !== surveyLabel) survey.textContent = surveyLabel;
@@ -321,6 +323,7 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
     const timeMap = !!selected?.timePlatforms?.length;
     get('timeline-wrap').hidden = !timeMap || state.status === 'menu' || state.surveying;
     if (timeMap) {
+      text('timeline-label', selected?.timeLabel ?? 'CLOCKWORK');
       const value = Math.max(0, Math.min(1, safe(state.timeline)));
       get('timeline-fill').style.width = `${value * 100}%`;
       get('timeline-needle').style.left = `${value * 100}%`;
