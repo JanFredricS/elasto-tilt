@@ -36,7 +36,9 @@ export interface TimePlatform { id: string; from: Vec; to: Vec; via?: Vec; w: nu
   period?: number; offset?: number }
 export interface Portal extends Vec { id: string; target: Vec; rotation: number; radius: number }
 /** Visual guidance only. Angles are map-space radians: 0 points right, positive turns counterclockwise. */
-export interface RouteHint extends Vec { angle: number; label?: string }
+/** `spin` swaps the straight arrow for a circular one showing which way to rotate
+ *  gravity: 1 for a rising world angle (the scene rolls clockwise on screen), -1 falling. */
+export interface RouteHint extends Vec { angle: number; label?: string; spin?: 1 | -1 }
 export interface Level {
   id: string; name: string; subtitle: string; mechanic: string; hint: string;
   spawn: Vec; surfaces: Surface[]; apples: Apple[]; exit: Vec;
