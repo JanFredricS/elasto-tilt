@@ -29,7 +29,8 @@ test('renderer disposes its canvas after repeated annotated map loads', async ({
     const renderer = await createRenderer(host);
     const created = host.querySelectorAll('canvas').length;
     const physics = await createPhysics();
-    for (const index of [12, 15, 12]) {
+    const spiral = levels.findIndex((level: { id: string }) => level.id === 'spiral-sanctuary');
+    for (const index of [12, spiral, 12]) {
       physics.load(levels[index]);
       renderer.load(levels[index]);
       renderer.render(physics.snapshot(), 1 / 60);

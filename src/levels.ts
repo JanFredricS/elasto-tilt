@@ -12,6 +12,8 @@ import { ouroborosLevel } from './levels/ouroboros';
 import { firstLessonLevel } from './levels/first-lesson';
 import { clockworkWedgeLevel } from './levels/clockwork-wedge';
 import { springboardLevel } from './levels/springboard';
+import { huygensReturnLevel } from './levels/huygens-return';
+import { pistonWorksLevel } from './levels/piston-works';
 import type { Level } from './types';
 
 /**
@@ -34,9 +36,11 @@ export const levels: Level[] = [
   clockworkAppleLevel,        // 12
   clockworkWedgeLevel,        // 13
   undersideReturnLevel,       // 14
-  spiralSanctuaryLevel,       // 15
-  switchbackScaffoldLevel,    // 16
-  hiddenWayHomeLevel,         // 17
-  springboardLevel,           // 18
-  stairwayLevel,              // 19
+  huygensReturnLevel,         // 15
+  spiralSanctuaryLevel,       // 16
+  switchbackScaffoldLevel,    // 17
+  hiddenWayHomeLevel,         // 18
+  springboardLevel,           // 19
+  pistonWorksLevel,           // 20
+  stairwayLevel,              // 21
 ];

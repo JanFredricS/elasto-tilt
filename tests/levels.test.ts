@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { levels } from '../src/levels';
+import { cyclePhase, pathPoint } from '../src/physics-time';
 import type { Level, Vec } from '../src/types';
 
 type Box = Vec & { w: number; h: number; angle?: number };
@@ -65,14 +66,15 @@ describe('authored campaign', () => {
       { x: 1, y: 0, w: 2, h: 0.2, angle: Math.PI / 4 })).toBe(true);
   });
 
-  it('orders the twenty campaign maps by rising difficulty', () => {
+  it('orders the twenty-two campaign maps by rising difficulty', () => {
     expect(levels.map((level) => level.id)).toEqual([
       'newtons-first-lesson', 'newtons-orchard', 'one-wheel-wonder', 'pendulum-mill', 'room-on-its-side',
       'newtons-attic', 'eschers-orchard', 'newtons-cannonball', 'newtons-ouroboros', 'contrary-conservatory',
       'gravity-engine', 'hanging-garden', 'clockwork-apple', 'clockwork-wedge', 'underside-return',
-      'spiral-sanctuary', 'switchback-scaffold', 'the-hidden-way-home', 'hookes-springboard', 'stairway-to-heaven',
+      'huygens-return', 'spiral-sanctuary', 'switchback-scaffold', 'the-hidden-way-home', 'hookes-springboard',
+      'piston-works', 'stairway-to-heaven',
     ]);
-    expect(levels.map((level) => level.difficulty)).toEqual([.5, 1, 2, 4, 5, 6, 7, 7.25, 7.5, 8, 9, 9.5, 10, 10.5, 11, 12, 13, 14, 14.5, 15]);
+    expect(levels.map((level) => level.difficulty)).toEqual([.5, 1, 2, 4, 5, 6, 7, 7.25, 7.5, 8, 9, 9.5, 10, 10.5, 11, 11.5, 12, 13, 14, 14.5, 14.75, 15]);
     expect(new Set(levels.map((level) => level.id)).size).toBe(levels.length);
   });
 
@@ -129,8 +131,10 @@ describe('authored campaign', () => {
       const to = { ...item.to, w: item.w, h: item.h };
       expect(boxInside(from, level)).toBe(true);
       expect(boxInside(to, level)).toBe(true);
+      // A self-running platform starts `offset` of its cycle along, not necessarily at `from`.
+      const start = { ...(item.period ? pathPoint(item, cyclePhase(0, item.period, item.offset)) : item.from), w: item.w, h: item.h };
       for (const part of spawnParts(level.spawn))
-        expect(partOverlapsBox(part, from), `${level.id}: bike begins in ${item.id}`).toBe(false);
+        expect(partOverlapsBox(part, start), `${level.id}: bike begins in ${item.id}`).toBe(false);
     }
   });
 

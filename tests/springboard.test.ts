@@ -14,9 +14,9 @@ async function ride(pilot: (state: Snapshot) => Controls, seconds = 40, map: Lev
   return state;
 }
 
-it('sits late in the campaign, just before Stairway to Heaven, with two brass pads', () => {
+it('sits late in the campaign, just before the Piston Works, with two brass pads', () => {
   const index = levels.indexOf(level);
-  expect(levels[index + 1].id).toBe('stairway-to-heaven');
+  expect(levels[index + 1].id).toBe('piston-works');
   expect(level.surfaces.filter(surface => surface.kind === 'spring')).toHaveLength(2);
   expect(level.difficulty).toBeGreaterThan(levels[index - 1].difficulty);
   expect(level.difficulty).toBeLessThan(levels[index + 1].difficulty);

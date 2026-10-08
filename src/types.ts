@@ -27,9 +27,13 @@ export interface Prop extends Vec {
   socket?: { x: number; y: number; tolerance: number; speed?: number; angle?: number };
 }
 export interface Swing { id: string; anchor: Vec; length: number; width: number; damping?: number; angle?: number; mass?: number }
-/** A kinematic block driven by the route clock: at phase 0 it is at `from`,
- * at 1 at `to`, moving along a straight path or two segments through `via`. */
-export interface TimePlatform { id: string; from: Vec; to: Vec; via?: Vec; w: number; h: number }
+/** A kinematic block driven by the route clock (or, with a `period`, by its own cycle): at
+ * phase 0 it is at `from`, at 1 at `to`, moving along a straight path or two segments through `via`. */
+export interface TimePlatform { id: string; from: Vec; to: Vec; via?: Vec; w: number; h: number;
+  /** Seconds per round trip. A platform with a period ignores the route clock and runs on its
+   *  own: from → to → from, eased like a pendulum (it dwells at both ends), starting `offset` of
+   *  a cycle along (0 at `from`, .5 at `to`). */
+  period?: number; offset?: number }
 export interface Portal extends Vec { id: string; target: Vec; rotation: number; radius: number }
 /** Visual guidance only. Angles are map-space radians: 0 points right, positive turns counterclockwise. */
 export interface RouteHint extends Vec { angle: number; label?: string }

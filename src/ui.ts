@@ -320,7 +320,8 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
     survey.setAttribute('aria-pressed', String(state.surveying));
     survey.setAttribute('aria-label', state.surveying ? 'Return to riding' : 'View whole map');
 
-    const timeMap = !!selected?.timePlatforms?.length;
+    // Only route-clock platforms have a timeline; self-running (periodic) ones keep their own time.
+    const timeMap = !!selected?.timePlatforms?.some(platform => !platform.period);
     get('timeline-wrap').hidden = !timeMap || state.status === 'menu' || state.surveying;
     if (timeMap) {
       text('timeline-label', selected?.timeLabel ?? 'CLOCKWORK');

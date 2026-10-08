@@ -1,5 +1,5 @@
 import RAPIER from '@dimforge/rapier2d-compat';
-import { carriedTravel, pathLength, pathPoint, RouteClock } from './physics-time';
+import { carriedTravel, cyclePhase, pathLength, pathPoint, RouteClock } from './physics-time';
 import type { BodyView, Controls, Level, PhysicsGame, Prop, Snapshot, Surface, TimePlatform, Vec } from './types';
 
 const GRAVITY = 9.81;
@@ -247,7 +247,8 @@ export async function createPhysics(): Promise<PhysicsGame> {
       renderBodies.push({ body, view: { id: swing.id, w: swing.width, h: .24, shape: 'box', kind: 'swing' } });
     }
     for (const platform of next.timePlatforms ?? []) {
-      const body = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(platform.from.x, platform.from.y));
+      const start = platform.period ? pathPoint(platform, cyclePhase(0, platform.period, platform.offset)) : platform.from;
+      const body = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(start.x, start.y));
       register(RAPIER.ColliderDesc.cuboid(platform.w / 2, platform.h / 2).setFriction(1.3).setCollisionGroups(ENV_GROUP),
         body, { kind: 'time', id: platform.id });
       temporal.push({ body, path: platform, lastTravel: 0 });
@@ -344,12 +345,15 @@ export async function createPhysics(): Promise<PhysicsGame> {
     previousSupport = support?.handle;
     previousTravel = travel;
     // The clock's rate limit is 2 m/s along the longest path; a level's
-    // timeSpeed scales it by stretching the length the limit sees.
+    // timeSpeed scales it by stretching the length the limit sees. Self-running
+    // (periodic) platforms keep their own time, so they do not set that limit.
     direction = clock.advance(delta - carry, level.timeTravel ?? 10,
-      Math.max(1, ...temporal.map(p => pathLength(p.path))) * 2 / (level.timeSpeed ?? 2), dt);
+      Math.max(1, ...temporal.filter(p => !p.path.period).map(p => pathLength(p.path))) * 2 / (level.timeSpeed ?? 2), dt);
     phase = clock.phase;
     for (const platform of temporal) {
-      const next = pathPoint(platform.path, phase);
+      // A platform with a period runs on its own cycle, not the route clock.
+      const { period, offset } = platform.path;
+      const next = pathPoint(platform.path, period ? cyclePhase(elapsed + dt, period, offset) : phase);
       const previous = platform.body.translation();
       platform.lastTravel = (next.x - previous.x) * axis.x + (next.y - previous.y) * axis.y;
       platform.body.setNextKinematicTranslation(next);

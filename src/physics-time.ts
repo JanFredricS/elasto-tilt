@@ -29,6 +29,12 @@ export function carriedTravel(riderDelta: number, platformDelta: number, persist
   return Math.sign(riderDelta) * Math.min(Math.abs(riderDelta), Math.abs(platformDelta));
 }
 
+/** Path phase of a self-running platform at `elapsed` seconds: 0 at `from`, 1 at `to`,
+ * eased (1 − cos) so it dwells at both ends, `offset` of a cycle along at time zero. */
+export function cyclePhase(elapsed: number, period: number, offset = 0) {
+  return (1 - Math.cos(2 * Math.PI * (elapsed / period + offset))) / 2;
+}
+
 type PlatformPath = { from: Vec; to: Vec; via?: Vec };
 const points = (path: PlatformPath) => path.via ? [path.from, path.via, path.to] : [path.from, path.to];
 /** Length of a time platform's path: one straight segment, or two through `via`. */
