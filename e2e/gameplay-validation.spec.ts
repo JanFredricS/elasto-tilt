@@ -2,8 +2,8 @@ import { expect, test } from '@playwright/test';
 
 // [campaign index, name]. The position in this list (slot) keys the per-map checks below.
 const maps = [
-  [1, 'Newton’s Orchard'], [2, 'One Wheel Wonder'], [11, 'The Hanging Garden'], [3, 'The Pendulum Mill'],
-  [4, 'The Room on Its Side'], [5, 'Newton’s Attic'], [6, 'Escher’s Orchard'],
+  [1, 'Newton’s Orchard'], [2, 'One Wheel Wonder'], [11, 'The Hanging Garden'], [5, 'The Pendulum Mill'],
+  [3, 'The Room on Its Side'], [4, 'Newton’s Attic'], [6, 'Escher’s Orchard'],
   [9, 'The Contrary Conservatory'], [10, 'The Gravity Engine'], [12, 'The Clockwork Apple'],
 ] as const;
 

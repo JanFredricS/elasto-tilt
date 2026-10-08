@@ -20,9 +20,9 @@ const pilots: (() => Pilot)[] = [
   createFirstLessonPilot,           // 0 newtons-first-lesson
   () => createEarlyReplayPilot(0),  // 1 newtons-orchard
   () => createEarlyReplayPilot(1),  // 2 one-wheel-wonder
-  () => createEarlyReplayPilot(3),  // 3 pendulum-mill
-  () => createEarlyReplayPilot(4),  // 4 room-on-its-side
-  () => createLateReplayPilot(0),   // 5 newtons-attic
+  () => createEarlyReplayPilot(4),  // 3 room-on-its-side
+  () => createLateReplayPilot(0),   // 4 newtons-attic
+  () => createEarlyReplayPilot(3),  // 5 pendulum-mill
   () => createLateReplayPilot(1),   // 6 eschers-orchard
   createCannonballPilot,            // 7 newtons-cannonball
   createOuroborosPilot,             // 8 newtons-ouroboros
