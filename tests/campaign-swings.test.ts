@@ -9,8 +9,8 @@ import type { Controls } from '../src/types';
 // so a controller waiting for a missing object cannot fake a failed crossing.
 it.each([
   { index: 11, id: 'garden-swing' },
-  { index: 3, id: 'mill-short' },
-  { index: 3, id: 'mill-long' },
+  { index: 5, id: 'mill-short' },
+  { index: 5, id: 'mill-long' },
   { index: 10, id: 'engine-swing' },
 ])('the demonstrated route needs the $id seat to cross its gap', async ({ index, id }) => {
   const level = levels[index];

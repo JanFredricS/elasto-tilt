@@ -36,12 +36,16 @@ const ease = (z0: number, z1: number, t: number) => z0 + (z1 - z0) * (1 - Math.c
  *     follows gravity a quarter turn (θ 0 → 90°) until its far end meets the
  *     foot of the tower, the upper stop. The plank now stands upright and its
  *     top face lines up with the tower's west face.
- *   - Ride up the west face, round the tower's crown (a 180° turn, radius 2)
+ *   - Ride up the west face, round the tower's crown (a 180° turn, radius 3)
  *     and run down its east face, a course laid out in the rider's own frame:
- *     a level run-up ending in a kicker lip, a 3.6 m trench of saw-tooth
- *     spikes that cannot be ridden through, a landing hill that falls away
- *     under the jump, a flat landing, and an easing down onto the thin fin
- *     whose east face lines up with the parked plank's UNDERSIDE.
+ *     a level run-up, a strip of steep saw-tooth notches whose tips sit flush
+ *     with the running level, a long flat runway at the same level, and an
+ *     easing down onto the thin fin whose east face lines up with the parked
+ *     plank's UNDERSIDE.
+ *   - The saw-teeth are plain stone and look like a bumpy bit of road. Roll
+ *     onto them slowly and a wheel drops into a notch deeper than it can climb
+ *     out of: the bike is stuck. Arrive fast and the wheels skim from tip to
+ *     tip before they have time to fall in.
  *   - Roll onto the underside, hold BRAKE and turn the world back: the swing
  *     carries you hanging beneath it down to its lower stop, where the
  *     underside lines up with the start shelf's underside and the door waits.
@@ -54,30 +58,38 @@ const ease = (z0: number, z1: number, t: number) => z0 + (z1 - z0) * (1 - Math.c
  * home against the tower again.
  */
 const DEG = Math.PI / 180;
-const L = 6, W = 3, GAP = .03, R = 2;
+const L = 6, W = 3, GAP = .03, R = 3;
 const anchor = p(8, L - .12);
 const westFace = anchor.x + L - .12, finTop = anchor.y + W / 2 + GAP;
 /** East-face course, measured from the crown: s runs down the face, z out from the west face. */
-const KR = 3, KA = 20 * DEG; // the kicker: radius and lip angle
-const k0 = 7, k1 = k0 + KR * Math.sin(KA);
-const T0 = k1, T1 = T0 + 3.6, LD = 6.5, LZ = 4, EZ = 6;
+/**
+ * The saw-teeth: TEETH V notches, each PITCH wide and DEPTH deep (69° flanks), their
+ * tips flush with the running level. A wheel (radius .34) settles .35 m below the tips
+ * in a notch, a step it cannot roll out of; at speed it crosses a notch in an eighth of
+ * a second, too soon to fall in. PITCH is not a divisor of the 1.4 m wheelbase, so the
+ * wheels never drop into notches together.
+ */
+const RUN = 9, PITCH = 1, TEETH = 5, DEPTH = 1.3;
+const Z0 = RUN, Z1 = Z0 + TEETH * PITCH, LZ = 8, EZ = 11;
 const course = {
-  /** Run-up along the crown's level, then a concave kicker of radius KR rising to KA. */
-  kicker: [k0, k1] as const,
-  /** Saw-tooth trench, landing hill, flat landing, easing down onto the fin. */
-  trench: [T0, T1] as const, hill: [T1, T1 + LD] as const, landing: [T1 + LD, T1 + LD + LZ] as const,
-  easing: [T1 + LD + LZ, T1 + LD + LZ + EZ] as const, end: T1 + LD + LZ + EZ + 1.5,
-  high: 2 * R, floor: 1.5, teeth: 2, land: 2, fin: .24,
+  /** Level run-up from the crown to the first tooth tip. */
+  runup: [0, Z0] as const,
+  /** Saw-tooth notches, tips flush with the running level; then the long flat runway, then the easing down onto the fin. */
+  zigzag: [Z0, Z1] as const, landing: [Z1, Z1 + LZ] as const,
+  easing: [Z1 + LZ, Z1 + LZ + EZ] as const, end: Z1 + LZ + EZ + 1.5,
+  high: 2 * R, pitch: PITCH, depth: DEPTH, fin: .24,
 };
 const C = course;
 const crown = finTop + C.end;
 const at = (s: number, z: number) => p(westFace + z, crown - s);
-const upper = (s: number) => s < k0 ? C.high : C.high + KR - Math.sqrt(KR * KR - (s - k0) ** 2);
-const lip = upper(k1);
-/** The landing hill starts 1.7 m below the lip and falls away steeply, then flattens. */
-const hillTop = lip - 1.7;
-const lower = (s: number) => s < C.hill[1] ? C.land + (hillTop - C.land) * (1 - Math.sin(Math.PI / 2 * (s - T1) / LD))
-  : s < C.landing[1] ? C.land : ease(C.land, C.fin, (s - C.easing[0]) / (C.easing[1] - C.easing[0]));
+/** Running level, the notch floor between tooth tips, then the easing. */
+const profile = (s: number) => {
+  if (s < Z0) return C.high;
+  if (s < Z1) return C.high - DEPTH * (1 - Math.abs(2 * ((s - Z0) / PITCH % 1) - 1));
+  return s < C.easing[0] ? C.high : ease(C.high, C.fin, (s - C.easing[0]) / EZ);
+};
+/** Every notch floor and tooth tip of the saw-teeth, between the first and last tips. */
+const zigBreaks = Array.from({ length: 2 * TEETH - 1 }, (_, i) => Z0 + (i + 1) * PITCH / 2);
 /** A chained run along the course profile, cut into quarter-metre pieces. */
 const run = (id: string, s0: number, s1: number, z: (s: number) => number, breaks: number[] = []) => {
   const cuts = [s0, ...breaks, s1], out: Surface[] = [];
@@ -102,21 +114,11 @@ const core = (id: string, s0: number, s1: number, z: (s: number) => number) => {
   }
   return out;
 };
-/** Saw-tooth spikes along the trench floor. */
-const teeth = (id: string, s0: number, s1: number, n: number) => {
-  const pitch = (s1 - s0) / n, out: Surface[] = [];
-  for (let i = 0; i < n; i++) {
-    const foot = s0 + i * pitch;
-    out.push(slab(`${id}-${2 * i}`, at(foot, C.floor), at(foot + pitch / 2, C.teeth), .12, 'hazard'),
-      slab(`${id}-${2 * i + 1}`, at(foot + pitch / 2, C.teeth), at(foot + pitch, C.floor), .12, 'hazard'));
-  }
-  return out;
-};
-const nose = arc('huygens-crown', p(westFace, crown), Math.PI / 2, -Math.PI / 2, R, 24);
+const nose = arc('huygens-crown', p(westFace, crown), Math.PI / 2, -Math.PI / 2, R, 32);
 const swingAt = (theta: number, out: number) => p(anchor.x + (L + out) * Math.sin(theta), anchor.y - (L + out) * Math.cos(theta));
 
 export const HUYGENS = {
-  anchor, length: L, width: W, westFace, finTop, crown, course, at,
+  anchor, length: L, width: W, westFace, finTop, crown, course, at, profile,
   /** Start shelf (top 0, underside −.24) ends a hand's breadth short of the resting plank. */
   shelf: { x0: -6, x1: anchor.x - W / 2 - GAP, top: 0, bottom: -.24 },
   swing: 'huygens-swing',
@@ -125,8 +127,8 @@ const H = HUYGENS;
 
 export const huygensReturnLevel: Level = {
   id: 'huygens-return', name: 'Huygens’ Return', subtitle: 'Out on the swing, home beneath it',
-  mechanic: 'Ride a long pendulum a quarter turn up to the tower, round its crown, jump the saw-teeth, then hang beneath the same plank and swing home underneath the start.',
-  hint: 'Hold BRAKE on the plank and turn the world to swing it up to the tower. Ease round the crown, carry speed off the lip over the spikes, and stop on the landing. If the plank has sagged from the tower, brake and tip the world back until it lifts home, then roll onto its underside, hold BRAKE and turn the world back.',
+  mechanic: 'Ride a long pendulum a quarter turn up to the tower, round its crown, skim a strip of saw-teeth at speed, then hang beneath the same plank and swing home underneath the start.',
+  hint: 'Hold BRAKE on the plank and turn the world to swing it up to the tower. Ease round the crown, then let the bike run: the saw-teeth swallow a slow wheel, but a fast one skims their tips. Slow down on the long runway. If the plank has sagged from the tower, brake and tip the world back until it lifts home, then roll onto its underside, hold BRAKE and turn the world back.',
   spawn: p(1, .72), initialAngle: 0,
   bounds: { min: p(-9, -8), max: p(westFace + 2 * R + 5, crown + R + 5) },
   surfaces: [
@@ -134,23 +136,21 @@ export const huygensReturnLevel: Level = {
     // The west face and the thin fin below the course: one stone, so neither face has a seam.
     block('huygens-tower-face', westFace, westFace + C.fin, finTop, crown),
     ...nose.surfaces,
-    ...run('huygens-run', 0, k1, upper, [k0]),
-    ...core('huygens-core-upper', 0, k1, upper),
-    block('huygens-trench', westFace + .1, westFace + C.floor, crown - C.trench[1], crown - C.trench[0]),
-    ...teeth('huygens-teeth', C.trench[0] + .05, C.trench[1] - .05, 6),
-    ...run('huygens-landing', C.trench[1], C.easing[1], lower, [C.hill[1], C.landing[1]]),
-    ...core('huygens-core-lower', C.trench[1], C.easing[1], lower),
+    // One seam-free run from the crown over the saw-teeth, along the runway and down onto the fin.
+    ...run('huygens-run', 0, C.easing[1], profile, [Z0, ...zigBreaks, Z1, C.easing[0]]),
+    ...core('huygens-core-upper', 0, Z0, profile),
+    block('huygens-teeth-bed', westFace + .1, westFace + C.high - DEPTH - .45, crown - Z1, crown - Z0),
+    ...core('huygens-core-lower', Z1, C.easing[1], profile),
   ],
   swings: [{ id: H.swing, anchor, length: L, width: W, mass: .1, damping: 400 }],
   apples: [
     a('huygens-west-face', westFace - .9, finTop + 9),
     a('huygens-crown', westFace + R, crown + R + .9),
-    a('huygens-spikes', at((T0 + T1) / 2, lip + .55).x, at((T0 + T1) / 2, lip + .55).y),
+    a('huygens-teeth', at((Z0 + Z1) / 2, C.high + .8).x, at((Z0 + Z1) / 2, C.high + .8).y),
     a('huygens-underside', swingAt(45 * DEG, 1.02).x, swingAt(45 * DEG, 1.02).y),
   ],
   routeHints: [
     { x: anchor.x + 2.5, y: 1.4, angle: 45 * DEG, label: 'SWING UP' },
-    { ...at(k0 - 3, C.high + 1.6), angle: -Math.PI / 2, label: 'JUMP' },
     { ...swingAt(30 * DEG, 2.4), angle: -120 * DEG, label: 'HANG ON' },
   ],
   exit: p(3, H.shelf.bottom - .8), difficulty: 11.5, accent: '#b9a27c',
@@ -159,14 +159,14 @@ export const huygensReturnLevel: Level = {
 /**
  * Observation-only demonstration. Rides onto the plank, brakes and leads
  * the world a little ahead of the swing until it stands against the tower;
- * follows the bike round the crown at walking pace; tips the world down the
- * east-face run-up until the bike reaches `jump` m/s, holds it level over the
- * spikes (plus `lean`), tips it back to slow on the landing, then holds it
+ * follows the bike round the crown at `crown` m/s; tips the world down the
+ * east-face run-up until the bike reaches `speed` m/s, holds it level over the
+ * saw-teeth (plus `lean`), tips it back to slow on the runway, then holds it
  * `park` rad past level with the brake on until the plank is back against the
  * tower; creeps down the fin onto the underside; brakes and leads the world back
  * until the swing reaches its lower stop, and rolls home to the door.
  */
-export function createHuygensPilot(jump = 7, lean = 0, park = .65): (state: Snapshot) => Controls {
+export function createHuygensPilot(speed = 8, lean = 0, park = .65, rounding = 1.8): (state: Snapshot) => Controls {
   let previous: Vec | undefined, stage = 0, bike = 0, lastRaw = 0;
   return state => {
     const v = previous ? { x: (state.bike.x - previous.x) * 120, y: (state.bike.y - previous.y) * 120 } : p(0, 0);
@@ -183,7 +183,7 @@ export function createHuygensPilot(jump = 7, lean = 0, park = .65): (state: Snap
     if (stage === 0 && x > anchor.x - .6 && Math.abs(v.x) < .08) stage = 1;
     if (stage === 1 && theta > Math.PI / 2 - .012) stage = 2;
     if (stage === 2 && bike < -Math.PI / 2 + .3 && x > westFace + R) stage = 3;
-    if (stage === 3 && s > C.hill[1] - 1 && x < westFace + lower(s) + 1.2) stage = 4;
+    if (stage === 3 && s > Z1 + 1.5 && x < westFace + C.high + 1.2) stage = 4;
     if (stage === 4 && Math.hypot(v.x, v.y) < .05) stage = 5;
     if (stage === 5 && theta > Math.PI / 2 - .006) stage = 6;
     if (stage === 6 && y < plank + .4 && Math.hypot(v.x, v.y) < .08) stage = 7;
@@ -194,13 +194,13 @@ export function createHuygensPilot(jump = 7, lean = 0, park = .65): (state: Snap
       case 1: return steer(Math.min(theta + .55, Math.PI / 2 + .25), true);
       // Ease off the plank (pushing off swings it back), climb, then slow for the crown:
       // the world turns at most .95 rad/s, so the bike must not round it faster.
-      case 2: return steer(cruise(bike, y < finTop + .5 ? .4 : y < crown - 3 ? 2.5 : 1.4, y < finTop + 2 ? 0 : -.3, .3));
+      case 2: return steer(cruise(bike, y < finTop + .5 ? .4 : y < crown - 3 ? 2.5 : rounding, y < finTop + 2 ? 0 : -.3, .3));
       case 3: {
-        if (s < k1) return steer(cruise(-Math.PI / 2, jump, -.35, .35));
-        if (s < C.trench[1] - 1) return steer(-Math.PI / 2 + lean);
+        if (s < Z0) return steer(cruise(-Math.PI / 2, speed, -.35, .6));
+        if (s < Z1) return steer(cruise(-Math.PI / 2, speed, -.35, .35) + lean);
         return steer(-Math.PI / 2);
       }
-      // Stop on the landing flat.
+      // Stop on the runway.
       case 4: {
         const speed = along(-Math.PI / 2);
         return steer(-Math.PI / 2 - clamp(speed * .3, 0, park), speed < .5);

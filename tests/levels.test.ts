@@ -68,13 +68,13 @@ describe('authored campaign', () => {
 
   it('orders the twenty-two campaign maps by rising difficulty', () => {
     expect(levels.map((level) => level.id)).toEqual([
-      'newtons-first-lesson', 'newtons-orchard', 'one-wheel-wonder', 'pendulum-mill', 'room-on-its-side',
-      'newtons-attic', 'eschers-orchard', 'newtons-cannonball', 'newtons-ouroboros', 'contrary-conservatory',
+      'newtons-first-lesson', 'newtons-orchard', 'one-wheel-wonder', 'room-on-its-side', 'newtons-attic',
+      'pendulum-mill', 'eschers-orchard', 'newtons-cannonball', 'newtons-ouroboros', 'contrary-conservatory',
       'gravity-engine', 'hanging-garden', 'clockwork-apple', 'clockwork-wedge', 'underside-return',
       'huygens-return', 'spiral-sanctuary', 'switchback-scaffold', 'the-hidden-way-home', 'hookes-springboard',
       'piston-works', 'stairway-to-heaven',
     ]);
-    expect(levels.map((level) => level.difficulty)).toEqual([.5, 1, 2, 4, 5, 6, 7, 7.25, 7.5, 8, 9, 9.5, 10, 10.5, 11, 11.5, 12, 13, 14, 14.5, 14.75, 15]);
+    expect(levels.map((level) => level.difficulty)).toEqual([.5, 1, 2, 5, 6, 6.5, 7, 7.25, 7.5, 8, 9, 9.5, 10, 10.5, 11, 11.5, 12, 13, 14, 14.5, 14.75, 15]);
     expect(new Set(levels.map((level) => level.id)).size).toBe(levels.length);
   });
 

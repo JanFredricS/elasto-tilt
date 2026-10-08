@@ -24,9 +24,9 @@ export const levels: Level[] = [
   firstLessonLevel,           // 0
   newtonsOrchardLevel,        // 1
   oneWheelWonderLevel,        // 2
-  pendulumMillLevel,          // 3
-  roomOnItsSideLevel,         // 4
-  newtonsAtticLevel,          // 5
+  roomOnItsSideLevel,         // 3
+  newtonsAtticLevel,          // 4
+  pendulumMillLevel,          // 5
   eschersOrchardLevel,        // 6
   cannonballLevel,            // 7
   ouroborosLevel,             // 8

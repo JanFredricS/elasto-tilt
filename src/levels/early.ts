@@ -98,7 +98,7 @@ export const earlyLevels: Level[] = [
     ],
     apples: [fruit('mill-0', millProfile, 8), fruit('mill-1', millProfile, 24), fruit('mill-2', millProfile, 39),
       { id: 'mill-3', x: 49.1, y: 9 }, { id: 'mill-4', x: 34, y: 14.1 }, { id: 'mill-5', x: 16, y: 14.1 }],
-    exit: p(1, 14.15), difficulty: 4, accent: '#c6a56a',
+    exit: p(1, 14.15), difficulty: 6.5, accent: '#c6a56a',
   },
   {
     id: 'room-on-its-side', name: 'The Room on Its Side', subtitle: 'The long way round the room',
