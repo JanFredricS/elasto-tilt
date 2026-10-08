@@ -52,8 +52,11 @@ export const towerChasmLevels: Level[] = [
       apple('home-arrival', 77.1, -5), apple('home-opposite', 77.1, -12), apple('home-final', 22.9, -31)],
     exit: p(4, 20.8),
     routeHints: [{ x: 15, y: 14, angle: -pi / 2, label: 'EDGE' },
-      { x: 43, y: 6, angle: 0, label: 'TURN' }, { x: 55, y: -18, angle: pi, label: 'TURN' },
-      { x: 31, y: -12, angle: pi / 2, label: 'ROTATE' }, { x: 31, y: 19, angle: pi / 2, label: 'UP' }],
+      // Spin arrows trace the bike's own rotation in flight, so the rider can read
+      // which way to roll gravity even with no terrain in view over the chasms.
+      { x: 29, y: 5, angle: 0, label: 'TURN', spin: 1 }, { x: 50, y: 3, angle: 0, spin: 1 },
+      { x: 55, y: -18, angle: pi, label: 'TURN', spin: -1 },
+      { x: 31, y: -12, angle: pi / 2, label: 'ROTATE', spin: 1 }, { x: 31, y: 19, angle: pi / 2, label: 'UP' }],
   },
 ];
 export const [switchbackScaffoldLevel, hiddenWayHomeLevel] = towerChasmLevels;

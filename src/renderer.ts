@@ -74,6 +74,25 @@ function drawRouteArrow(g: Graphics): void {
   circle(g, -.49, 0, .035, C.inkLight);
 }
 
+/** Circular cousin of the route arrow: an open arc whose head shows which way the
+ *  scene rolls on screen during the gravity turn. The world container's y-flip sits
+ *  between this geometry and the world rotation, so spin 1 (a rising world angle,
+ *  clockwise on screen) is drawn mirrored here. */
+function drawSpinArrow(g: Graphics, direction: 1 | -1): void {
+  const spin = -direction;
+  const radius = .36, from = spin * -.55, to = spin * 3.1;
+  const tip = { x: radius * Math.cos(to), y: radius * Math.sin(to) };
+  const heading = to + spin * Math.PI / 2;
+  const barb = (turn: number): Vec =>
+    ({ x: tip.x + .26 * Math.cos(heading + Math.PI + turn), y: tip.y + .26 * Math.sin(heading + Math.PI + turn) });
+  for (const [color, width, alpha] of [[C.ivory, .115, .94], [C.inkLight, .055, .90]] as const) {
+    g.arc(0, 0, radius, from, to, spin < 0).stroke({ color, width, alpha, cap: 'round', join: 'round' });
+    line(g, barb(spin * .5), tip, color, width, alpha);
+    line(g, barb(spin * -.5), tip, color, width, alpha);
+  }
+  circle(g, radius * Math.cos(from), radius * Math.sin(from), .035, C.inkLight);
+}
+
 function distanceToSurface(point: Vec, surface: Surface): number {
   const angle = surface.angle ?? 0;
   const c = Math.cos(angle), s = Math.sin(angle);
@@ -297,7 +316,7 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
     for (const hint of nextLevel.routeHints ?? []) {
       if (![hint.x, hint.y, hint.angle].every(Number.isFinite)) continue;
       const arrow = new Graphics();
-      drawRouteArrow(arrow);
+      if (hint.spin) drawSpinArrow(arrow, hint.spin); else drawRouteArrow(arrow);
       arrow.position.set(hint.x, hint.y);
       arrow.rotation = hint.angle;
       wayfinding.addChild(arrow);
