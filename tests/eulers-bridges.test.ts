@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { createPhysics } from '../src/physics';
-import { eulersBridgesLevel as level, createEulersBridgesPilot, BRIDGES, EULER, EBB_L, FLOOD_L, bridgeTop } from '../src/levels/eulers-bridges';
+import { eulersBridgesLevel as level, createEulersBridgesPilot, BRIDGES, EULER, EBB_L, FLOOD_L, LIP, bridgeTop } from '../src/levels/eulers-bridges';
 import { levels } from '../src/levels';
 import { createReplayPilot } from '../src/dev/replay';
 import { paletteFor } from '../src/art-direction';
@@ -45,6 +45,7 @@ it('follows Spiral Sanctuary at 12.25 with seven vertical-only bridge lifts on o
   expect(level.bounds.max.x - level.bounds.min.x).toBeLessThanOrEqual(60);
   expect(level.routeHints!.map(hint => hint.label)).toEqual(['EBB', 'FLOOD']);
   expect(EULER.lip).toBeGreaterThan(2.3); // headroom to ride home beneath the chute lip
+  expect(LIP.y).toBeGreaterThan(2.3);
 });
 
 /** A bridge's deck top relative to its banks as the leading wheel (axle .7 m from the frame
@@ -58,8 +59,8 @@ it('a bridge that is still down is under water (a splash, not a sunken deck to b
   for (const b of BRIDGES) expect(arrival(b, b.rise ? EBB_L : FLOOD_L)).toBeGreaterThan(-EULER.water.depth + .15);
   // Set off from the spawn without ebbing, and the first canal bridge is still under water.
   expect(arrival(BRIDGES[0], EULER.upper.spawn)).toBeLessThan(-EULER.water.depth - .2);
-  // Turn home 3 m short of the far-wall pin, and the first river bridge is still under water.
-  expect(arrival(BRIDGES[4], FLOOD_L - 3)).toBeLessThan(-EULER.water.depth);
+  // Turn home 2.2 m short of the far-wall pin, and the first river bridge is still under water.
+  expect(arrival(BRIDGES[4], FLOOD_L - 2.2)).toBeLessThan(-EULER.water.depth);
 });
 
 it('the pilot ebbs, crosses the four canal bridges, drops, floods and crosses the three river bridges home, never braking', async () => {
@@ -67,6 +68,16 @@ it('the pilot ebbs, crosses the four canal bridges, drops, floods and crosses th
   expect(state.status).toBe('complete');
   expect([...state.collected].sort()).toEqual(allApples);
   expect(braked).toBe(false);
+});
+
+it.each([2, 2.5, 4, 5])('lands off the chute at %s m/s over the canals with the world held anywhere from level to .5 rad right', async canalSpeed => {
+  // The old level-table lip pitched every rider about 1 rad nose down: .22 crashed between .2 and
+  // .24, and at 4 m/s no lean survived. The launch now leaves the bend still heading down.
+  for (const chuteLean of [0, .1, .2, .22, .3, .4, .5]) {
+    const { state } = await ride(createEulersBridgesPilot({ canalSpeed, chuteLean }), 80);
+    expect(state.status, `lean ${chuteLean}`).toBe('complete');
+    expect(state.collected, `lean ${chuteLean}`).toHaveLength(level.apples.length);
+  }
 });
 
 it('the campaign replay table drives Euler’s Bridges at its own index', async () => {
@@ -92,22 +103,24 @@ it('setting off east without ebbing to the wall first splashes at the first cana
   expect(state.bike.x).toBeLessThan(BRIDGES[0].m);
 });
 
-it('the drop floods the clock by itself: even tilting a full radian back on landing, the rider reaches the far wall', async () => {
-  // Documents the known weakness: FLOOD is execution, not a decision (see docs/eulers-bridges.md).
-  const route = createEulersBridgesPilot(), home = createEulersBridgesPilot({ river: true, floodTo: -Infinity });
+it.each([0, .3])('turning home straight after the drop (world held %s off the chute) leaves the first river bridge under water', async chuteLean => {
+  // FLOOD is a real step: tilt the world a radian back on landing and turn home, and the clock is
+  // pinned 2 m or more short of the far wall, so b5 has not come up and the rider splashes there.
+  const route = createEulersBridgesPilot({ chuteLean }), home = createEulersBridgesPilot({ river: true, floodTo: -Infinity });
   let landed = 0, turned = false, previous = 0, farthest = 0;
   const { state } = await ride(s => {
     const vx = (s.bike.x - previous) * 120; previous = s.bike.x;
-    if (s.bike.x > EULER.upper.end + 6 && s.bike.y < 1.2) landed++;
+    if (s.bike.x > EULER.upper.end + 4 && s.bike.y < 1.2) landed++;
     if (!landed) return route(s);
     farthest = Math.max(farthest, s.bike.x);
-    if (!turned && landed < 30) return route(s);
     if (!turned && vx > 0) return { tilt: clamp((-1 - s.worldAngle) * 8, -1, 1), brake: false };
     turned = true;
     return home(s);
   }, 80);
-  expect(farthest).toBeGreaterThan(EULER.river.wall - EULER.reach - .3);
-  expect(state.status).toBe('complete');
+  expect(farthest).toBeLessThan(EULER.river.wall - EULER.reach - 2);
+  expect(state.status).toBe('crashed');
+  expect(state.collected).toHaveLength(4);
+  expect(Math.abs(state.bike.x - BRIDGES[4].m)).toBeLessThan(EULER.gap);
 });
 
 it('with the river clock frozen (every bridge fixed where it starts), the same route cannot take all seven apples', async () => {

@@ -39,11 +39,13 @@ const slab = (id: string, from: Vec, to: Vec, h = .6): Surface => {
  *     ebbs (backs west) to within about 2.5 m of the wall behind the spawn; set off from the
  *     spawn and the first canal bridge (the most sensitive, `travel` 3.4) is still under water.
  *     The river bridges line up only if, after the drop, the clock is flooded to within about
- *     2 m of the far east wall. The drop lands at 7-9 m/s and its momentum always carries the
- *     rider into that wall (even tilting a full radian back), so the FLOOD half is execution,
- *     not a decision: the hint asks the rider to ease off before the wall, not to find it.
- *   - The upper town ends in a knee-and-slide chute and a level lip 2.4 m above the river
- *     quay (as in the Clockwork Wedge), leaving headroom to ride back west beneath it.
+ *     2 m of the far east wall (b5, `travel` 4.2, is the gate). The drop lands at 7-10 m/s;
+ *     tilting back to turn home at once stops a rider 2-7 m short, and b5 is then still under
+ *     water. Leaning forward off the chute lands faster, and that momentum alone nearly
+ *     reaches the wall, so FLOOD asks less of that rider. Hitting the wall hard crashes, so the
+ *     hint says to roll into it gently.
+ *   - The upper town ends in a knee-and-slide chute (as in the Clockwork Wedge) whose lip, 2.4 m
+ *     above the river quay, leaves headroom to ride back west beneath it.
  */
 export const EULER = {
   /** Route clock length (m) and platform speed along the paths (m/s). */
@@ -82,7 +84,7 @@ export const BRIDGES: Bridge[] = [
   upperBridge('euler-b2', 16.5, 2.2),
   upperBridge('euler-b3', 22.5, 2),
   upperBridge('euler-b4', 28.5, 1.8),
-  riverBridge('euler-b5', 35.5, 3.6),
+  riverBridge('euler-b5', 35.5, 4.2), // the flood gate: turn home 2 m short of the far wall and it is still down
   riverBridge('euler-b6', 29.5, 3.2),
   riverBridge('euler-b7', 23.5, 2.8),
 ];
@@ -94,7 +96,8 @@ const platform = (b: Bridge): TimePlatform => ({
 });
 
 /** The upper town's east end, ridden eastward: its edge rounded over a knee into a straight slide
- *  down to the right, bent level again into a short table whose lip is `lip` above the quay. */
+ *  down to the right, bent back up towards `kick` (a heading in radians), then an optional short
+ *  table; its lip ends near `lip` above the quay. */
 export function eastChute(top: Vec, lip: number, angle: number, knee: number, bend: number, kick = 0, table = 1.2) {
   const surfaces: Surface[] = [];
   let at = top, n = 0;
@@ -110,10 +113,16 @@ export function eastChute(top: Vec, lip: number, angle: number, knee: number, be
   const drop = at.y - (lip + bend * (1 - Math.cos(angle)));
   piece(p(at.x + drop / Math.tan(angle), at.y - drop), 'euler-chute-run');
   arc(-angle, kick, bend, 'euler-chute-run');
-  piece(p(at.x + table * Math.cos(kick), at.y + table * Math.sin(kick)), 'euler-chute-run');
+  if (table > 0) piece(p(at.x + table * Math.cos(kick), at.y + table * Math.sin(kick)), 'euler-chute-run');
   return { surfaces, end: at };
 }
-const chute = eastChute(p(E.upper.end, E.upper.y), E.lip, 50 * Math.PI / 180, 1.5, 2);
+/* A wide knee (3 m) keeps a fast rider low over the slide, and the launch leaves straight off a
+ * tight bend (1.1 m) while still heading .2 rad down, with no flat table. On a level table the
+ * rear wheel stays on as the front drops off the lip, which pitched every rider about 1 rad nose
+ * down by touchdown: survival then hung on how that stoppie fell, so it flickered with the lean
+ * (.22 crashed between .2 and .24) and failed at most speeds. Leaving the bend carries its
+ * nose-up spin into the flight, cancelling that tip. */
+const chute = eastChute(p(E.upper.end, E.upper.y), E.lip, 50 * Math.PI / 180, 3, 1.1, -.2, 0);
 export const LIP = chute.end;
 
 /** Banks between the bridges of one storey, west to east, from x0 to x1 at deck top y. */
@@ -130,7 +139,7 @@ const upper = BRIDGES.filter(b => b.rise), river = BRIDGES.filter(b => !b.rise);
 export const eulersBridgesLevel: Level = {
   id: 'eulers-bridges', name: 'Euler’s Bridges', subtitle: 'Cross each bridge only once.',
   mechanic: 'Seven bridge lifts share one RIVER clock: riding east fills it, riding west drains it, and once full or empty it stops. Each bridge lies flush only at its own reading.',
-  hint: 'Riding east fills the RIVER clock and riding west drains it, but it stops at full and at empty, so where you turn sets every bridge ahead. Ebb west into the wall before you set out over the canals. Tilt a little right as you fly off the chute, ease off before the far wall, then ride home over the river.',
+  hint: 'Riding east fills the RIVER clock and riding west drains it, but it stops at full and at empty, so where you turn sets every bridge ahead. Ebb west into the wall before you set out over the canals. Drop off the chute without tilting back and roll on east into the far wall, gently, before you ride home over the river.',
   spawn: p(E.upper.spawn, E.upper.y + .72), bounds: { min: p(-3, -5.5), max: p(55, 10) },
   surfaces: [
     // The upper town: the wall behind the spawn, the canal banks, and the chute down to the river.
@@ -159,10 +168,11 @@ export const eulersBridgesLevel: Level = {
  * flight, floods east along the river quay into the far wall and waits there until still, then
  * rides home west over the three river bridges to the door. The options exist for the tests'
  * counterfactuals: `ebb: false` sets off east from the spawn at once, `river` starts at the
- * flood stage, and `floodTo` turns home at that x instead of the far wall (the drop's momentum
- * still carries it into the wall).
+ * flood stage, and `floodTo` turns home once past that x instead of at the far wall. `canalSpeed` (m/s over the canals) and `chuteLean` (the world
+ * angle held through the drop) sweep the landing window.
  */
-export function createEulersBridgesPilot({ ebb = true, floodTo, river = false }: { ebb?: boolean; floodTo?: number; river?: boolean } = {}): (state: Snapshot) => Controls {
+export function createEulersBridgesPilot({ ebb = true, floodTo, river = false, canalSpeed = 2.5, chuteLean = .3 }:
+  { ebb?: boolean; floodTo?: number; river?: boolean; canalSpeed?: number; chuteLean?: number } = {}): (state: Snapshot) => Controls {
   let previous: Vec | undefined, angle = 0, lastRawAngle = 0, still = 0;
   let stage: 'ebb' | 'upper' | 'chute' | 'flood' | 'home' = river ? 'flood' : ebb ? 'ebb' : 'upper';
   return state => {
@@ -181,10 +191,11 @@ export function createEulersBridgesPilot({ ebb = true, floodTo, river = false }:
     if (stage === 'flood' && (floodTo === undefined ? x > E.river.wall - E.reach - .3 && still > 30 : x > floodTo)) stage = 'home';
     switch (stage) {
       case 'ebb': return follow(-1.2);
-      case 'upper': return follow(2.5);
-      // Past the knee, lean the world .3 rad right (forward, as on Hooke's Springboard) so the
-      // bike lands on its wheels: about .24-.4 survives; level, it pitches over and crashes.
-      case 'chute': return level(x > E.upper.end + 1 ? .3 : 0);
+      case 'upper': return follow(canalSpeed);
+      // Past the knee, lean the world .3 rad right (forward). Anything from level to .6 lands
+      // too (245 of 248 sampled leans at canal speeds 1-6 m/s); tilting back (left) at a slow
+      // pace can still pitch over.
+      case 'chute': return level(x > E.upper.end + 1 ? chuteLean : 0);
       case 'flood': return follow(x < E.river.wall - 5 ? 2 : .8);
       case 'home': return follow(-2.5);
     }
