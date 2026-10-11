@@ -22,10 +22,11 @@ const westCorner = (swing: { anchor: { x: number; y: number }; length: number; w
 });
 
 it('hangs three free cradle decks of 4, 6 and 8 m over water, between Hanging Garden and Clockwork Apple', () => {
-  expect(levels[12]).toBe(level);
-  expect(levels[11].id).toBe('hanging-garden');
-  expect(levels[13].id).toBe('clockwork-apple');
-  expect(typeof createReplayPilot(12)).toBe('function');
+  const index = levels.indexOf(level);
+  expect(index).toBeGreaterThan(0);
+  expect(levels[index - 1].id).toBe('hanging-garden');
+  expect(levels[index + 1].id).toBe('clockwork-apple');
+  expect(typeof createReplayPilot(index)).toBe('function');
   expect(level.swings!.map(s => s.length)).toEqual([4, 6, 8]);
   for (const swing of level.swings!) {
     expect(swing.width).toBeGreaterThanOrEqual(2.7); expect(swing.width).toBeLessThanOrEqual(3);
@@ -57,7 +58,7 @@ it('completes Foucault’s Hall: boarding each deck against its stop and steppin
   expect(state.collected.sort()).toEqual(level.apples.map(apple => apple.id).sort());
   expect(state.elapsed).toBeLessThan(60);
   for (const leg of [0, 1, 2]) for (const stage of ['board', 'ride', 'catch', 'leave', 'land']) expect(stages).toContain(`${stage}/${leg}`);
-  expect(createReplayPilot(12)).toBeTypeOf('function');
+  expect(createReplayPilot(levels.indexOf(level))).toBeTypeOf('function');
 }, 120_000);
 
 it('needs input: idle or holding the brake never reaches the door', async () => {

@@ -48,14 +48,20 @@ const partOverlapsBall = (part: Part, x: number, y: number, radius: number) => p
   ? Math.hypot(part.x - x, part.y - y) < part.radius + radius - epsilon
   : ballBoxOverlap(x, y, radius, part.box);
 
-// Rapier's initial chassis and wheel assembly; these are deliberately more
-// stringent than checking the chassis centre alone.
-const spawnParts = (spawn: Vec) => [
-  { shape: 'box' as const, box: { x: spawn.x, y: spawn.y, w: 1.16, h: 0.24 } },
-  { shape: 'ball' as const, x: spawn.x - 0.70, y: spawn.y - 0.36, radius: 0.34 },
-  { shape: 'ball' as const, x: spawn.x + 0.70, y: spawn.y - 0.36, radius: 0.34 },
-  { shape: 'ball' as const, x: spawn.x + 0.10, y: spawn.y + 0.69, radius: 0.21 },
-] satisfies Part[];
+// Rapier's initial chassis and wheel assembly, turned by the level's spawnAngle; these are
+// deliberately more stringent than checking the chassis centre alone.
+const spawnParts = (spawn: Vec, turn = 0): Part[] => {
+  const c = Math.cos(turn), s = Math.sin(turn);
+  const at = (x: number, y: number) => ({ x: spawn.x + c * x - s * y, y: spawn.y + s * x + c * y });
+  return [
+    { shape: 'box' as const, box: { x: spawn.x, y: spawn.y, w: 1.16, h: 0.24, angle: turn } },
+    { shape: 'ball' as const, ...at(-0.70, -0.36), radius: 0.34 },
+    { shape: 'ball' as const, ...at(0.70, -0.36), radius: 0.34 },
+    { shape: 'ball' as const, ...at(0.10, 0.69), radius: 0.21 },
+    // The visible head, swept for crashes every step (physics.ts headPosition / visibleHead).
+    { shape: 'ball' as const, ...at(0.126126126, 0.795), radius: 0.231 },
+  ];
+};
 
 describe('authored campaign', () => {
   it('checks rotated corners and circle contact in the actual collider orientation', () => {
@@ -66,16 +72,26 @@ describe('authored campaign', () => {
       { x: 1, y: 0, w: 2, h: 0.2, angle: Math.PI / 4 })).toBe(true);
   });
 
-  it('orders the twenty-three campaign maps by rising difficulty', () => {
+  it('orders the campaign maps by rising difficulty', () => {
     expect(levels.map((level) => level.id)).toEqual([
       'newtons-first-lesson', 'newtons-orchard', 'galileos-ramp', 'one-wheel-wonder', 'room-on-its-side', 'newtons-attic',
       'pendulum-mill', 'eschers-orchard', 'newtons-cannonball', 'newtons-ouroboros', 'contrary-conservatory',
-      'gravity-engine', 'hanging-garden', 'clockwork-apple', 'clockwork-wedge', 'underside-return',
-      'huygens-return', 'spiral-sanctuary', 'switchback-scaffold', 'the-hidden-way-home', 'hookes-springboard',
-      'piston-works', 'stairway-to-heaven',
+      'ice-house', 'gravity-engine', 'hanging-garden', 'foucaults-hall', 'clockwork-apple', 'leibniz-counterweight',
+      'clockwork-wedge', 'underside-return', 'huygens-return', 'pendulum-clock', 'spiral-sanctuary', 'eulers-bridges',
+      'switchback-scaffold', 'pascals-presses', 'the-hidden-way-home', 'hookes-springboard', 'hookes-ceiling',
+      'piston-works', 'stairway-to-heaven', 'noethers-symmetry',
     ]);
-    expect(levels.map((level) => level.difficulty)).toEqual([.5, 1, 1.5, 2, 5, 6, 6.5, 7, 7.25, 7.5, 8, 9, 9.5, 10, 10.5, 11, 11.5, 12, 13, 14, 14.5, 14.75, 15]);
+    expect(levels.map((level) => level.difficulty)).toEqual([
+      .5, 1, 1.5, 2, 5, 6, 6.5, 7, 7.25, 7.5, 8, 8.5, 9, 9.5, 9.75, 10, 10.25, 10.5, 11, 11.5, 11.75, 12, 12.25,
+      13, 13.5, 14, 14.5, 14.6, 14.75, 15, 15.5,
+    ]);
     expect(new Set(levels.map((level) => level.id)).size).toBe(levels.length);
+  });
+
+  it.each(levels)('$name spawns the rider upright against its initial gravity', (level) => {
+    // spawnAngle is independent of initialAngle; a map that turns one must turn the other.
+    const bank = (level.spawnAngle ?? 0) - (level.initialAngle ?? 0);
+    expect(Math.abs(Math.atan2(Math.sin(bank), Math.cos(bank))), `${level.id}: spawnAngle disagrees with initialAngle`).toBeLessThan(.2);
   });
 
   it.each(levels)('$name has finite, bounded geometry and no initial bike overlap', (level) => {
@@ -89,14 +105,14 @@ describe('authored campaign', () => {
     expect(level.apples.length).toBeGreaterThan(0);
     expect(inside(level.spawn, level)).toBe(true);
     expect(ballInside(level.exit.x, level.exit.y, 0.8, level)).toBe(true);
-    for (const part of spawnParts(level.spawn)) {
+    for (const part of spawnParts(level.spawn, level.spawnAngle)) {
       expect(part.shape === 'box' ? boxInside(part.box, level)
         : ballInside(part.x, part.y, part.radius, level)).toBe(true);
     }
 
     for (const surface of level.surfaces) {
       expect(boxInside(surface, level), `${level.id}: ${surface.id} extends beyond bounds`).toBe(true);
-      for (const part of spawnParts(level.spawn))
+      for (const part of spawnParts(level.spawn, level.spawnAngle))
         expect(partOverlapsBox(part, surface), `${level.id}: bike begins in ${surface.id}`).toBe(false);
     }
     for (const item of level.apples) {
@@ -106,11 +122,11 @@ describe('authored campaign', () => {
       expect(Number.isFinite(item.h) && item.h > 0).toBe(true);
       if (item.shape === 'ball') {
         expect(ballInside(item.x, item.y, item.w / 2, level)).toBe(true);
-        for (const part of spawnParts(level.spawn))
+        for (const part of spawnParts(level.spawn, level.spawnAngle))
           expect(partOverlapsBall(part, item.x, item.y, item.w / 2), `${level.id}: bike begins in ${item.id}`).toBe(false);
       } else {
         expect(boxInside(item, level)).toBe(true);
-        for (const part of spawnParts(level.spawn))
+        for (const part of spawnParts(level.spawn, level.spawnAngle))
           expect(partOverlapsBox(part, item), `${level.id}: bike begins in ${item.id}`).toBe(false);
       }
     }
@@ -123,7 +139,7 @@ describe('authored campaign', () => {
         y: swing.anchor.y - Math.cos(angle) * swing.length,
         w: swing.width, h: 0.24, angle };
       expect(boxInside(deck, level), `${level.id}: ${swing.id} starts outside bounds`).toBe(true);
-      for (const part of spawnParts(level.spawn))
+      for (const part of spawnParts(level.spawn, level.spawnAngle))
         expect(partOverlapsBox(part, deck), `${level.id}: bike begins in ${swing.id}`).toBe(false);
     }
     for (const item of level.timePlatforms ?? []) {
@@ -133,7 +149,7 @@ describe('authored campaign', () => {
       expect(boxInside(to, level)).toBe(true);
       // A self-running platform starts `offset` of its cycle along, not necessarily at `from`.
       const start = { ...(item.period ? pathPoint(item, cyclePhase(0, item.period, item.offset)) : item.from), w: item.w, h: item.h };
-      for (const part of spawnParts(level.spawn))
+      for (const part of spawnParts(level.spawn, level.spawnAngle))
         expect(partOverlapsBox(part, start), `${level.id}: bike begins in ${item.id}`).toBe(false);
     }
   });
@@ -147,7 +163,7 @@ describe('authored campaign', () => {
   });
 
   it('puts Escher objectives along each tunnel face and on both sides of the shared gallery', () => {
-    const escher = levels[7];
+    const escher = levels.find((l) => l.id === 'eschers-orchard')!;
     const shared = escher.surfaces.find(s => s.id === 'escher-shared-floor-ceiling')!;
     expect(escher.apples.filter(a => a.x > shared.x - shared.w / 2 && a.x < shared.x + shared.w / 2 && a.y < shared.y)).toHaveLength(2);
     expect(escher.apples.some(a => a.y > shared.y && a.y < shared.y + 2)).toBe(true);
@@ -161,7 +177,7 @@ describe('authored campaign', () => {
   });
 
   it('has a moving clockwork lift and a return route after the high apple', () => {
-    const clock = levels[13];
+    const clock = levels.find((l) => l.id === 'clockwork-apple')!;
     expect(clock.timeAxis).toEqual({ x: 1, y: 0 });
     expect(clock.timeTravel).toBeGreaterThan(0);
     expect(clock.timePlatforms!.length).toBeGreaterThan(0);

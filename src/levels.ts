@@ -15,6 +15,14 @@ import { springboardLevel } from './levels/springboard';
 import { huygensReturnLevel } from './levels/huygens-return';
 import { pistonWorksLevel } from './levels/piston-works';
 import { galileosRampLevel } from './levels/galileos-ramp';
+import { iceHouseLevel } from './levels/ice-house';
+import { foucaultHallLevel } from './levels/foucault-hall';
+import { leibnizCounterweightLevel } from './levels/leibniz-counterweight';
+import { pendulumClockLevel } from './levels/pendulum-clock';
+import { eulersBridgesLevel } from './levels/eulers-bridges';
+import { pascalsPressesLevel } from './levels/pascals-presses';
+import { hookesCeilingLevel } from './levels/hookes-ceiling';
+import { noetherLevel } from './levels/noether';
 import type { Level } from './types';
 
 /**
@@ -33,16 +41,24 @@ export const levels: Level[] = [
   cannonballLevel,            // 8
   ouroborosLevel,             // 9
   contraryConservatoryLevel,  // 10
-  gravityEngineLevel,         // 11
-  hangingGardenLevel,         // 12
-  clockworkAppleLevel,        // 13
-  clockworkWedgeLevel,        // 14
-  undersideReturnLevel,       // 15
-  huygensReturnLevel,         // 16
-  spiralSanctuaryLevel,       // 17
-  switchbackScaffoldLevel,    // 18
-  hiddenWayHomeLevel,         // 19
-  springboardLevel,           // 20
-  pistonWorksLevel,           // 21
-  stairwayLevel,              // 22
+  iceHouseLevel,              // 11
+  gravityEngineLevel,         // 12
+  hangingGardenLevel,         // 13
+  foucaultHallLevel,          // 14
+  clockworkAppleLevel,        // 15
+  leibnizCounterweightLevel,  // 16
+  clockworkWedgeLevel,        // 17
+  undersideReturnLevel,       // 18
+  huygensReturnLevel,         // 19
+  pendulumClockLevel,         // 20
+  spiralSanctuaryLevel,       // 21
+  eulersBridgesLevel,         // 22
+  switchbackScaffoldLevel,    // 23
+  pascalsPressesLevel,        // 24
+  hiddenWayHomeLevel,         // 25
+  springboardLevel,           // 26
+  hookesCeilingLevel,         // 27
+  pistonWorksLevel,           // 28
+  stairwayLevel,              // 29
+  noetherLevel,               // 30
 ];
