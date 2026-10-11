@@ -19,6 +19,9 @@ import { createEulersBridgesPilot } from '../levels/eulers-bridges';
 import { createPascalsPressesPilot } from '../levels/pascals-presses';
 import { createHookesCeilingPilot } from '../levels/hookes-ceiling';
 import { createNoetherPilot } from '../levels/noether';
+import { createKeplerPilot } from '../levels/kepler';
+import { createTorricelliPilot } from '../levels/torricelli';
+import { createBernoulliPilot } from '../levels/bernoulli-updraft';
 import type { Controls, Snapshot } from '../types';
 
 type Pilot = (state: Snapshot) => Controls;
@@ -33,30 +36,33 @@ const pilots: (() => Pilot)[] = [
   () => createEarlyReplayPilot(4),   // 4 room-on-its-side
   () => createLateReplayPilot(0),    // 5 newtons-attic
   () => createEarlyReplayPilot(3),   // 6 pendulum-mill
-  () => createLateReplayPilot(1),    // 7 eschers-orchard
-  createCannonballPilot,             // 8 newtons-cannonball
-  createOuroborosPilot,              // 9 newtons-ouroboros
-  () => createLateReplayPilot(2),    // 10 contrary-conservatory
-  createIceHousePilot,               // 11 ice-house
-  () => createLateReplayPilot(3),    // 12 gravity-engine
-  () => createEarlyReplayPilot(2),   // 13 hanging-garden
-  () => createFoucaultPilot(),       // 14 foucaults-hall
-  () => createLateReplayPilot(4),    // 15 clockwork-apple
-  createLeibnizPilot,                // 16 leibniz-counterweight
-  createClockworkWedgePilot,         // 17 clockwork-wedge
-  () => createFlipSpiralPilot(0),    // 18 underside-return
-  () => createHuygensPilot(),        // 19 huygens-return
-  () => createPendulumClockPilot(),  // 20 pendulum-clock
-  () => createFlipSpiralPilot(1),    // 21 spiral-sanctuary
-  () => createEulersBridgesPilot(),  // 22 eulers-bridges
-  () => createTowerChasmPilot(0),    // 23 switchback-scaffold
-  () => createPascalsPressesPilot(), // 24 pascals-presses
-  () => createTowerChasmPilot(1),    // 25 the-hidden-way-home
-  () => createSpringboardPilot(),    // 26 hookes-springboard
-  () => createHookesCeilingPilot(),  // 27 hookes-ceiling
-  () => createPistonWorksPilot(),    // 28 piston-works
-  createStairwayPilot,               // 29 stairway-to-heaven
-  () => createNoetherPilot(),        // 30 noethers-symmetry
+  createKeplerPilot,                 // 7 keplers-orbit
+  () => createLateReplayPilot(1),    // 8 eschers-orchard
+  createCannonballPilot,             // 9 newtons-cannonball
+  createOuroborosPilot,              // 10 newtons-ouroboros
+  () => createLateReplayPilot(2),    // 11 contrary-conservatory
+  createTorricelliPilot,             // 12 torricellis-well
+  createIceHousePilot,               // 13 ice-house
+  () => createLateReplayPilot(3),    // 14 gravity-engine
+  () => createEarlyReplayPilot(2),   // 15 hanging-garden
+  () => createFoucaultPilot(),       // 16 foucaults-hall
+  () => createLateReplayPilot(4),    // 17 clockwork-apple
+  createLeibnizPilot,                // 18 leibniz-counterweight
+  createClockworkWedgePilot,         // 19 clockwork-wedge
+  () => createFlipSpiralPilot(0),    // 20 underside-return
+  () => createHuygensPilot(),        // 21 huygens-return
+  () => createPendulumClockPilot(),  // 22 pendulum-clock
+  () => createFlipSpiralPilot(1),    // 23 spiral-sanctuary
+  () => createEulersBridgesPilot(),  // 24 eulers-bridges
+  () => createBernoulliPilot(),      // 25 bernoullis-updraft
+  () => createTowerChasmPilot(0),    // 26 switchback-scaffold
+  () => createPascalsPressesPilot(), // 27 pascals-presses
+  () => createTowerChasmPilot(1),    // 28 the-hidden-way-home
+  () => createSpringboardPilot(),    // 29 hookes-springboard
+  () => createHookesCeilingPilot(),  // 30 hookes-ceiling
+  () => createPistonWorksPilot(),    // 31 piston-works
+  createStairwayPilot,               // 32 stairway-to-heaven
+  () => createNoetherPilot(),        // 33 noethers-symmetry
 ];
 
 /** Input-only campaign pilot. Call once before each fixed 1/120 s physics step. */

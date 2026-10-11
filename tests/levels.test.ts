@@ -75,15 +75,15 @@ describe('authored campaign', () => {
   it('orders the campaign maps by rising difficulty', () => {
     expect(levels.map((level) => level.id)).toEqual([
       'newtons-first-lesson', 'newtons-orchard', 'galileos-ramp', 'one-wheel-wonder', 'room-on-its-side', 'newtons-attic',
-      'pendulum-mill', 'eschers-orchard', 'newtons-cannonball', 'newtons-ouroboros', 'contrary-conservatory',
-      'ice-house', 'gravity-engine', 'hanging-garden', 'foucaults-hall', 'clockwork-apple', 'leibniz-counterweight',
-      'clockwork-wedge', 'underside-return', 'huygens-return', 'pendulum-clock', 'spiral-sanctuary', 'eulers-bridges',
-      'switchback-scaffold', 'pascals-presses', 'the-hidden-way-home', 'hookes-springboard', 'hookes-ceiling',
-      'piston-works', 'stairway-to-heaven', 'noethers-symmetry',
+      'pendulum-mill', 'keplers-orbit', 'eschers-orchard', 'newtons-cannonball', 'newtons-ouroboros', 'contrary-conservatory',
+      'torricellis-well', 'ice-house', 'gravity-engine', 'hanging-garden', 'foucaults-hall', 'clockwork-apple',
+      'leibniz-counterweight', 'clockwork-wedge', 'underside-return', 'huygens-return', 'pendulum-clock', 'spiral-sanctuary',
+      'eulers-bridges', 'bernoullis-updraft', 'switchback-scaffold', 'pascals-presses', 'the-hidden-way-home',
+      'hookes-springboard', 'hookes-ceiling', 'piston-works', 'stairway-to-heaven', 'noethers-symmetry',
     ]);
     expect(levels.map((level) => level.difficulty)).toEqual([
-      .5, 1, 1.5, 2, 5, 6, 6.5, 7, 7.25, 7.5, 8, 8.5, 9, 9.5, 9.75, 10, 10.25, 10.5, 11, 11.5, 11.75, 12, 12.25,
-      13, 13.5, 14, 14.5, 14.6, 14.75, 15, 15.5,
+      .5, 1, 1.5, 2, 5, 6, 6.5, 6.75, 7, 7.25, 7.5, 8, 8.25, 8.5, 9, 9.5, 9.75, 10, 10.25, 10.5, 11, 11.5, 11.75, 12,
+      12.25, 12.75, 13, 13.5, 14, 14.5, 14.6, 14.75, 15, 15.5,
     ]);
     expect(new Set(levels.map((level) => level.id)).size).toBe(levels.length);
   });

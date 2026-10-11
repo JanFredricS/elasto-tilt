@@ -23,6 +23,9 @@ import { eulersBridgesLevel } from './levels/eulers-bridges';
 import { pascalsPressesLevel } from './levels/pascals-presses';
 import { hookesCeilingLevel } from './levels/hookes-ceiling';
 import { noetherLevel } from './levels/noether';
+import { keplersOrbitLevel } from './levels/kepler';
+import { torricelliLevel } from './levels/torricelli';
+import { bernoulliUpdraftLevel } from './levels/bernoulli-updraft';
 import type { Level } from './types';
 
 /**
@@ -37,28 +40,31 @@ export const levels: Level[] = [
   roomOnItsSideLevel,         // 4
   newtonsAtticLevel,          // 5
   pendulumMillLevel,          // 6
-  eschersOrchardLevel,        // 7
-  cannonballLevel,            // 8
-  ouroborosLevel,             // 9
-  contraryConservatoryLevel,  // 10
-  iceHouseLevel,              // 11
-  gravityEngineLevel,         // 12
-  hangingGardenLevel,         // 13
-  foucaultHallLevel,          // 14
-  clockworkAppleLevel,        // 15
-  leibnizCounterweightLevel,  // 16
-  clockworkWedgeLevel,        // 17
-  undersideReturnLevel,       // 18
-  huygensReturnLevel,         // 19
-  pendulumClockLevel,         // 20
-  spiralSanctuaryLevel,       // 21
-  eulersBridgesLevel,         // 22
-  switchbackScaffoldLevel,    // 23
-  pascalsPressesLevel,        // 24
-  hiddenWayHomeLevel,         // 25
-  springboardLevel,           // 26
-  hookesCeilingLevel,         // 27
-  pistonWorksLevel,           // 28
-  stairwayLevel,              // 29
-  noetherLevel,               // 30
+  keplersOrbitLevel,          // 7
+  eschersOrchardLevel,        // 8
+  cannonballLevel,            // 9
+  ouroborosLevel,             // 10
+  contraryConservatoryLevel,  // 11
+  torricelliLevel,            // 12
+  iceHouseLevel,              // 13
+  gravityEngineLevel,         // 14
+  hangingGardenLevel,         // 15
+  foucaultHallLevel,          // 16
+  clockworkAppleLevel,        // 17
+  leibnizCounterweightLevel,  // 18
+  clockworkWedgeLevel,        // 19
+  undersideReturnLevel,       // 20
+  huygensReturnLevel,         // 21
+  pendulumClockLevel,         // 22
+  spiralSanctuaryLevel,       // 23
+  eulersBridgesLevel,         // 24
+  bernoulliUpdraftLevel,      // 25
+  switchbackScaffoldLevel,    // 26
+  pascalsPressesLevel,        // 27
+  hiddenWayHomeLevel,         // 28
+  springboardLevel,           // 29
+  hookesCeilingLevel,         // 30
+  pistonWorksLevel,           // 31
+  stairwayLevel,              // 32
+  noetherLevel,               // 33
 ];

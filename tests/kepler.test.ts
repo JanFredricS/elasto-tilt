@@ -47,14 +47,15 @@ class BrowserSurface extends EventTarget {
 }
 
 describe('Kepler’s Orbit', () => {
-  it('is campaign map 7, between the Pendulum Mill and Escher’s Orchard, in the rose palette', () => {
-    expect(levels[6]).toBe(keplersOrbitLevel);
+  it('sits between the Pendulum Mill and Escher’s Orchard, in the rose palette', () => {
+    const index = levels.indexOf(keplersOrbitLevel);
+    expect(index).toBeGreaterThan(0);
     expect(keplersOrbitLevel.name).toBe('Kepler’s Orbit');
     expect(keplersOrbitLevel.subtitle).toBe('Equal areas in equal times');
     expect(keplersOrbitLevel.difficulty).toBe(6.75);
-    expect(levels[5].id).toBe('pendulum-mill');
-    expect(levels[7].id).toBe('eschers-orchard');
-    expect(typeof createReplayPilot(6)).toBe('function');
+    expect(levels[index - 1].id).toBe('pendulum-mill');
+    expect(levels[index + 1].id).toBe('eschers-orchard');
+    expect(typeof createReplayPilot(index)).toBe('function');
     expect(paletteFor('keplers-orbit')).toBe(paletteFor('eschers-orchard'));
   });
 

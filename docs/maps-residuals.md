@@ -59,3 +59,21 @@ The full list is in [noether.md](noether.md#residuals--known-issues). In brief:
 - Holding +.3 rad for a minute at the spawn creeps the original plank enough to crash boarding. A restart fixes it.
 - The nose interiors are see-through hoops.
 - The phone playtest of the −2π circuit is still needed, and the e2e coverage was added but not run.
+
+- Attic’s loose weights and Conservatory’s inverted weights are physical objects, not required switches. *Addressed for inverted weights:* in [Torricelli’s Well](torricellis-well.md) two inverted floats must each rise into their own vault socket and seat as the footholds of the inverted return; with the floats removed the unchanged pilot cannot get home. Mill’s different lengths have different motion, but the passing route does not require waiting for a specific period.
+## Torricelli’s Well
+Full detail is in [torricellis-well.md](torricellis-well.md#residuals--known-issues). The issues are:
+- **Back-tilt lock (restart only).** Float B is loose for about 5 s after the push. In that window a back-tilt of .7 rad held for 3 s, or .8 rad held for 1 s, carries it over the sill into socket A’s cap, where it never seats and holds float A out. Up to .6 rad is safe. No recovery was found, and there is no cheap geometric fix.
+- **Float fling.** A long, wild tilt sawtooth (about 20 s of ±1 rad with the brake held) once drove float B through the door pocket, down the shaft and out of the open well mouth. That was 1 of 78 flail patterns. The rider lives but the map cannot be won without a restart. A narrower mouth cannot block a 2 m float without also blocking the rider’s fall corridor.
+- **Extreme ferry tilt.** At 1.1 rad or more the ride ends in a crash on beam B’s lip, which is acceptable and tested.
+- **Not checked.** Physical phone play has not been tested, and the e2e specs (indices updated for the insertion at index 10) were not run.
+
+## Bernoulli’s Updraft (map 18)
+Full write-up: [bernoulli-updraft.md](bernoulli-updraft.md), "Residuals / known issues".
+- The 90°-per-flight concept is physically impossible: each crossing would need half a turn through straight up and add about 20 m/s. The chimney sway is free; only turning over and turning gravity back up within about .6 s of the launch are enforced.
+- There is a release cliff at the lintel. The world must turn to at least 4.1 rad; 4.05 or earlier crashes, and 4.05–4.15 is chaotic. It is telegraphed by KEEP TURNING, not widened. Loop, lintel and lip variants were all rejected with data.
+- The map is short (85 m / 16 s) for slot 12.75. That is accepted as a short precision map, like Hooke’s Springboard.
+- At 1/60 s, one grid run that completes at 1/120 s crashes at the roof’s end. The game's fixed 1/120 s step makes this test-only.
+- The map has not been played on a phone.
+
+- Kepler’s Orbit can also be left clockwise, back over the far lip, once both loop apples are in; this is kept as a feature. Its door is touched mid-fall, with a measured margin of at least 0.175 s before the head reaches stone. See [keplers-orbit.md](keplers-orbit.md#residuals--known-issues).

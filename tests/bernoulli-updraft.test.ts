@@ -16,9 +16,9 @@ async function ride(pilot: (state: Snapshot) => Controls, seconds = 30, map: Lev
 const isPad = (id: string) => id.startsWith('bernoulli-pad-');
 const clamp = (n: number) => Math.max(-1, Math.min(1, n));
 
-it('sits between Spiral Sanctuary and Switchback Scaffold, a chimney 6 to 9 m wide with a brass pad on each wall', () => {
+it('sits in the campaign before Switchback Scaffold, a chimney 6 to 9 m wide with a brass pad on each wall', () => {
   const index = levels.indexOf(level);
-  expect(levels[index - 1].id).toBe('spiral-sanctuary');
+  expect(level.difficulty).toBeGreaterThan(levels[index - 1].difficulty);
   expect(levels[index + 1].id).toBe('switchback-scaffold');
   expect(level.difficulty).toBe(12.75);
   const pads = level.surfaces.filter(surface => surface.kind === 'spring');

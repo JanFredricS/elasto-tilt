@@ -44,9 +44,9 @@ const braced = (angle: number) => (state: Snapshot): Controls =>
   ({ tilt: clamp((angle - state.worldAngle) * 8, -1, 1), brake: true });
 
 describe('The Ice House', () => {
-  it('is campaign map 11, between the Contrary Conservatory and the Gravity Engine', () => {
+  it('sits between Torricelli’s Well and the Gravity Engine', () => {
     const index = levels.indexOf(level);
-    expect(levels[index - 1].id).toBe('contrary-conservatory');
+    expect(levels[index - 1].id).toBe('torricellis-well');
     expect(levels[index + 1].id).toBe('gravity-engine');
     expect(level.difficulty).toBe(8.5);
     expect(typeof createReplayPilot(index)).toBe('function');
