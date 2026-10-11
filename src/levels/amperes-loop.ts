@@ -190,12 +190,14 @@ export function ampereApples(track: AmpereTrack, shape: AmpereShape = AMPERE_SHA
 }
 export function ampereHints(track: AmpereTrack): RouteHint[] {
   const { marks, ringCentre: O, ringTo, underY } = track;
+  // HOME sits just past the tower's foot, under the head of an upside-down rider, so it is in view from
+  // the shoulder and the outer face, where the rider must keep turning to go under.
   return [
     { x: marks.curlFrom.x - 3, y: marks.curlFrom.y + 1.6, angle: 0, label: 'JUMP', spin: 1 },
     { x: O.x, y: O.y, angle: Math.PI, label: 'LOOP' },
     { x: ringTo.x - .6, y: ringTo.y + 1.6, angle: 0, label: 'DROP', spin: 1 },
     { x: marks.top.x + 4, y: marks.top.y + 1.6, angle: 0, label: 'EASE', spin: -1 },
-    { x: marks.curlFrom.x - 4, y: underY - 1.6, angle: Math.PI, label: 'HOME', spin: -1 },
+    { x: marks.underFrom.x - 2.5, y: underY - 2.4, angle: Math.PI, label: 'HOME', spin: -1 },
   ];
 }
 
@@ -247,7 +249,10 @@ export function amperePilotFor(track: AmpereTrack, tuning: AmperePilotTuning): (
     if (phase === 'ring' && angle > 2 * Math.PI - .35 && x > O.x - 1) go('hold');
     if (phase === 'hold' && state.worldAngle > 2 * Math.PI + tuning.hold * DEG) go('drop');
     if (phase === 'drop' && x > track.ringTo.x + tuning.release) go('land');
-    if (phase === 'land' && (v < tuning.home + .3 || x > marks.shoulder.x - .5) && state.elapsed - since > .3) go('home');
+    // Only creep once the bike sits level on the tower top: the landing's impact can dip the speed
+    // while the bike is still pitched nose-down, and following that pitch would roll it over.
+    if (phase === 'land' && (v < tuning.home + .3 || x > marks.shoulder.x - .5) && state.elapsed - since > .3 &&
+      (Math.abs(angle - 2 * Math.PI) < .25 || x > marks.shoulder.x - .5)) go('home');
     let target = angle, brake = false;
     const follow = (speed: number, lean = .3) => angle + clamp((speed - v) * .22, -lean, lean);
     if (phase === 'run') target = follow(tuning.run);

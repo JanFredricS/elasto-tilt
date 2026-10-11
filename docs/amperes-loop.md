@@ -62,14 +62,16 @@ Apples:
 - one under the runway, ridden inverted;
 - one on the outer wall.
 
-Route hints: JUMP and DROP with forward spin arrows, LOOP, then EASE and HOME with backward spin arrows.
+Route hints: JUMP and DROP with forward spin arrows, LOOP, then EASE and HOME with backward spin arrows. HOME hangs under the runway just past the tower's foot, below an upside-down rider's head, so it is in view from the shoulder and the outer face, where the rider has to keep turning.
 
 Measured replay: about 120 m in 43 s, with all six apples.
 
 ## Tests
 
-- **Positive:** the replay completes with every apple. It rides more than 1.5π round the ring, touches the tower top and rides the underside with the world inverted. The campaign replay table drives the map at index 17.
-- **Tolerance:** charge 75° and 85°, floor tip 45° and 55°, and a home creep of 1.5 and 2.5 m/s all complete.
+- **Positive:** the replay completes with every apple. It rides more than 1.85π round the ring (about 1.95π measured), touches the tower top and rides the underside with the world inverted. The campaign replay table drives the map at index 17.
+- **Tolerance:** at 120 Hz, charge 75° and 85°, floor tip 45°, 55° and 65°, and a home creep of 1.5 and 2.5 m/s all complete. Each run must finish at a different time from the replay, so none of them is the replay saturated onto the same line.
+- **60 Hz:** the replay, both compound corners (charge 85°, tip 55°, creep 2.5 m/s; charge 75°, tip 45°, creep 1.5 m/s) and a 60° tip all complete. The tip window is narrower at 60 Hz (about 45°–62°) than at 120 Hz (45°–70°).
+- **Pilot:** the creep starts only once the bike sits level on the tower top. The landing's impact can briefly dip its speed while it is still pitched nose-down, and following that pitch would roll it over.
 - **Negatives:**
   - idle, full tilt either way, and full tilt with the brake held do not complete;
   - holding gravity fixed at the charge angle does not complete.

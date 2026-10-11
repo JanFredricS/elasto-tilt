@@ -8,10 +8,10 @@ import { levels } from '../src/levels';
 import { createReplayPilot } from '../src/dev/replay';
 import type { Controls, Level, Snapshot } from '../src/types';
 
-async function ride(pilot: (state: Snapshot) => Controls, seconds = 70, map: Level = level, watch?: (state: Snapshot) => void) {
+async function ride(pilot: (state: Snapshot) => Controls, seconds = 70, map: Level = level, watch?: (state: Snapshot) => void, hz = 120) {
   const game = await createPhysics(); game.load(map);
   let state = game.snapshot();
-  for (let i = 0; i < 120 * seconds && state.status === 'playing'; i++) { state = game.step(1 / 120, pilot(state)); watch?.(state); }
+  for (let i = 0; i < hz * seconds && state.status === 'playing'; i++) { state = game.step(1 / hz, pilot(state)); watch?.(state); }
   game.destroy();
   return state;
 }
@@ -36,6 +36,9 @@ it('hangs the ring over the lip with a clear gap below its floor and keeps the e
   expect(level.routeHints!.filter(hint => hint.spin)).not.toHaveLength(0);
 });
 
+/** The replay's finishing time, so each tolerance run can prove it rode a different line. */
+let replayElapsed: number | undefined;
+
 it('completes Ampère’s Loop: jump into the ring, a full lap inside, drop to the tower and home upside down', async () => {
   let ringLap = 0, onTop = false, inverted = false, last = 0, turned = 0;
   const { ringCentre: O, marks, underY } = ampereTrack;
@@ -51,8 +54,10 @@ it('completes Ampère’s Loop: jump into the ring, a full lap inside, drop to t
     if (s.bike.y < underY && s.bike.x > 0 && Math.abs(Math.cos(s.worldAngle)) > .9 && Math.cos(s.worldAngle) < 0) inverted = true;
   });
   expect(state.status).toBe('complete');
+  replayElapsed = state.elapsed;
   expect(state.collected.sort()).toEqual(level.apples.map(apple => apple.id).sort());
-  expect(ringLap).toBeGreaterThan(1.5 * Math.PI);
+  // From the landing wall round the roof to the floor's end is nearly a whole turn (about 1.95π).
+  expect(ringLap).toBeGreaterThan(1.85 * Math.PI);
   expect(onTop).toBe(true);
   expect(inverted).toBe(true);
 }, 20_000);
@@ -60,11 +65,27 @@ it('completes Ampère’s Loop: jump into the ring, a full lap inside, drop to t
 it.each<[string, Partial<AmperePilotTuning>]>([
   ['a later charge', { charge: 75 }], ['a steeper charge', { charge: 85 }],
   ['less forward tip on the floor', { drop: 45 }], ['more forward tip on the floor', { drop: 55 }],
+  ['a much steeper forward tip', { drop: 65 }],
   ['a slower creep home', { home: 1.5 }], ['a faster creep home', { home: 2.5 }],
 ])('tolerates %s', async (_, tuning) => {
   const { map, pilot } = variant({}, tuning);
-  expect((await ride(pilot, 70, map)).status).toBe('complete');
+  const state = await ride(pilot, 70, map);
+  expect(state.status).toBe('complete');
+  // A genuinely different ride, not the replay saturating to the same line.
+  if (replayElapsed !== undefined) expect(Math.abs(state.elapsed - replayElapsed)).toBeGreaterThan(.05);
 }, 20_000);
+
+it.each<[string, Partial<AmperePilotTuning>]>([
+  ['the replay', {}],
+  ['a steep charge, a steep tip and a fast creep', { charge: 85, drop: 55, home: 2.5 }],
+  ['a shallow charge, a shallow tip and a slow creep', { charge: 75, drop: 45, home: 1.5 }],
+  ['a steeper forward tip', { drop: 60 }],
+])('also completes at 60 Hz with %s', async (_, tuning) => {
+  const { map, pilot } = variant({}, tuning);
+  const state = await ride(pilot, 80, map, undefined, 60);
+  expect(state.status).toBe('complete');
+  expect(state.collected).toHaveLength(6);
+}, 30_000);
 
 it.each<Controls>([{ tilt: 0, brake: false }, { tilt: 1, brake: false }, { tilt: -1, brake: false }, { tilt: 1, brake: true }])('is not completed by fixed controls (%o)', async control => {
   const state = await ride(() => control, 30);
