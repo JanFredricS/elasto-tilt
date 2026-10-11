@@ -45,6 +45,10 @@ export interface Level {
   bounds: { min: Vec; max: Vec }; swings?: Swing[]; props?: Prop[];
   portals?: Portal[]; timePlatforms?: TimePlatform[]; routeHints?: RouteHint[];
   timeAxis?: Vec; timeTravel?: number; initialAngle?: number;
+  /** Bike rotation (radians, counterclockwise) at spawn, about the frame centre (default 0, upright
+   *  in map space). A map that starts with the world turned over sets it so the rider starts upright
+   *  against that gravity: wheels toward the ridden face, head away from it. */
+  spawnAngle?: number;
   /** Top speed (m/s) of time platforms along their paths; default 2. */
   timeSpeed?: number;
   /** Normal riding view only; verticalOffset is a fraction of viewport height. */

@@ -188,7 +188,8 @@ export async function createPhysics(): Promise<PhysicsGame> {
     // Buried chain boxes overlap, so a wheel sinking into them meets several faces at once
     // and their summed depenetration throws it back out. Such levels predict landings.
     predictLandings = chains.size > 0;
-    frame = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(next.spawn.x, next.spawn.y)
+    const turn = next.spawnAngle ?? 0, ct = Math.cos(turn), st = Math.sin(turn);
+    frame = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(next.spawn.x, next.spawn.y).setRotation(turn)
       .setLinearDamping(.08).setAngularDamping(.12).setCcdEnabled(true));
     bikeColliders.push(register(RAPIER.ColliderDesc.cuboid(.58, .12).setMass(2.5).setFriction(.55)
       .setCollisionGroups(BIKE_GROUP), frame, { kind: 'bike', id: 'frame' }));
@@ -198,7 +199,8 @@ export async function createPhysics(): Promise<PhysicsGame> {
     renderBodies.push({ body: frame, view: { id: 'frame', w: 1.4, h: .72, kind: 'frame', shape: 'box' } });
     renderBodies.push({ body: frame, offset: { x: .126126126, y: .795 }, view: { id: 'head', w: .462, h: .462, kind: 'head', shape: 'ball' } });
     for (const [i, x] of [-.7, .7].entries()) {
-      const wheel = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(next.spawn.x + x, next.spawn.y - .36)
+      const wheel = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic()
+        .setTranslation(next.spawn.x + ct * x + st * .36, next.spawn.y + st * x - ct * .36).setRotation(turn)
         .setAngularDamping(.015).setCcdEnabled(true));
       const tyre = register(RAPIER.ColliderDesc.ball(.34).setMass(.65).setFriction(1.5)
         .setCollisionGroups(BIKE_GROUP), wheel, { kind: 'bike', id: `wheel-${i}` });

@@ -8,6 +8,7 @@ import { createOuroborosPilot } from '../levels/ouroboros';
 import { createFirstLessonPilot } from '../levels/first-lesson';
 import { createClockworkWedgePilot } from '../levels/clockwork-wedge';
 import { createSpringboardPilot } from '../levels/springboard';
+import { createHookesCeilingPilot } from '../levels/hookes-ceiling';
 import { createHuygensPilot } from '../levels/huygens-return';
 import { createPistonWorksPilot } from '../levels/piston-works';
 import type { Controls, Snapshot } from '../types';
@@ -37,8 +38,9 @@ const pilots: (() => Pilot)[] = [
   () => createTowerChasmPilot(0),   // 17 switchback-scaffold
   () => createTowerChasmPilot(1),   // 18 the-hidden-way-home
   () => createSpringboardPilot(),   // 19 hookes-springboard
-  () => createPistonWorksPilot(),   // 20 piston-works
-  createStairwayPilot,              // 21 stairway-to-heaven
+  () => createHookesCeilingPilot(), // 20 hookes-ceiling
+  () => createPistonWorksPilot(),   // 21 piston-works
+  createStairwayPilot,              // 22 stairway-to-heaven
 ];
 
 /** Input-only campaign pilot. Call once before each fixed 1/120 s physics step. */
