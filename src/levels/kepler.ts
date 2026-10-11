@@ -33,13 +33,17 @@ export interface KeplerShape {
   gap: number; drop: number; nose: number;
   /** Alcove beyond the hole: depth past the roof, the rounded edge at the tip and the alcove's corner radius. */
   depth: number; edge: number; corner: number;
+  /** The door's centre below the alcove's far face. Kept under the half-width (1.41 m) so the door
+   *  is drawn hanging from that face, not a side wall; as low as that allows, so its sensor reaches
+   *  well down toward the mouth and a falling rider touches it long before the head meets stone. */
+  door: number;
 }
 export const KEPLER_SHAPE: KeplerShape = {
   broad: 5.5, width: 10.2,
   tight: 3, height: 10, chord: 25,
   run: 4.5, kick: 10, kickRadius: 3,
   gap: 3.3, drop: .3, nose: .5,
-  depth: 3, edge: .4, corner: .8,
+  depth: 2.7, edge: .4, corner: .8, door: 1.3,
 };
 
 /** Points along an arc about centre (radians), every ~STEP metres, including both ends. */
@@ -116,7 +120,7 @@ export function keplerTrackFor(shape: KeplerShape): KeplerTrack {
     broadRight: turn(c0), broadLeft: turn(c1), tight: turn(c2),
     roofY: -floorY, tip: turn(tip), lip: turn(lip), padFrom, padTo, bottom: padFrom.y,
     alcove: { left: -wallX, right: -nearX, top: -bottomY },
-    door: p(-(nearX + wallX) / 2, -bottomY - 1.1),
+    door: p(-(nearX + wallX) / 2, -bottomY - shape.door),
   };
 }
 
@@ -137,7 +141,7 @@ export function buildKepler(shape: KeplerShape = KEPLER_SHAPE, apples: Apple[] =
   const level: Level = {
     id: 'keplers-orbit', name: 'Kepler’s Orbit', subtitle: 'Equal areas in equal times', difficulty: 6.75, accent: '#c98fae',
     mechanic: 'Turn the world round an egg-shaped loop: fast through its tight end, slow under its broad roof. A brass pad at the bottom throws you on; a hole in the roof is the way out.',
-    hint: 'Keep turning to ride round: turning on past upside-down flies you over the hole in the roof, and a fast dive onto the brass pad throws you up to the low apple. With both in, stop turning on the roof, brake, and fall up through the hole to the door.',
+    hint: 'Keep turning to ride round: turning on past upside-down flies you over the hole in the roof, and a fast dive onto the brass pad throws you up to the low apple. With both in, stop turning while you climb to the roof, so it is level when you get there, and roll gently into the hole: you fall up through it to the door.',
     spawn: p((track.padFrom.x + track.padTo.x) / 2, track.bottom + .72), initialAngle: 0,
     bounds: { min: p(Math.min(...xs) - 3, Math.min(...ys) - 3), max: p(Math.max(...xs) + 3, Math.max(...ys) + 3) },
     surfaces: [

@@ -4,6 +4,7 @@ import { createInput } from '../src/input';
 import { levels } from '../src/levels';
 import { createReplayPilot } from '../src/dev/replay';
 import { paletteFor } from '../src/art-direction';
+import { exitDoorPose } from '../src/renderer';
 import {
   buildKepler, createKeplerPilot, KEPLER_APPLES, KEPLER_HINTS, KEPLER_PILOT, KEPLER_SHAPE, keplerPilotFor, keplersOrbitLevel, keplerTrack,
 } from '../src/levels/kepler';
@@ -81,6 +82,11 @@ describe('Kepler’s Orbit', () => {
     expect(alcove.right - alcove.left).toBeGreaterThan(2.4);
     expect(door.y).toBeGreaterThan(roofY + 1);
     expect(door.x).toBeGreaterThan(alcove.left); expect(door.x).toBeLessThan(alcove.right);
+    // The door is drawn hanging from the alcove's far face (upright once the world is roof-upright),
+    // not from a side wall: it sits nearer that face than either wall.
+    const pose = exitDoorPose(keplersOrbitLevel.exit, keplersOrbitLevel.surfaces);
+    expect(Math.abs(Math.abs(pose.rotation) - Math.PI)).toBeLessThan(1e-6);
+    expect(alcove.top - door.y).toBeLessThan((alcove.right - alcove.left) / 2 - .05);
   });
 
   it('has one brass pad with the default restitution across the foot of the tight end, where the ride starts', () => {
@@ -205,6 +211,33 @@ describe('Kepler’s Orbit', () => {
       expect(state.status).toBe('crashed');
       expect(state.elapsed - frames[inside].elapsed).toBeLessThan(1);
     }
+  });
+
+  it('opens the door well before the head can reach stone: a falling rider wins the race with margin', async () => {
+    // The same falls with the door kept shut by one unreachable extra apple (sensors do not change the
+    // ride): the armed ride completes at least 0.1 s (12 steps) before the shut one crashes.
+    const shut: Level = { ...keplersOrbitLevel, apples: [...keplersOrbitLevel.apples,
+      { id: 'never', x: keplersOrbitLevel.bounds.min.x + 1, y: keplersOrbitLevel.bounds.min.y + 1 }] };
+    for (const creep of [.05, .6, 2.2]) {
+      const pilot = () => keplerPilotFor(keplerTrack, { ...KEPLER_PILOT, creep });
+      const open = await ride(keplersOrbitLevel, pilot()), closed = await ride(shut, pilot());
+      expect(open.state.status).toBe('complete');
+      expect(closed.state.status).toBe('crashed');
+      expect(closed.state.elapsed - open.state.elapsed).toBeGreaterThan(.1);
+    }
+  });
+
+  it('lets a keyboard rider out by simply letting go of the turn key on the climb to the roof', async () => {
+    // Hold the turn key from the start, release it at a range of moments on the second climb, never
+    // brake. Most fall in and reach the door; none crashes at the mouth holding all three apples (one
+    // grazes the aphelion and drops back onto the roof alive, free to ride round and fall in again).
+    let completed = 0;
+    for (let release = 8.6; release <= 9.8 + 1e-9; release += .05) {
+      const { state } = await ride(keplersOrbitLevel, s => ({ tilt: s.elapsed < release ? 1 : 0, brake: false }), 1 / 120, 25);
+      if (state.status === 'complete') completed++;
+      if (state.status === 'crashed') expect(state.collected, `release at ${release.toFixed(2)} s`).not.toContain('kepler-aphelion');
+    }
+    expect(completed).toBeGreaterThanOrEqual(12);
   });
 
   it('needs the pad: with plain stone at the foot of the tight end the perihelion apple is never reached', async () => {

@@ -11,3 +11,4 @@ Remaining design work:
 - Escher is a readable planar spiral through four gravity faces, with a shared ceiling/floor and an inner reversal. It has no impossible topology or portal transition.
 - Long controlled replay times are not minimum completion times. More human playtesting is needed to tune difficulty and discover shortcuts.
 - Physical phone comfort, orientation changes and sustained frame pacing still need hardware validation.
+- Kepler’s Orbit can also be left clockwise, back over the far lip, once both loop apples are in; this is kept as a feature. Its door is touched mid-fall, with a measured margin of at least 0.175 s before the head reaches stone. See [keplers-orbit.md](keplers-orbit.md#residuals--known-issues).
