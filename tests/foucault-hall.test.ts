@@ -97,3 +97,50 @@ it('keeps usable amplitude for a minute: every deck left alone still swings out 
     expect(amplitude).toBeLessThan(F.reach + .02);
   }
 }, 120_000);
+
+it('times every deck, not just the first: on each, a release about a second wide boards it and outside that window the bike drops in', async () => {
+  // Measured windows (lead before the deck strikes its stop): deck 0 1.7–2.8 s, deck 1 1.8–2.8 s, deck 2 1.8–2.7 s.
+  // The floor stays level while boarding (boardTilt 0): the stop, not a pinning tilt, is what makes the window.
+  for (const leg of [0, 1, 2]) {
+    const lead = (value: number) => [2.3, 2.3, 2.3].map((base, i) => i === leg ? value : base);
+    for (const value of [1.9, 2.7]) {
+      const state = await ride(createFoucaultPilot({ lead: lead(value), boardTilt: 0 }), 75);
+      expect(state.status, `deck ${leg}, lead ${value}`).toBe('complete');
+    }
+    for (const value of [1.5, 3.0]) {
+      const state = await ride(createFoucaultPilot({ lead: lead(value), boardTilt: 0 }), 75);
+      expect(state.status, `deck ${leg}, lead ${value}`).toBe('crashed');
+      expect(state.collected, `deck ${leg}, lead ${value}`).toHaveLength(leg);
+    }
+  }
+}, 120_000);
+
+it('releasing as the deck tops out on the far side boards the first two decks, but is too late for the long third deck', async () => {
+  // The hint's cue. Half a period before the stop is ≈ 2.05, 2.5 and 2.85 s.
+  const half = level.swings!.map(s => Math.PI / Math.sqrt(9.81 / (s.length + .755 / s.length)));
+  expect((await ride(createFoucaultPilot({ lead: [half[0], half[1], 2.3] }), 75)).status).toBe('complete');
+  const late = await ride(createFoucaultPilot({ lead: [2.3, 2.3, half[2]] }), 75);
+  expect(late.status).toBe('crashed');
+  expect(late.collected).toHaveLength(2);
+  expect(level.hint).toMatch(/tops out/);
+  expect(level.routeHints!.map(h => h.label)).toEqual(['WAIT', 'WAIT', 'WAIT']);
+}, 120_000);
+
+it('never pumps a deck without bound: two minutes of resonant floor rocking leaves every swing below 1.5 rad', async () => {
+  const peak = [0, 0, 0];
+  for (const period of [4.1, 5.7]) {
+    await ride(s => ({ tilt: Math.max(-1, Math.min(1, (.6 * Math.sin(2 * Math.PI * s.elapsed / period) - s.worldAngle) * 8)), brake: true }), 120,
+      { ...level, spawn: { x: -3, y: .72 } }, s => level.swings!.forEach((sw, i) => {
+        const deck = s.bodies.find(b => b.id === sw.id)!;
+        peak[i] = Math.max(peak[i], Number.isFinite(deck.x) ? Math.abs(deck.angle) : Infinity);
+      }));
+  }
+  for (const amplitude of peak) expect(amplitude).toBeLessThan(1.5);
+}, 120_000);
+
+it('closes the hall’s west end: tilting back from the spawn rests the bike against a wall, not off the map', async () => {
+  const state = await ride(s => ({ tilt: Math.max(-1, Math.min(1, (-.3 - s.worldAngle) * 8)), brake: false }), 15);
+  expect(state.status).toBe('playing');
+  expect(state.bike.x).toBeGreaterThan(level.bounds.min.x);
+  expect(state.bike.y).toBeGreaterThan(-.5);
+}, 120_000);

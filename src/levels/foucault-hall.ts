@@ -25,11 +25,12 @@ const slab = (id: string, from: Vec, to: Vec, h = .5): Surface => {
  *     with a 2 cm joint. The decks are released from 0.6 rad on the far side;
  *     their first swing west strikes the stop and loses the excess, so from
  *     then on each deck swings out just as far as its stop.
- *   - Wait braked at the top of the ramp, and roll down it to arrive as the
- *     deck comes in against the stop. As the front wheel crosses, turn the
- *     floor back toward the bank and the deck stays pressed against its stop
- *     while the rear wheel follows. Leave too early or too late and the bike
- *     drops into the water. Each deck needs its own release time.
+ *   - Wait braked at the top of the ramp, and roll down it (about 2.3 s) to
+ *     arrive as the deck comes in against the stop: let go as the deck tops
+ *     out on the far side, a moment sooner for the slow 8 m deck. The window
+ *     is about a second wide on every deck; outside it the bike drops into
+ *     the water. Turning the floor back as the front wheel crosses is
+ *     optional and does not change the window.
  *   - Level the floor: the deck swings out over the water with you aboard.
  *     Brake to ease to rest just east of its middle.
  *   - As it rises to the far bank, turn the floor under it so it comes to rest
@@ -112,6 +113,8 @@ const departure = (i: number, id: string) => {
   ];
 };
 const banks: Surface[] = [
+  // The hall's west end: a rider who tilts back from the spawn comes to rest here instead of falling off the map.
+  block('foucault-west-wall', F.start.x0 - .4, F.start.x0, floor, 1.8),
   slab('foucault-start', p(F.start.x0, 0), p(F.start.flat, 0)),
   slab('foucault-start-walk', p(F.start.flat, 0), lips[0].wait),
   ...departure(0, '0'),
@@ -134,12 +137,15 @@ export const FOUCAULT_LAYOUT = { swings, lips, floor };
 export const foucaultHallLevel: Level = {
   id: 'foucaults-hall', name: 'Foucault’s Hall', subtitle: 'The floor turns beneath the swing.',
   mechanic: 'Three free cradles of different lengths keep their own time over the water, each swinging out to a stop at its bank. Time each boarding to its own swing, and turn the floor to hold the deck.',
-  hint: 'Wait at the top of the ramp and roll down to meet the deck at its stop. Tilt back to hold it there while you roll aboard, then level and brake. As it rises to the far bank, tilt forward to stop it there and roll off.',
+  hint: 'Wait braked at the top of each ramp. Let go as the deck tops out on the far side (a moment sooner for the long last deck), so you reach the lip as it swings back against its stop. Ride it out braked, and as it rises to the far bank, tilt forward to hold it there and roll off.',
   spawn: p(0, .72), initialAngle: 0,
   // Tall enough for a deck swung right over its anchor.
   bounds: { min: p(F.start.x0 - 2, floor - 2), max: p(last.x + 10, Math.max(...swings.map(s => s.anchor.y + bottomRadius(s.length))) + .5) },
   surfaces: [...banks, ...water],
   swings,
+  // Zoomed out so a rider waiting at a ramp top can see the deck reach its far side (the 8 m deck tops out 10.5 m away).
+  camera: { zoom: .8 },
+  routeHints: lips.map(l => ({ x: l.wait.x + .3, y: l.wait.y + 2, angle: 0, label: 'WAIT' })),
   // One apple above each deck where it tops out by the far bank, over the rider's seat.
   apples: swings.map((s, i) => {
     const t = F.reach - F.overhang / 2, u = .6, v = 1.2;
