@@ -7,7 +7,7 @@ All ten routes have successful normal-input Rapier playthroughs. Swings carry ri
 Remaining design work:
 
 - Sustained one-wheel upside-down hanging and brake-assisted capture of a swing are not yet campaign requirements. The separate cradle fixture demonstrates a strong-brake wheel catch and pivot.
-- Attic’s loose weights and Conservatory’s inverted weights are physical objects, not required switches. Mill’s different lengths have different motion, but the passing route does not require waiting for a specific period.
+- Attic’s loose weights and Conservatory’s inverted weights are physical objects, not required switches. Mill’s different lengths have different motion, but its passing route does not require waiting for a specific period. Addressed by Foucault’s Hall: its three free decks have their own periods, and boarding each one off-phase drops the bike into the water ([foucault-hall.md](foucault-hall.md)).
 - Escher is a readable planar spiral through four gravity faces, with a shared ceiling/floor and an inner reversal. It has no impossible topology or portal transition.
 - Long controlled replay times are not minimum completion times. More human playtesting is needed to tune difficulty and discover shortcuts.
 - Physical phone comfort, orientation changes and sustained frame pacing still need hardware validation.
