@@ -58,6 +58,8 @@ const spawnParts = (spawn: Vec, turn = 0): Part[] => {
     { shape: 'ball' as const, ...at(-0.70, -0.36), radius: 0.34 },
     { shape: 'ball' as const, ...at(0.70, -0.36), radius: 0.34 },
     { shape: 'ball' as const, ...at(0.10, 0.69), radius: 0.21 },
+    // The visible head, swept for crashes every step (physics.ts headPosition / visibleHead).
+    { shape: 'ball' as const, ...at(0.126126126, 0.795), radius: 0.231 },
   ];
 };
 
@@ -80,6 +82,12 @@ describe('authored campaign', () => {
     ]);
     expect(levels.map((level) => level.difficulty)).toEqual([.5, 1, 2, 5, 6, 6.5, 7, 7.25, 7.5, 8, 9, 9.5, 10, 10.5, 11, 11.5, 12, 13, 14, 14.5, 14.6, 14.75, 15]);
     expect(new Set(levels.map((level) => level.id)).size).toBe(levels.length);
+  });
+
+  it.each(levels)('$name spawns the rider upright against its initial gravity', (level) => {
+    // spawnAngle is independent of initialAngle; a map that turns one must turn the other.
+    const bank = (level.spawnAngle ?? 0) - (level.initialAngle ?? 0);
+    expect(Math.abs(Math.atan2(Math.sin(bank), Math.cos(bank))), `${level.id}: spawnAngle disagrees with initialAngle`).toBeLessThan(.2);
   });
 
   it.each(levels)('$name has finite, bounded geometry and no initial bike overlap', (level) => {

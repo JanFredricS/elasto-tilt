@@ -70,26 +70,37 @@ it('the campaign replay table drives Hooke’s Ceiling at its own index', async 
   expect(state.status).toBe('complete');
 });
 
-it.each([0, .3])('a ceiling throw with only %f rad of lean falls into the first ceiling spike pit', async lean => {
-  const state = await ride(createHookesCeilingPilot(lean), 15);
+// Spikes made harmless stone: a crash that survives this is not the spikes' doing.
+const inertSpikes: Level = { ...level, surfaces: level.surfaces.map(s => s.kind === 'hazard' ? { ...s, kind: 'ground' as const } : s) };
+// Spike spans and far-ledge lips along the direction of travel (the ceiling half in its turned frame, X = −x).
+const pits = [
+  { name: 'first ceiling', pilot: (lean: number) => createHookesCeilingPilot(lean), seconds: 15, along: (x: number) => -x,
+    spikes: [-CEILING.pit1.spikes[0], -CEILING.pit1.spikes[1]], lip: CEILING.ledge1.x0, before: 'ceiling-ledge' },
+  { name: 'second ceiling', pilot: (lean: number) => createHookesCeilingPilot(.6, lean), seconds: 20, along: (x: number) => -x,
+    spikes: [-CEILING.pit2.spikes[0], -CEILING.pit2.spikes[1]], lip: CEILING.ledge2.x0, before: 'ceiling-nose' },
+  { name: 'last (floor)', pilot: (lean: number) => createHookesCeilingPilot(.6, .6, lean), seconds: 50, along: (x: number) => x,
+    spikes: [...CEILING.pit3.spikes], lip: CEILING.landing.x0, before: undefined },
+] as const;
+
+it.each(pits)('with no lean, the $name throw drops into its spike pit, and the spikes are what kill', async pit => {
+  const state = await ride(pit.pilot(0), pit.seconds);
   expect(state.status).toBe('crashed');
-  expect(state.collected).not.toContain('ceiling-ledge');
-  // Turned frame: map x −ledge1.x0 is the pit's far edge.
-  expect(state.bike.x).toBeGreaterThan(-(CEILING.ledge1.x0 + 2));
+  if (pit.before) expect(state.collected).not.toContain(pit.before);
+  const at = pit.along(state.bike.x), [near, far] = [Math.min(...pit.spikes.map(pit.along)), Math.max(...pit.spikes.map(pit.along))];
+  expect(at).toBeGreaterThan(near); expect(at).toBeLessThan(far);
+  // The same throw over harmless stone is still riding at the time limit.
+  expect((await ride(pit.pilot(0), pit.seconds, inertSpikes)).status).toBe('playing');
 });
 
-it.each([.35, .45])('the second ceiling jump stays tight: a %f rad lean there falls into pit 2', async lean => {
-  const state = await ride(createHookesCeilingPilot(.6, lean), 20);
-  expect(state.collected).toContain('ceiling-ledge');
+it.each([[0, .3], [1, .35], [1, .45], [2, .3]] as const)('a short throw (pit %i, %f rad) clears the spikes but strikes the far ledge’s lip', async (index, lean) => {
+  const pit = pits[index], state = await ride(pit.pilot(lean), pit.seconds);
   expect(state.status).toBe('crashed');
-  expect(state.bike.x).toBeLessThan(-CEILING.ledge1.x1); expect(state.bike.x).toBeGreaterThan(-(CEILING.ledge2.x0 + 1));
-});
-
-it.each([0, .3])('right-way-up again, the last throw with only %f rad of lean falls into the floor spike pit', async lean => {
-  const state = await ride(createHookesCeilingPilot(.6, .6, lean), 50);
-  expect(state.collected).toContain('ceiling-nose');
-  expect(state.status).toBe('crashed');
-  expect(state.bike.x).toBeGreaterThan(CEILING.pit3.spikes[0] - 4); expect(state.bike.x).toBeLessThan(CEILING.landing.x0 + 1);
+  if (pit.before) expect(state.collected).not.toContain(pit.before);
+  const at = pit.along(state.bike.x);
+  expect(at).toBeGreaterThan(pit.lip - 1); expect(at).toBeLessThan(pit.lip + 2.5);
+  // Not the spikes: with them made stone, the rider still crashes, at the same place.
+  const harmless = await ride(pit.pilot(lean), pit.seconds, inertSpikes);
+  expect(harmless.status).toBe('crashed'); expect(harmless.bike.x).toBeCloseTo(state.bike.x, 1);
 });
 
 it.each([.35, .55, .8])('the first ceiling jump forgives a %f rad lean and the ride completes', async lean => {

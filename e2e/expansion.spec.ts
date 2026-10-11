@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 
 // Looked up by id, so inserting a map does not silently shift these onto its neighbours.
 const maps = ['clockwork-wedge', 'underside-return', 'huygens-return', 'spiral-sanctuary', 'switchback-scaffold',
-  'the-hidden-way-home', 'hookes-springboard', 'piston-works', 'stairway-to-heaven'] as const;
+  'the-hidden-way-home', 'hookes-springboard', 'hookes-ceiling', 'piston-works', 'stairway-to-heaven'] as const;
 const flights: readonly string[] = ['spiral-sanctuary', 'switchback-scaffold', 'the-hidden-way-home'];
 for (const id of maps) {
   const index = levels.findIndex(level => level.id === id);

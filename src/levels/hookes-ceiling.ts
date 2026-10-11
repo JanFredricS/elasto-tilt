@@ -110,9 +110,10 @@ const ceiling: Surface[] = [
 export const hookesCeilingLevel: Level = {
   id: 'hookes-ceiling', name: 'Hooke’s Ceiling', subtitle: 'What falls up must come down',
   mechanic: 'Start upside down under the slab: ride its ceiling pads, curl round its nose, and finish with one more throw on top.',
-  hint: 'You start upside down: gravity points up into the ceiling. Drop up onto the brass, lean the world forward in the air and level it to land. Don’t brake on brass. Slow down at the nose and turn the world back as you curl onto the top.',
+  hint: 'You start upside down, riding under the slab: the world is turned over, so the ceiling looks like a floor (the map overview shows it). Drop up onto the brass, lean the world forward in the air and level it to land. Don’t brake on brass. After the second landing lean back and feather the brake: take the nose at walking pace and turn the world back as you curl onto the top.',
   spawn: flip(p(-1, .72)), spawnAngle: Math.PI, initialAngle: Math.PI,
-  bounds: { min: p(-76, -6), max: p(9, 17) },
+  // Room left of the nose for the CURL OVER label, so the overview shows it whole.
+  bounds: { min: p(-81, -6), max: p(9, 17) },
   surfaces: [
     ...ceiling.map(turn),
     ...nose,
@@ -135,7 +136,9 @@ export const hookesCeilingLevel: Level = {
     a('ceiling-arc-3', -22, 10.8),
   ],
   routeHints: [
-    ...([{ x: 7.2, y: 1.2, angle: -SLIDE, label: 'DROP UP' }, { x: 15.5, y: .2, angle: 0, label: 'LEAN' }] satisfies RouteHint[])
+    // Turned frame. SLOW sits just past the second landing: the nose (below) only turns at walking pace.
+    ...([{ x: 7.2, y: 1.2, angle: -SLIDE, label: 'DROP UP' }, { x: 15.5, y: .2, angle: 0, label: 'LEAN' },
+      { x: C.ledge2.x0 + 5, y: C.ledge2.y + 1.3, angle: 0, label: 'SLOW' }] satisfies RouteHint[])
       .map(hint => ({ ...hint, ...flip(hint), angle: hint.angle + Math.PI })),
     { x: C.nose.x - NOSE - 2, y: C.nose.y, angle: Math.PI / 2, label: 'CURL OVER', spin: -1 },
     { x: C.top.x1 + 1.2, y: C.top.y + 1.2, angle: -SLIDE, label: 'DROP' },
