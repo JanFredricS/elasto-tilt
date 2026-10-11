@@ -23,18 +23,22 @@ const grippy: Level = { ...level, brakeScale: 1, surfaces: level.surfaces.map(({
 const allIce: Level = { ...level, surfaces: level.surfaces.map(s => s.kind === 'cradle' ? { ...s, kind: 'ground', friction: ICE_FRICTION } : s) };
 
 /** How a rider schooled on grippy maps plays: lean a fixed amount into the
- *  direction of travel (following the track) and ride the brake for speed. */
-function brakeRider(lean: number) {
+ *  direction of travel (following the track) and ride the brake for speed.
+ *  With a `floor`, the world is never turned back past it on the way out. */
+function brakeRider(lean: number, floor = -Infinity) {
   let previous: Snapshot | undefined, v = 0;
   return (state: Snapshot): Controls => {
     const dt = previous ? state.elapsed - previous.elapsed : 0, { angle } = iceTrackAt(state.bike.x);
     if (previous && dt > 0) v = ((state.bike.x - previous.bike.x) * Math.cos(angle) + (state.bike.y - previous.bike.y) * Math.sin(angle)) / dt;
     previous = state;
-    const cruise = state.collected.includes('ice-kicker') ? -1.2 : iceSpeedAt(state.bike.x);
-    const target = iceTrackAt(state.bike.x + clamp(v * .5, -1.5, 1.5)).angle + Math.sign(cruise) * lean;
+    const home = state.collected.includes('ice-kicker'), cruise = home ? -1.2 : iceSpeedAt(state.bike.x);
+    let target = iceTrackAt(state.bike.x + clamp(v * .5, -1.5, 1.5)).angle + Math.sign(cruise) * lean;
+    if (!home) target = Math.max(target, floor);
     return { tilt: clamp((target - state.worldAngle) * 8, -1, 1), brake: Math.abs(v) > Math.abs(cruise) };
   };
 }
+/** x of the crest of the slide's last kicker, which drops onto the door mat. */
+const ICE_KICKER_CREST = ICE_CORNERS.find(c => c.at.x > 80 && c.at.x < ICE_DOOR.x)!.at.x;
 /** Hold the brake from the start and turn the world to `angle`. */
 const braced = (angle: number) => (state: Snapshot): Controls =>
   ({ tilt: clamp((angle - state.worldAngle) * 8, -1, 1), brake: true });
@@ -101,25 +105,30 @@ describe('The Ice House', () => {
       const { state } = await ride(level, s => ({ tilt: clamp((angle - s.worldAngle) * 8, -1, 1), brake: false }), 1 / 120, 40);
       expect(state.status, `held ${angle}`).not.toBe('complete');
     }
-    // Too much forward tilt sends the bike off a crest into a vault.
+    // Too much forward tilt throws the bike off the second shelf's crest.
     const { state } = await ride(level, s => ({ tilt: clamp((.5 - s.worldAngle) * 8, -1, 1), brake: false }), 1 / 120, 40);
     expect(state.status).toBe('crashed');
+    expect(state.collected).toContain('ice-shelf-1');
   });
 
   it('holds a braked bike on a mat but not on the ice, even with a full-strength brake', async () => {
-    const drift = async (map: Level) => {
-      const { state } = await ride(map, braced(.25), 1 / 120, 4);
+    const drift = async (map: Level, angle: number) => {
+      const { state } = await ride(map, braced(angle), 1 / 120, 4);
       return Math.abs(state.bike.x - level.spawn.x);
     };
-    expect(await drift(level)).toBeLessThan(.2);
-    expect(await drift(allIce)).toBeGreaterThan(1.5);
-    expect(await drift({ ...allIce, brakeScale: 1 })).toBeGreaterThan(1.5);
+    // The soft pad still parks the bike on a mat with the world turned .6 rad;
+    // polished, the same mat lets it slide away even with the full brake.
+    for (const angle of [.25, .6]) {
+      expect(await drift(level, angle), `mat at ${angle}`).toBeLessThan(.2);
+      expect(await drift(allIce, angle), `ice at ${angle}`).toBeGreaterThan(5);
+      expect(await drift({ ...allIce, brakeScale: 1 }, angle), `full brake on ice at ${angle}`).toBeGreaterThan(5);
+    }
   });
 
   it('gates on friction: braking for speed rides the grippy twin home but crashes on the ice', async () => {
     // A rider leaning .35 rad into the slope and braking whenever too fast: on
     // ordinary stone the brake holds the pace, on ice it cannot and the bike
-    // leaves the slide's roller into its vault.
+    // runs away down the slide.
     const grip = await ride(grippy, brakeRider(.35));
     expect(grip.state.status).toBe('complete');
     expect(Math.max(...grip.frames.map((s, i) => i ? Math.abs(s.bike.x - grip.frames[i - 1].bike.x) * 120 : 0))).toBeLessThan(3);
@@ -129,5 +138,22 @@ describe('The Ice House', () => {
     // The intended tilt-throttle pilot still completes when the mats are ice too:
     // the mats are where a player can stop, not something the tilt pilot needs.
     expect((await ride(allIce, createIceHousePilot())).state.status).toBe('complete');
+  });
+
+  it('throws a rider who keeps the world level and brakes down the final slide', async () => {
+    // The gentlest grippy-map habit: lean .15 rad into each climb, never turn the
+    // world back past level, and brake whenever too fast. Stone lets the brake
+    // shed the slide's speed; on ice the bike reaches the door kicker far too
+    // fast, leaves it and lands nose-first on the door mat.
+    const grip = await ride(grippy, brakeRider(.15, 0));
+    expect(grip.state.status).toBe('complete');
+    const ice = await ride(level, brakeRider(.15, 0));
+    expect(ice.state.status).toBe('crashed');
+    expect(ice.state.collected).toContain('ice-bump');
+    expect(ice.state.collected).not.toContain('ice-kicker');
+    expect(ice.state.bike.x).toBeGreaterThan(ICE_KICKER_CREST);
+    expect(ice.state.bike.x).toBeLessThan(ICE_DOOR.x + 2);
+    // Tilting the world back .2 rad on the descents instead rides the same habit home.
+    expect((await ride(level, brakeRider(.15, -.2))).state.status).toBe('complete');
   });
 });

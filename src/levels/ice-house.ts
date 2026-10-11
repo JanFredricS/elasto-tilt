@@ -23,16 +23,22 @@ export interface IceCorner { at: Vec; radius?: number; mat?: boolean }
  *   - The slick roof: a 12° ice gable to a ridge at y 8, falling 9.5° to the
  *     head of the slide.
  *   - The long ice slide: 24° down into a 30° ice roller (a short kicker under
- *     a low vault), 40° off its back to a level mid-slide mat (y 3), over the
- *     mat's lip and 22° down again to the door mat on the cellar floor (y −1).
+ *     a low vault), 40° off its back to a level mid-slide mat (y 3), then over
+ *     the mat's lip, 30° down for 7.5 m into a second kicker (26° up, 46° off
+ *     its back) that drops onto the door mat on the cellar floor (y −2.2).
+ *     Held level with the brake on, the bike cannot shed the slide's speed on
+ *     ice and is thrown off that kicker nose-first: tilt the world back instead.
  *   - Past the door, an ice run-out to a 37° kicker against the end wall, with
  *     the last apple on it: ride up, then reverse onto the door mat.
  *
  * Every face, crest and valley is a 2–5 m fillet. Off the mats the stone is
- * ice (friction ICE_FRICTION): the brake cannot hold the bike on any slope,
- * so world tilt is the throttle; the mats sit where the profile is level.
- * Low ice vaults hang over every crest: a rider who leaves the ice there
- * meets the vault with the helmet.
+ * ice (friction ICE_FRICTION): a braked bike slides on any slope over about 6°, and
+ * locked wheels scrub only about a tenth of g, so world tilt is the throttle.
+ * The mats sit where the profile is level; braked on one, the bike holds with
+ * the world turned up to about .7 rad. They are places to stop and rethink,
+ * not a requirement: tilt alone can ride every section. Low ice vaults hang
+ * over every crest; a rider who leaves the ice there (well over 5 m/s) meets
+ * the vault with the helmet.
  */
 export const ICE_CORNERS: IceCorner[] = [
   { at: p(-4.5, 0), mat: true },
@@ -52,10 +58,12 @@ export const ICE_CORNERS: IceCorner[] = [
   { at: p(64.6, 6.3), radius: 2 },
   { at: p(68.6, 3), radius: 3, mat: true },
   { at: p(73, 3), radius: 4 },
-  { at: p(83, -1), radius: 4, mat: true },
-  { at: p(87, -1) },
-  { at: p(93, -1.2), radius: 3 },
-  { at: p(95.4, .6) },
+  { at: p(79.5, -.8), radius: 2.5 },
+  { at: p(83, .9), radius: 2 },
+  { at: p(86, -2.2), radius: 3, mat: true },
+  { at: p(90, -2.2) },
+  { at: p(96, -2.4), radius: 3 },
+  { at: p(98.4, -.6) },
 ];
 
 /** The ridden polyline: straight runs between fillets, each fillet sampled every ≤ 5°.
@@ -100,13 +108,13 @@ export function iceSurfaces(profile: { at: Vec; mat: boolean }[], friction = ICE
 }
 
 export const ICE_PROFILE = iceProfile();
-export const ICE_DOOR = p(85.2, -.2);
+export const ICE_DOOR = p(88.2, -1.4);
 /** Clear height (m, along the face normal) under the cellar vaults. */
 export const ICE_HEADROOM = 2.6;
 /** Where the vaults hang: over every crest and lip, where a fast rider leaves the ice. */
 export const ICE_VAULTS: [id: string, x0: number, x1: number, clear?: number][] = [
   ['ice-vault-1', 8.5, 14], ['ice-vault-2', 21, 26.5], ['ice-vault-3', 33.5, 39],
-  ['ice-vault-roof', 46, 59], ['ice-vault-roller', 63.4, 66.6, 2.4], ['ice-vault-lip', 70.5, 76],
+  ['ice-vault-roof', 46, 59], ['ice-vault-roller', 63.4, 66.6, 2.4], ['ice-vault-lip', 70.5, 77], ['ice-vault-kicker', 81.6, 85],
 ];
 
 /** A low ice vault following the floor beneath it at `clear` metres: its underside
@@ -135,28 +143,30 @@ const ICE_APPLES: Apple[] = [
   fruit('ice-ridge', 51.2),
   fruit('ice-roller', 64.5),
   fruit('ice-slide-lip', 74.6),
+  fruit('ice-bump', 82.8),
   // Up the ice kicker past the door: the only apple that needs a reversal.
-  fruit('ice-kicker', 94.2),
+  fruit('ice-kicker', 97.2),
 ];
 const ICE_HINTS: RouteHint[] = [
   { x: 4.5, y: 2.2, angle: .7, label: 'ROCK', spin: 1 },
   { x: 49, y: 11.6, angle: 0, label: 'EASE' },
   { x: 63, y: 7.2, angle: -.42, label: 'HOLD BACK', spin: -1 },
-  { x: 90, y: 3.2, angle: Math.PI, label: 'HOME' },
+  { x: 78, y: 3, angle: -.52, label: 'HOLD BACK', spin: -1 },
+  { x: 93, y: 1.8, angle: Math.PI, label: 'HOME' },
 ];
 
 export const iceHouseLevel: Level = {
   id: 'ice-house', name: 'The Ice House', subtitle: 'Without friction, only gravity steers',
   mechanic: 'Polished ice gives the tyres almost no grip and the brake barely bites. Climb three tilted ice shelves, cross the slick roof and ease down the long slide; only the gold-striped mats hold a braked bike.',
   hint: 'Brakes are weak on ice: tilt is your throttle. Rock the world toward each ice face to climb it, rock it back as you crest, and brake only on the gold mats.',
-  spawn: p(0, .72), bounds: { min: p(-6, -4), max: p(98, 13) }, difficulty: 8.5, accent: '#9cc8e8',
+  spawn: p(0, .72), bounds: { min: p(-6, -4), max: p(101, 13) }, difficulty: 8.5, accent: '#9cc8e8',
   brakeScale: ICE_BRAKE,
   surfaces: [
     ...iceSurfaces(ICE_PROFILE),
     ...ICE_VAULTS.flatMap(([id, x0, x1, clear]) => vault(id, x0, x1, clear)),
     // Cellar walls at both ends.
     { id: 'ice-back-wall', x: -4.8, y: 2.5, w: .6, h: 5, kind: 'ground' },
-    { id: 'ice-end-wall', x: 95.7, y: 1.5, w: .6, h: 6, kind: 'ground' },
+    { id: 'ice-end-wall', x: 98.7, y: .5, w: .6, h: 6, kind: 'ground' },
   ],
   apples: ICE_APPLES, routeHints: ICE_HINTS,
   exit: ICE_DOOR,
@@ -171,8 +181,8 @@ export function iceMatAt(x: number, profile = ICE_PROFILE): boolean {
 /** Outbound cruise speed (m/s) the pilot holds at x: slow over every crest and lip,
  *  and slower still up the kicker past the door. */
 export function iceSpeedAt(x: number): number {
-  if (x > 88) return 1;
-  const crests = [10.5, 23, 35.5, 51, 57, 64.6, 73];
+  if (x > 91) return 1;
+  const crests = [10.5, 23, 35.5, 51, 57, 64.6, 73, 83];
   return Math.min(...crests.map(c => Math.abs(x - c))) < 2.2 ? 1.3 : 2.2;
 }
 

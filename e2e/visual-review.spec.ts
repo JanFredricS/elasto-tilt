@@ -4,7 +4,7 @@ test('Clockwork timeline and utilities occupy separate rows on narrow landscape'
   await page.setViewportSize({ width: 667, height: 375 });
   await page.goto('/?debug');
   await page.waitForFunction(() => Boolean((window as any).__NEWTON__));
-  await page.evaluate(() => (window as any).__NEWTON__.load(12));
+  await page.evaluate(() => (window as any).__NEWTON__.load(13));
   const timeline = page.locator('[data-ui="timeline-wrap"]');
   const utility = page.locator('[data-ui="utility"]');
   await expect(timeline).toBeVisible();
@@ -30,7 +30,7 @@ test('renderer disposes its canvas after repeated annotated map loads', async ({
     const created = host.querySelectorAll('canvas').length;
     const physics = await createPhysics();
     const spiral = levels.findIndex((level: { id: string }) => level.id === 'spiral-sanctuary');
-    for (const index of [12, spiral, 12]) {
+    for (const index of [13, spiral, 13]) {
       physics.load(levels[index]);
       renderer.load(levels[index]);
       renderer.render(physics.snapshot(), 1 / 60);
