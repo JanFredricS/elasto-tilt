@@ -57,41 +57,52 @@ const shift = (surfaces: Surface[], by: Vec) => surfaces.map(s => ({ ...s, x: s.
  *     its 6 m path) and every metre the rider descends raises it. The ledger cannot go below
  *     empty or above full: descending with an empty ledger costs nothing, climbing with a full
  *     one earns nothing. It starts empty, so the bridge starts at its top stop, 6 m above the
- *     tower floor, and riding straight east drops the rider into the pit.
- *   - West of the spawn the floor rounds over a knee into the cellar: a 20° ramp down to a
- *     floor 6.5 m below the tower's, and a quarter-pipe up the west wall. The ride down is free
- *     (the ledger is already empty); the climb back out fills it — full .5 m below the crest,
- *     so a rider back on the tower floor has parked the bridge exactly flush with it, however
- *     they rode the cellar. Any net descent after that would raise it again; the floor from
- *     the cellar's crest to the pit is level.
- *   - The bridge only moves while the rider's altitude changes, so it is still whenever the
- *     rider is on it (the floors either side are level). Its path is vertical, along the
- *     ledger's axis, and the rider never rides it while it moves: that keeps the route clear of
- *     the known passive-carry defect (docs/physics-residuals.md).
+ *     kerbs, and riding straight east drops the rider into the pit.
+ *   - West of the spawn the floor rounds over a wide knee (radius 9, so a fast rider barely
+ *     leaves the ground) into the cellar: a 20° ramp down to a floor 6.5 m below the tower's,
+ *     and a quarter-pipe up the west wall. The ride down is free (the ledger is already empty);
+ *     the climb back out fills it, a metre below the kerb tops.
+ *   - Because the ledger saturates, a full ledger forgets any height the rider gains and then
+ *     loses: a hop, or the frame pitching up under a hard brake, raises the bridge by that much.
+ *     So each pit edge stands on a kerb, a .5 m climb: whatever the tower floor cost (up to
+ *     .5 m) is paid back on the kerb, and the bridge is flush with the kerb tops whenever the
+ *     rider reaches them from a full ledger, however they rode the cellar or the floor.
+ *   - The bridge moves only while the rider's altitude changes. The kerb tops are flat and
+ *     longer than the wheelbase, so in an ordinary crossing neither wheel is on the bridge
+ *     while it moves. Its path is vertical, along the ledger's axis (the configuration of the
+ *     passive-carry defect, docs/physics-residuals.md), but here carrying feeds back
+ *     negatively: a rider carried up is compensated, and a rider sinking with it raises it.
  *   - East of the pit a corridor (floor 0, ceiling 2.6) holds a light, heavily damped ball
  *     that falls UP (inverted, gravityScale −1), pressed against the ceiling. It fills the
  *     corridor: the rider has to push it east along the ceiling (the front wheel meets it
  *     below its middle, so the push rolls it forward along the stone) until it is under the
  *     well, a round pocket up into the ceiling as wide as the ball (plus .1 m). There it rises,
  *     seats against the pocket's round top (socket) and becomes fixed stone, crowning .45 m
- *     below the ceiling. A lintel at the corridor's west end keeps a drifting ball from
- *     floating away over the pit; the damping keeps world tilts elsewhere from carrying it far.
+ *     below the ceiling. Drifting west, the ball wedges against the east kerb under the
+ *     ceiling (2.1 m of headroom there); drifting east past the well, it stays under the
+ *     ceiling of the corridor or the hall, and any east-down tilt floats it back into the well.
  *   - The corridor runs on east over a knee and a 22° ramp into a hall whose east end is a
- *     half loop (radius 4) up onto the ceiling's underside. Upside down, the rider rides the
+ *     half loop (radius 4.5) up onto the ceiling's underside. Upside down, the rider rides the
  *     ceiling back west, over the seated ball, to the last apple and the door at the
  *     corridor's west end. Without the plug the inverted rider falls up into the well, whose
  *     top is a hazard.
+ *   - The hall floor is 6.4 m below the corridor's, deeper than the ledger: a rider east of the
+ *     pit (back from the ceiling, say, for a missed cellar apple) refills the ledger by riding
+ *     down into the hall and back up, so the bridge can always be re-parked from either side.
  */
 export const LEIBNIZ = {
   floor: { x0: -4, x1: 20, y: 0 }, spawnX: 2,
-  cellar: { depth: 6.5, ramp: 20 * deg, knee: 3, valley: 4, pipe: 4, bottom: 5, wall: 4 },
+  cellar: { depth: 6.5, ramp: 20 * deg, knee: 9, valley: 4, pipe: 4, bottom: 5, wall: 4 },
   pit: { x0: 20, x1: 28, hazard: -5 },
-  bridge: { x: 24, w: 7.9, h: .42, top: 6, low: 0 },
+  /** Both pit edges stand on a kerb: a 4 m rise of .5 m and a flat top longer than the
+   * wheelbase, so neither wheel is on the bridge while the rider's height changes. */
+  kerb: { rise: .5, run: 4, top: 1.6 },
+  bridge: { x: 24, w: 7.9, h: .42, top: 6.5, low: .5 },
   timeTravel: 6,
-  corridor: { x0: 28, x1: 56, ceiling: 2.6, roof: 5.2, lintel: { x1: 28.6, bottom: 2.1 } },
-  ball: { r: 1.25, x: 33, density: .3, damping: 4, friction: .9 },
+  corridor: { x0: 28, x1: 56, ceiling: 2.6, roof: 5.2 },
+  ball: { r: 1.25, x: 34, density: .3, damping: 4, friction: .9 },
   well: { x: 42, half: 1.3, crown: .45 },
-  hall: { knee: 3, ramp: 22 * deg, valley: 4, floor: 3, loop: 4 },
+  hall: { knee: 3, ramp: 22 * deg, valley: 4, floor: 3, loop: 4.5 },
   exit: p(31, 1.8),
 };
 const L = LEIBNIZ;
@@ -138,10 +149,25 @@ const hall = (() => {
 })();
 export const HALL = { floorY: hall.floorY, loopTop: hall.top };
 
+/** The kerbs: each pit edge is the top of a short rise (one convex chain apiece), so the last
+ * half metre of every approach to the bridge is a climb. */
+const kerbs = (() => {
+  const K = L.kerb, slope = Math.atan2(K.rise, K.run), along = Math.hypot(K.rise, K.run);
+  const west = run('ledger-kerb-west', p(L.pit.x0 - K.top - K.run, L.floor.y), [
+    { chain: 'ledger-kerb-west', heading: slope, length: along },
+    { chain: 'ledger-kerb-west', heading: 0, length: K.top },
+  ]);
+  const east = run('ledger-kerb-east', p(L.pit.x1, L.floor.y + K.rise), [
+    { chain: 'ledger-kerb-east', heading: 0, length: K.top },
+    { chain: 'ledger-kerb-east', heading: -slope, length: along },
+  ]);
+  return [...west.surfaces, ...east.surfaces];
+})();
+
 export const leibnizCounterweightLevel: Level = {
   id: 'leibniz-counterweight', name: 'Leibniz’s Counterweight', subtitle: 'Every action has its reckoning.',
   mechanic: 'The LEDGER counts your altitude: every metre you climb lowers the bridge a metre, every metre you descend raises it. Fill it in the cellar, cross, push the rising ball up into its well, then loop onto the ceiling and ride home upside down.',
-  hint: 'The bridge starts high. Ride down into the cellar and climb back out: the climb lowers the bridge flush with the floor. In the corridor push the ball east until it rises into the well, then loop through the hall and ride the ceiling back west over it to the door.',
+  hint: 'The bridge starts high. Ride down into the cellar and climb back out: the climb lowers it until it sits flush with the kerbs (any drop afterwards raises it again). In the corridor push the ball east until it rises into the well, then loop through the hall and ride the ceiling back west over it to the door.',
   spawn: p(L.spawnX, L.floor.y + .72), bounds: { min: p(-36, -10), max: p(82, 10) },
   surfaces: [
     // The tower: its floor, the cellar to the west and the pit to the east.
@@ -150,10 +176,10 @@ export const leibnizCounterweightLevel: Level = {
     block('ledger-cellar-fill', cellar.bottomX0, L.floor.x0, -L.cellar.depth - .6, L.pit.hazard - 3),
     block('ledger-west-wall', cellar.wallX - .6, cellar.wallX, L.cellar.wall + 4, -L.cellar.depth - .6),
     { ...block('ledger-pit', L.pit.x0, L.pit.x1, L.pit.hazard, L.pit.hazard - .4), kind: 'hazard' as const },
-    // The corridor, its ceiling split by the well, and the lintel at its west end.
+    ...kerbs,
+    // The corridor and its ceiling, split by the well.
     block('ledger-corridor', L.pit.x1, L.corridor.x1, L.floor.y, L.pit.hazard),
     block('ledger-ceiling-west', L.pit.x1, L.well.x - L.well.half, L.corridor.roof, L.corridor.ceiling),
-    block('ledger-lintel', L.pit.x1, L.corridor.lintel.x1, L.corridor.ceiling, L.corridor.lintel.bottom),
     ...turn('ledger-well-right', L.well.x, WELL_Y, L.ball.r + .02, 0).map((s, i) => i >= 6 ? { ...s, kind: 'hazard' as const } : s),
     ...turn('ledger-well-left', L.well.x, WELL_Y, L.ball.r + .02, Math.PI / 2).map((s, i) => i <= 1 ? { ...s, kind: 'hazard' as const } : s),
     ...hall.surfaces,
@@ -176,7 +202,7 @@ export const leibnizCounterweightLevel: Level = {
   routeHints: [
     { x: -2, y: 1.6, angle: Math.PI, label: 'DESCEND' },
     { x: -14, y: -2, angle: L.cellar.ramp, label: 'CLIMB' },
-    { x: 30, y: .9, angle: 0, label: 'PUSH' },
+    { x: 30.5, y: 1.4, angle: 0, label: 'PUSH' },
     { x: 66, y: -1, angle: 0, label: 'LOOP' },
   ],
   exit: L.exit, difficulty: 10.25, accent: '#d8b06a',
@@ -186,8 +212,8 @@ export const leibnizCounterweightLevel: Level = {
  * Observation-only demonstration (fixed 1/120 s steps), heading-relative like the late pilots:
  * target = trackAngle + clamp((speed − v)·0.22, ±lean). It rides west down into the cellar, turns
  * at its bottom apple and climbs back out (filling the ledger, which parks the bridge), crosses,
- * pushes the ball slowly east until it seats in the well, then rides on through the hall's loop
- * and back west along the ceiling, upside down, to the door. It never brakes.
+ * pushes the ball east until it seats in the well, then rides on through the hall's loop and
+ * back west along the ceiling, upside down, to the door. It never brakes.
  */
 export function createLeibnizPilot(): (state: Snapshot) => Controls {
   let previous: Vec | undefined, angle = 0, lastRawAngle = 0;
@@ -207,7 +233,7 @@ export function createLeibnizPilot(): (state: Snapshot) => Controls {
     switch (stage) {
       case 'west': return follow(-2.5);
       case 'east': return follow(2.5);
-      case 'push': return follow(1.2, .45);
+      case 'push': return follow(3, .6);
       case 'ride': return follow(2.5);
     }
   };
