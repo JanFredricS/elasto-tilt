@@ -25,7 +25,7 @@ export interface Prop extends Vec {
   /** Linear damping (default .12): a high value makes a prop grind along, capping how fast it can be pushed. */
   damping?: number;
   /** When the prop rests within `tolerance` of this point (speed below `speed`, default .2 m/s, and,
-   *  if `angle` is set, turned no more than that from level), it becomes fixed terrain. */
+   *  if `angle` is set, turned no more than that from its starting `angle`), it becomes fixed terrain. */
   socket?: { x: number; y: number; tolerance: number; speed?: number; angle?: number };
 }
 export interface Swing { id: string; anchor: Vec; length: number; width: number; damping?: number; angle?: number; mass?: number }

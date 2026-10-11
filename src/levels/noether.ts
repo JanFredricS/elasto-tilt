@@ -61,27 +61,39 @@ const chute = (id: string, top: Vec, floor: number, angle: number, knee: number)
  * Why the twins survive the outward ride. While the rider is on top the world is near level, so in
  * every twin's own frame gravity points "up", away from its floor:
  *   - The twin plank is an inverted pendulum; it starts leaning a hair onto its shelf (the swing's
- *     lower stop). The swing's quarter turn (world +π/2) presses it harder onto that stop; turning
- *     the world round the east nose swings its gravity past it, then down: it creeps about 5°
- *     off the stop toward its tower (it is light and very heavily damped, so it does not swing
- *     back by itself). Board it briskly and stop a little past the bearing: the rider's weight
- *     there returns it to the stop; a slow rider's weight short of the bearing runs it away from
- *     the shelf under the back wheel.
+ *     lower stop). A plank this heavily damped still creeps under its own weight (Rapier damps
+ *     before it integrates gravity, so the creep is ≈ (g/L)·dt per step whatever the damping) and,
+ *     inverted, any backward tilt of the world tips it off the stop toward its tower, where it
+ *     stays. So each plank has a chock: a heavy block in a slot under its heel, between the shelf
+ *     face and a low post. In the plank's own frame, with gravity "up" the chock rises against the
+ *     heel and presses the plank onto its stop; it grips the post with friction 2, so it holds
+ *     while gravity swings round the east nose until the world is nearly turned, then drops to the
+ *     slot floor, below everything the swinging plank sweeps. The original chock sits on its floor
+ *     throughout the outward ride (a quarter turn presses it sideways, never up); on the return, with
+ *     its plank left standing at the tower, it floats out of its slot, harmlessly. The twin plank
+ *     therefore meets the rider within about 1° of rest however long the outward ride dawdles.
+ *     Board briskly and stop a little past the bearing: a slow rider's weight short of the
+ *     bearing runs the plank away from the shelf under the back wheel.
  *   - The twin wedge rises a hand's breadth onto its lintel and rests flat against it. The lintel
  *     follows the ramp face, so a wedge sliding west under it jams between lintel and floor (a stop
  *     that only a wedge meets), and a wedge pushed east only opens the gap. When the world turns
  *     round the east nose it drops the hand's breadth back onto its floor and creeps a metre toward
  *     its seat. The original wedge, on the floor, drifts under two metres east while the world is
  *     turned for the swing (the damping caps a wedge sliding under its own weight at ≈ .2 m/s, a
- *     rider pushing adds several times its weight), well short of tipping into the seat's recess:
- *     its seat sits 7.5 m on. It only becomes stone dropped in level against the step (a
- *     tolerance of .1 m), so a wedge hung tilted on the recess lip is never fixed askew.
+ *     rider pushing adds several times its weight); about 3.9 m of drift would tip it onto the
+ *     recess lip, and a wedge pushed in from there still seats. It only becomes stone dropped in
+ *     level against the step (a tolerance of .1 m: it sinks into the recess slower than the
+ *     settle speed, so a wider tolerance would freeze it mid-drop), and the recess floor is slick
+ *     stone, so a wedge that drops in short of the step slides home as soon as the world tips
+ *     toward the step or the rider rolls onto its ramp.
  *   - Spring pads, spikes and pistons do not care which way is down.
  */
 const DEG = Math.PI / 180;
 const T0 = 0;
 /** The swing: bearing length, plank width, the hand's breadth between plank and shelf. */
 const SWING = { length: 4, width: 3, gap: .03, mass: .1, damping: 400 };
+/** The chock: a heavy block in a slot under the plank's heel, between the shelf face and a low post. */
+const CHOCK = { w: .6, h: .5, density: 3, friction: 2, damping: 2, post: .2, floor: -1.2 };
 const CREST = 2, FACE = 1.5;
 const WEDGE = { w: 5, h: 2.85, toe: .35, density: .1, friction: .75, damping: 50, gap: .15, lintel: [3.1, 7.5] as const };
 const PIECE = { w: .9, h: .5, offset: .65 }, OVER = .1;
@@ -116,7 +128,7 @@ export const NOETHER = {
   /** The wedge's seat: a recess as deep as its toe at the foot of the step (x = step). */
   seat: { x0: X.step - WEDGE.w - .3, x1: X.step },
   spawn: p(XL + 6, T0 + .72), exit: p(XL + 2.5, T0 + .8),
-  ids: { swing: 'noether-swing', wedge: 'noether-wedge', lift: 'noether-lift' },
+  ids: { swing: 'noether-swing', wedge: 'noether-wedge', lift: 'noether-lift', chock: 'noether-chock' },
 };
 const N = NOETHER;
 type Lift = typeof N.lift;
@@ -149,7 +161,9 @@ const inset = (NOSE_R - .75) / Math.SQRT2;
  *  together fill the monument without either poking out of the other face. */
 const topSurfaces: Surface[] = [
   block('noether-home', XL, X.shelf, T0, -1.8),
-  block('noether-bay', X.shelf, X.face + 1, T0 - 1.2, -1.8),
+  block('noether-bay', X.shelf, X.face + 1, T0 + CHOCK.floor, -1.8),
+  // The chock's post: its top stays a hand's breadth below everything the swinging plank sweeps.
+  { ...block('noether-chock-post', X.shelf + CHOCK.w + .055, X.shelf + CHOCK.w + .055 + CHOCK.post, T0 - .6, T0 + CHOCK.floor), friction: CHOCK.friction },
   block('noether-bay-wall', X.face + 1, X.face + CREST, towerFoot, -1.8),
   block('noether-tower', X.face, X.face + CREST, T1 - CREST, towerFoot),
   block('noether-crest-core', X.face + .7, X.face + CREST, T1 - .7, T1 - CREST),
@@ -163,7 +177,7 @@ const topSurfaces: Surface[] = [
   block('noether-ledge', N.pit.spikes[1], X.shaft, N.pit.ledge, 0),
   block('noether-shaft', X.shaft, X.shaft + SPAN.shaft, N.pit.ledge - 1.2, 0),
   block('noether-wedge-deck', X.shaft + SPAN.shaft, N.seat.x0, T1, 1.2),
-  block('noether-seat', N.seat.x0, N.seat.x1, T1 - WEDGE.toe, 1.2),
+  { ...block('noether-seat', N.seat.x0, N.seat.x1, T1 - WEDGE.toe, 1.2), friction: 0 },
   block('noether-step', X.step, XR, E, 1.2),
   lintel,
   ...nose.surfaces,
@@ -175,6 +189,10 @@ const wedge: Prop = {
   id: N.ids.wedge, shape: 'wedge', x: X.wedge + WEDGE.w / 2, y: T1 + WEDGE.h / 2, w: WEDGE.w, h: WEDGE.h, toe: WEDGE.toe,
   density: WEDGE.density, friction: WEDGE.friction, damping: WEDGE.damping,
   socket: { x: N.seat.x1 - WEDGE.w / 2, y: T1 + WEDGE.h / 2 - WEDGE.toe, tolerance: .1, speed: .25, angle: .03 },
+};
+const chock: Prop = {
+  id: N.ids.chock, shape: 'box', x: X.shelf + .015 + CHOCK.w / 2, y: T0 + CHOCK.floor + CHOCK.h / 2, w: CHOCK.w, h: CHOCK.h,
+  density: CHOCK.density, friction: CHOCK.friction, damping: CHOCK.damping,
 };
 const topApples: Apple[] = [
   a('noether-apple-face', X.face - .9, towerFoot + .75),
@@ -193,7 +211,8 @@ export const noetherLevel: Level = {
   surfaces: [...topSurfaces, ...topSurfaces.map(twinSurface)],
   swings: [swing, { ...swing, id: twinId(swing.id), anchor: twinPoint(swing.anchor), angle: Math.PI - .006 }],
   props: [wedge, { ...wedge, id: twinId(wedge.id), ...twinPoint(wedge), angle: Math.PI,
-    socket: { ...wedge.socket!, ...twinPoint(wedge.socket!) } }],
+    socket: { ...wedge.socket!, ...twinPoint(wedge.socket!) } },
+  chock, { ...chock, id: twinId(chock.id), ...twinPoint(chock), angle: Math.PI }],
   timePlatforms: [...pistons(N.ids.lift, N.lift),
     ...pistons(N.ids.lift, N.lift).map(t => ({ ...t, id: twinId(t.id), from: twinPoint(t.from), to: twinPoint(t.to) }))],
   apples: [...topApples, ...topApples.map(apple => ({ id: `${apple.id}-return`, ...twinPoint(apple) }))],
@@ -203,7 +222,9 @@ export const noetherLevel: Level = {
     { x: X.shaft - 2.5, y: N.pit.ledge + 1.6, angle: 0, label: 'WAIT' },
     { x: X.wedge - 1.5, y: T1 + 1.4, angle: 0, label: 'PUSH' },
   ] as RouteHint[]).flatMap(hint => [hint, { ...hint, ...twinPoint(hint), angle: hint.angle + Math.PI, label: hint.label }])
-    .concat([{ x: XR + NOSE_R + 2.2, y: noseCentre.y, angle: -Math.PI / 2, label: 'TURN UNDER' }]),
+    // Each nose: a falling-world spin arrow beside its widest point (the west one brings the rider home).
+    .concat([{ x: XR + NOSE_R + 2.2, y: noseCentre.y, angle: -Math.PI / 2, label: 'TURN UNDER', spin: -1 },
+      { ...twinPoint(p(XR + NOSE_R + 2.2, noseCentre.y)), angle: Math.PI / 2, label: 'TURN HOME', spin: -1 }]),
 };
 
 /** Where a lift's tops are at `time`, and how long until they next reach the bottom / top. */
@@ -252,7 +273,7 @@ export function createHalfPilot(options: HalfOptions = {}): (state: Snapshot) =>
     const due = (eta: number, by: number) => eta < by && eta > by - .6;
     // Stage changes.
     // Board briskly and brake a little past the bearing, measured on the plank as it hung when the
-    // rider reached it (the twin comes out of the nose hanging a few degrees off true): a slow
+    // rider reached it (the twin, chocked, comes out of the nose within about 1° of true): a slow
     // rider's weight west of the bearing runs the plank away from the shelf under the back wheel.
     if (hung === undefined && x > X.shelf - .5) hung = theta;
     if (hung !== undefined && x > N.anchor.x + SWING.length * Math.sin(hung) + .3) aboard = true;

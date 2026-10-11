@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { createPhysics } from '../src/physics';
-import { createNoetherPilot, NOETHER as N, noetherLevel as level, twinPoint } from '../src/levels/noether';
+import { createHalfPilot, createNoetherPilot, NOETHER as N, noetherLevel as level, twinPoint, type HalfOptions } from '../src/levels/noether';
 import { levels } from '../src/levels';
 import { createReplayPilot } from '../src/dev/replay';
 import type { Controls, Level, Snapshot } from '../src/types';
@@ -46,6 +46,8 @@ it('is its own image under a half turn about the origin: every stone, plank, wed
   const [wedge, wedgeTwin] = level.props!;
   expect(wedgeTwin).toMatchObject({ ...twinPoint(wedge), angle: Math.PI, w: wedge.w, h: wedge.h, toe: wedge.toe, damping: wedge.damping,
     socket: { ...wedge.socket, ...twinPoint(wedge.socket!) } });
+  const chock = level.props!.find(p => p.id === N.ids.chock)!, chockTwin = level.props!.find(p => p.id === `${N.ids.chock}-twin`)!;
+  expect(chockTwin).toMatchObject({ ...twinPoint(chock), angle: Math.PI, w: chock.w, h: chock.h, density: chock.density, friction: chock.friction });
   const pistons = level.timePlatforms!.filter(t => !t.id.endsWith('-twin'));
   for (const t of pistons) {
     const twin = level.timePlatforms!.find(u => u.id === `${t.id}-twin`)!;
@@ -165,7 +167,7 @@ it.each([
   { name: 'plank', map: (twin: boolean) => without({ swings: level.swings!.filter(s => s.id.endsWith('-twin') !== twin) }), at: N.anchor, apple: 'noether-apple-face' },
   { name: 'spring pad', map: (twin: boolean) => without({ surfaces: level.surfaces.filter(s => s.id !== `noether-pad${twin ? '-twin' : ''}`) }), at: { x: N.pit.spikes[0], y: N.pit.pad }, apple: 'noether-apple-throw' },
   { name: 'lift', map: (twin: boolean) => without({ timePlatforms: level.timePlatforms!.filter(t => t.id.endsWith('-twin') !== twin) }), at: { x: N.lift.x, y: N.pit.ledge }, apple: 'noether-apple-lift' },
-  { name: 'wedge', map: (twin: boolean) => without({ props: level.props!.filter(p => p.id.endsWith('-twin') !== twin) }), at: { x: N.seat.x1, y: N.T1 }, apple: 'noether-apple-step' },
+  { name: 'wedge', map: (twin: boolean) => without({ props: level.props!.filter(p => p.id !== `${N.ids.wedge}${twin ? '-twin' : ''}`) }), at: { x: N.seat.x1, y: N.T1 }, apple: 'noether-apple-step' },
 ])('needs the $name on both halves: without it (or its twin) the ride stops there', async ({ map, at, apple }) => {
   for (const twin of [false, true]) {
     const state = await ride(createNoetherPilot(), 160, map(twin));
@@ -192,3 +194,63 @@ it('holds the twin wedge on its lintel through the outward ride; without the lin
   expect(state.status).not.toBe('complete');
   expect(state.collected).not.toContain('noether-apple-step-return');
 }, 60_000);
+
+// The demonstration pilot, except that once `start` holds it brakes and holds the world at `angle` for `seconds`.
+const dawdle = (start: (s: Snapshot) => boolean, angle: number, seconds: number) => {
+  const pilot = createNoetherPilot();
+  let from: number | undefined;
+  return (s: Snapshot): Controls => {
+    const input = pilot(s);
+    if (from === undefined && start(s)) from = s.elapsed;
+    return from !== undefined && s.elapsed - from < seconds ? { tilt: Math.max(-1, Math.min(1, (angle - s.worldAngle) * 8)), brake: true } : input;
+  };
+};
+/** Braked on the east nose (all four top apples taken) where its heading is `heading`, the world turned to match. */
+const onNose = (heading: number) => (s: Snapshot) => s.collected.length >= 4 && s.bike.x > N.nose.centre.x &&
+  Math.atan2(s.bike.y - N.nose.centre.y, s.bike.x - N.nose.centre.x) <= heading + Math.PI / 2;
+const onLedge = (s: Snapshot) => s.collected.length === 2 && s.bike.y < N.pit.ledge + 1.2 && Math.abs(s.bike.x - (N.X.shaft - 1.3)) < .3;
+
+it('keeps the twin plank chocked on its stop however long the outward ride dawdles with the world tipped back; without its chock the return crashes on it', async () => {
+  const twinTilt = (s: Snapshot) => Math.abs(wrap(body(s, `${N.ids.swing}-twin`).angle - Math.PI));
+  for (const pilot of [dawdle(onNose(-60 * Math.PI / 180), -60 * Math.PI / 180, 60), dawdle(onLedge, -.5, 60)]) {
+    let boarding: number | undefined;
+    const state = await ride(pilot, 260, level, s => { if (boarding === undefined && s.bike.y < 0 && -s.bike.x > N.X.shelf - 1) boarding = twinTilt(s); });
+    expect(boarding).toBeLessThan(.03);
+    expect(state.status).toBe('complete');
+  }
+  // A heavily damped plank still creeps under its own weight: unchocked, 15 s braked on the nose tips the twin off its stop.
+  const state = await ride(dawdle(onNose(-60 * Math.PI / 180), -60 * Math.PI / 180, 15), 160,
+    without({ props: level.props!.filter(p => p.id !== `${N.ids.chock}-twin`) }));
+  expect(state.status).toBe('crashed');
+  expect(state.collected).toEqual(expect.arrayContaining(outwardApples));
+  expect(state.collected).not.toContain('noether-apple-face-return');
+  const where = twinPoint(state.bike);
+  expect(Math.hypot(where.x - N.anchor.x, where.y - N.anchor.y)).toBeLessThan(5);
+}, 60_000);
+
+it('pushes a wedge home that the world tipped onto its recess lip before the rider came', async () => {
+  for (const drift of [4.5, 6.5]) {
+    const map = without({ props: level.props!.map(p => p.id === N.ids.wedge ? { ...p, x: p.x + drift } : p) });
+    let tipped = 0;
+    const state = await ride(createHalfPilot(), 50, map, s => { tipped = Math.max(tipped, Math.abs(body(s, N.ids.wedge).angle)); });
+    expect(tipped, `drift ${drift}`).toBeGreaterThan(.05);
+    expect(state.collected, `drift ${drift}`).toContain('noether-apple-step');
+  }
+}, 60_000);
+
+it('seats a wedge that dropped into its recess short of the step once the world tips toward it; on rough stone it would stay loose', async () => {
+  for (const rough of [false, true]) {
+    const map = without({
+      spawn: { x: N.seat.x0 - 3, y: N.T1 + .72 },
+      surfaces: level.surfaces.map(s => s.id === 'noether-seat' && rough ? { ...s, friction: undefined } : s),
+      props: level.props!.map(p => p.id === N.ids.wedge ? { ...p, x: p.socket!.x - .28, y: p.socket!.y + .01 } : p),
+    });
+    const state = await ride(s => ({ tilt: Math.max(-1, Math.min(1, (.4 - s.worldAngle) * 8)), brake: true }), 8, map);
+    expect(!!body(state, N.ids.wedge).settled, `rough ${rough}`).toBe(!rough);
+  }
+}, 60_000);
+
+it.each<HalfOptions>([{ board: 2.8 }, { board: 3.3 }, { lean: .5 }, { lean: .7 }, { push: .35 }, { push: .55 }, { rounding: 1.4 }, { rounding: 1.8 }])(
+  'also completes the circuit with the pilot changed to %o on both halves', async options => {
+    expect((await ride(createNoetherPilot(options))).status).toBe('complete');
+  }, 60_000);
