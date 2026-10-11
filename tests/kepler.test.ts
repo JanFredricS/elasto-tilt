@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createPhysics } from '../src/physics';
+import { createInput } from '../src/input';
 import { levels } from '../src/levels';
 import { createReplayPilot } from '../src/dev/replay';
 import { paletteFor } from '../src/art-direction';
@@ -25,6 +26,24 @@ const apple = (id: string) => keplersOrbitLevel.apples.find(a => a.id === id)!;
 /** The same map with the brass pad taken out: the chain's own stone chord is left at the foot. */
 const stoneLevel = buildKepler(KEPLER_SHAPE, KEPLER_APPLES, KEPLER_HINTS, false).level;
 const firstIndex = (frames: Snapshot[], id: string) => frames.findIndex(s => s.collected.includes(id));
+/** The pad's throw: from falling fast to rising fast within two steps, at the foot of the tight end. */
+const throws = (frames: Snapshot[], hz: number, until = frames.length - 1) => {
+  const vy = (i: number) => (frames[i].bike.y - frames[i - 1].bike.y) * hz;
+  let count = 0;
+  for (let i = 3; i <= until; i++) if (frames[i].bike.y < bottom + 2 && vy(i - 2) < -2 && vy(i) > 2) count++;
+  return count;
+};
+/** The yielding pilot, told it already holds both loop apples: it falls into the hole on its first roof pass. */
+const early = (creep: number) => {
+  const pilot = keplerPilotFor(keplerTrack, { ...KEPLER_PILOT, creep });
+  return (s: Snapshot) => pilot({ ...s, collected: [...new Set([...s.collected, 'kepler-perihelion', 'kepler-roof'])] });
+};
+class BrowserSurface extends EventTarget {
+  performance = globalThis.performance;
+  screen = { orientation: Object.assign(new EventTarget(), { angle: 0 }) };
+  DeviceOrientationEvent = class {};
+  hidden = false;
+}
 
 describe('Kepler’s Orbit', () => {
   it('is campaign map 7, between the Pendulum Mill and Escher’s Orchard, in the rose palette', () => {
@@ -98,11 +117,8 @@ describe('Kepler’s Orbit', () => {
     expect(peri).toBeGreaterThan(firstIndex(frames, 'kepler-roof'));
     expect(aph).toBeGreaterThan(peri);
     expect(frames[peri].worldAngle).toBeGreaterThan(1.5 * Math.PI);
-    const vy = (i: number) => (frames[i].bike.y - frames[i - 1].bike.y) * hz;
-    // The pad's throw: from falling fast to rising fast within two steps, at the foot of the tight end.
-    let thrown = false;
-    for (let i = 3; i <= peri; i++) thrown ||= frames[i].bike.y < bottom + 2 && vy(i - 2) < -2 && vy(i) > 2;
-    expect(thrown).toBe(true);
+    // The pad's throw precedes the perihelion (the stone counterfactual below never shows one).
+    expect(throws(frames, hz, peri)).toBeGreaterThan(0);
     // The exit is upward: the bike leaves through the roof into the alcove, at the world's roof-upright.
     expect(state.bike.y).toBeGreaterThan(roofY);
     expect(Math.abs(Math.cos(state.worldAngle) + 1)).toBeLessThan(.05);
@@ -111,6 +127,43 @@ describe('Kepler’s Orbit', () => {
       expect(s.bike.x).toBeGreaterThan(min.x); expect(s.bike.x).toBeLessThan(max.x);
       expect(s.bike.y).toBeGreaterThan(min.y); expect(s.bike.y).toBeLessThan(max.y);
     }
+  });
+
+  it('completes through smoothed discrete direction-button pulses at frame cadence (keyboard rate)', async () => {
+    vi.stubGlobal('window', new BrowserSurface());
+    vi.stubGlobal('document', new BrowserSurface());
+    const input = createInput(), game = await createPhysics();
+    game.load(keplersOrbitLevel);
+    const pilot = createKeplerPilot();
+    let pulseError = 0, state = game.snapshot(), controls: Controls = { tilt: 0, brake: false };
+    try {
+      for (let step = 0; step < 120 * 60 && state.status === 'playing'; step++) {
+        const desired = pilot(state);
+        if (step % 2 === 0) {
+          // Genuine button states (-1, 0, 1) at 60 Hz, through the real input smoothing; the world
+          // then turns at most .95 rad/s, the keyboard rate.
+          pulseError += desired.tilt;
+          const direction = Math.max(-1, Math.min(1, Math.round(pulseError)));
+          pulseError -= direction;
+          input.setTouchTilt(direction);
+          input.setBrake(desired.brake);
+          controls = input.read(1 / 60, state.worldAngle);
+        }
+        state = game.step(1 / 120, controls);
+      }
+      expect(state.status, JSON.stringify({ elapsed: state.elapsed, apples: state.collected, bike: state.bike })).toBe('complete');
+      expect(state.collected).toHaveLength(3);
+    } finally {
+      input.destroy(); game.destroy(); vi.unstubAllGlobals();
+    }
+  });
+
+  it('settles on the pad at spawn without a spurious throw', async () => {
+    const { state, frames } = await ride(keplersOrbitLevel, () => ({ tilt: 0, brake: false }), 1 / 120, 3);
+    expect(state.status).toBe('playing');
+    expect(Math.max(...frames.map(s => s.bike.y))).toBeLessThan(keplersOrbitLevel.spawn.y + .01);
+    expect(Math.abs(state.bike.y - keplersOrbitLevel.spawn.y)).toBeLessThan(.05);
+    expect(Math.abs(state.bike.x - keplersOrbitLevel.spawn.x)).toBeLessThan(.05);
   });
 
   it.each<Controls>([{ tilt: 0, brake: false }, { tilt: 1, brake: false }, { tilt: -1, brake: false }, { tilt: 1, brake: true }])(
@@ -130,6 +183,30 @@ describe('Kepler’s Orbit', () => {
     expect(passes).toBeGreaterThanOrEqual(3);
   });
 
+  it('lets in anyone who stops turning on the roof: a rider who only follows the bike round falls into the hole on its first pass', async () => {
+    // The pilot without its lean past roof-upright over the hole, at any cruise speed.
+    for (const speed of [4, 7]) {
+      const { state, frames } = await ride(keplersOrbitLevel, keplerPilotFor(keplerTrack, { ...KEPLER_PILOT, hole: 0, speed }, false), 1 / 120, 20);
+      const inside = frames.findIndex(s => s.bike.y > roofY + .2);
+      expect(inside).toBeGreaterThan(0);
+      expect(frames[inside].collected).not.toContain('kepler-perihelion');
+      // Without both loop apples the door does not open and the fall ends in a crash, not a stranded rider.
+      expect(state.status).toBe('crashed');
+      expect(state.elapsed - frames[inside].elapsed).toBeLessThan(1);
+    }
+  });
+
+  it('crashes promptly, never strands the rider, when the hole is taken before the loop apples', async () => {
+    for (const creep of [.3, .6, 1.3]) {
+      const { state, frames } = await ride(keplersOrbitLevel, early(creep), 1 / 120, 30);
+      const inside = frames.findIndex(s => s.bike.y > roofY + .2);
+      expect(inside).toBeGreaterThan(0);
+      expect(state.collected).not.toContain('kepler-perihelion');
+      expect(state.status).toBe('crashed');
+      expect(state.elapsed - frames[inside].elapsed).toBeLessThan(1);
+    }
+  });
+
   it('needs the pad: with plain stone at the foot of the tight end the perihelion apple is never reached', async () => {
     // The same closed-loop pilot rides lap after lap but no dive into the tight end lifts it to the apple.
     const closed = await ride(stoneLevel, createKeplerPilot(), 1 / 120, 60);
@@ -137,6 +214,8 @@ describe('Kepler’s Orbit', () => {
     expect(closed.state.collected).not.toContain('kepler-perihelion');
     expect(closed.state.collected).toContain('kepler-roof');
     expect(closed.state.worldAngle).toBeGreaterThan(3 * 2 * Math.PI);
+    // The throw the positive test measures never happens over stone: the detector is honest.
+    expect(throws(closed.frames, 120)).toBe(0);
     // And the exact inputs of the successful ride, replayed over stone, do not complete either.
     const { inputs } = await ride(keplersOrbitLevel, createKeplerPilot());
     const game = await createPhysics(); game.load(stoneLevel);

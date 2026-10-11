@@ -15,7 +15,11 @@ The whole ridden face is one chain (`kepler-orbit`). It runs from the alcove’s
 
 **The tight end wants speed.** A fast dive down the left side strikes the pad at the 25° kink with a real normal speed: measured, about 4.8 m/s, of which 3.1 m/s is downward. The pad reflects 0.9 of that normal speed and throws the rider up about 2.7 m/s over the pad. This carries the head through the perihelion apple, which hangs 2.4 m above the pad’s face. A rolling rider there reaches no higher than about 2.0 m over the pad’s middle (measured on a grid of probe points). With plain stone in place of the brass, the dive’s normal speed is simply absorbed: in 60 s and more than three laps the same pilot never reaches the apple.
 
-**The broad roof wants slowness.** Along the roof, the bike is upside down and held up by a world turned about half a revolution. A rider carrying speed is thrown off the kicker across the hole and lands on the far lip, lap after lap. Its flight stays below the roof line, so it never touches the aphelion apple. That apple sits 0.8 m into the hole’s mouth. Only a rider who brakes on the roof and creeps over the kicker at walking pace falls up through the hole. Falling, that rider takes the aphelion apple and touches the door. The exit is upward, the opposite of the Ouroboros, which is left by falling down.
+**The broad roof wants you to stop turning.** Along the roof, the bike is upside down and held up by a world turned about half a revolution. What sorts riders at the hole is the world’s lean, more than raw speed. A rider who keeps turning, with the world well past roof-upright (the pilot holds 1 rad, which crossed at every cruise speed tried from 4 to 9 m/s; 0.7 rad crossed only at the lower speeds), is thrown off the kicker across the hole and lands on the far lip, lap after lap. Its flight stays below the roof line, so it never touches the aphelion apple, which sits 0.8 m into the hole’s mouth. A keyboard rider who simply holds the turn key does this. A rider who stops turning on the roof falls up through the hole at any speed the roof allows (4–9 m/s targets all fall in at a lean of 0.5 rad or less). Falling, that rider takes the aphelion apple and touches the door. The demonstration brakes and creeps over the kicker for a clean, repeatable fall; a keyboard rider who holds the turn key and simply lets go on the second roof pass, without braking, also completes (3 of the 4 release times from 8.75 to 9.5 s, in steps of 0.25 s). The exit is upward, the opposite of the Ouroboros, which is left by falling down.
+
+**Falling in too early is a crash, not a trap.** The alcove is only 3 m deep. A bike that falls into it tumbles. With all three apples it touches the door first, while still falling (the door’s sensor covers the alcove’s middle). Without them the door stays shut, and about 0.3 s after entering, the head strikes the alcove’s far face. So a player who drops in before the loop apples gets the crash card at once and retries, instead of being stranded alive in a dead end. This is gentler than the Ouroboros, where an early fall leaves the rider alive in the corridor below. It is also what happens to most first attempts: a rider who just follows the bike round, without turning past upside-down over the roof, falls into the hole on the first pass and crashes.
+
+**Either direction.** The far lip is 0.3 m further out than the kicker tip, so a rider going round the other way (clockwise) cannot jump the hole toward the kicker and always falls in. A rider who takes both loop apples and then turns back, riding clockwise round to the far lip, also falls up to the door. This is the same lesson from the other side: going round clockwise, the rider is not turning forward. In a sweep of two-key inputs (hold right, then hold left from a chosen moment), only 2 of 37 switch times completed, so this route needs real control rather than a lucky key press.
 
 ## Route (demonstration)
 
@@ -40,17 +44,24 @@ It also completes with its cruise speed anywhere from 4.5 to 6.5 m/s and its yie
 
 **Positive.** The pilot completes at both 1/120 and 1/60 s. It takes the roof apple, then the perihelion, then the aphelion. The perihelion comes after more than three quarters of a turn of the world and after a measured pad throw (falling faster than 2 m/s to rising faster than 2 m/s within two steps). The bike finishes above the roof with the world at roof-upright, and stays inside bounds throughout.
 
+**Keyboard rate.** The pilot’s wishes are turned into genuine button states (−1, 0, 1) at 60 Hz and fed through the real input smoothing (`createInput().setTouchTilt`). The world then turns at no more than 0.95 rad/s, and the map still completes. Lap pumping and the world angle’s climb do not depend on phone-rate rotation.
+
+**Spawn.** Idle for 3 s, the bike stays on the pad within 5 cm of its spawn and never rises: no spurious throw.
+
 **Negative.** Idle, held tilt either way, and held tilt with the brake never complete in 40 s. A pilot that never slows orbits for 60 s: three or more passes over the hole, both loop apples taken, never above the roof line, aphelion never taken.
 
-**Counterfactual.** The pad is replaced by the chain’s plain stone chord (`buildKepler(…, pad = false)`). The closed-loop pilot rides more than three laps in 60 s without reaching the perihelion apple. Replaying the exact inputs of the successful ride over stone does not complete either.
+**The hole sorts by turning.** The pilot without its lean over the hole (`hole: 0`), cruising at 4 or 7 m/s, falls into the hole on its first pass, before the perihelion, and crashes less than 1 s later.
+
+**Early entry is a crash.** The yielding pilot, made to believe it already holds both loop apples, falls into the alcove on its first roof pass. At creep speeds of 0.3, 0.6 and 1.3 m/s it crashes less than 1 s after entering, never left alive in the alcove.
+
+**Counterfactual.** The pad is replaced by the chain’s plain stone chord (`buildKepler(…, pad = false)`). The closed-loop pilot rides more than three laps in 60 s without reaching the perihelion apple. The throw detector used by the positive test finds no throw at all over stone, so it measures the pad and nothing else. Replaying the exact inputs of the successful ride over stone does not complete either. A pilot cruising at 4 m/s on the real pad dives too slowly to be thrown and also never takes the perihelion apple.
 
 ## Deviations from the brief
 
 **The pad does not add speed.** The brief asked for a spring pad that “adds speed per lap”. A pad’s restitution is at most 1 and is applied only along its normal, so it can never add energy. A rider who rolls tangentially onto a flush pad is not launched at all (`SPRING_MIN_SPEED`). Instead, the pad is set as a chord into the tight arc, so a fast dive strikes it. It preserves 90% of the speed the 25° kink would otherwise swallow, and turns it into the throw that reaches the perihelion apple. Laps themselves are powered, as in the Ouroboros, by leaning gravity ahead of the bike.
 
-**Slowness is needed only at the hole.** With the world turning to follow the bike, a slow rider can hang anywhere on the roof. Only the hole tells slow from fast, so the “slow” apple is the one in the hole’s mouth.
+**Slowness is needed only at the hole, and it means not turning.** With the world turning to follow the bike, a slow rider can hang anywhere on the roof. Only the hole tells slow from fast, so the “slow” apple is the one in the hole’s mouth. The roof caps speed at about 5–7.5 m/s at the kicker for every rider measured, so the hole tests the lean of the world rather than the speedometer. The hint says so: keep turning to fly over, stop turning to fall in.
 
 ## Residuals
 
-- Falling into the alcove before the perihelion apple is a commitment. Turning the world back drops the bike out through the hole head-first onto the pad far below, so the player restarts. This is the Ouroboros’s own rule for its hole.
 - As with every map, human timing on a physical phone is unmeasured.

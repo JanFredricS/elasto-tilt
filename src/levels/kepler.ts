@@ -137,7 +137,7 @@ export function buildKepler(shape: KeplerShape = KEPLER_SHAPE, apples: Apple[] =
   const level: Level = {
     id: 'keplers-orbit', name: 'Kepler’s Orbit', subtitle: 'Equal areas in equal times', difficulty: 6.75, accent: '#c98fae',
     mechanic: 'Turn the world round an egg-shaped loop: fast through its tight end, slow under its broad roof. A brass pad at the bottom throws you on; a hole in the roof is the way out.',
-    hint: 'Keep turning to ride round. Jump the hole in the roof with speed until every apple is yours, then brake on the roof and fall up through it to the door.',
+    hint: 'Keep turning to ride round: turning on past upside-down flies you over the hole in the roof, and a fast dive onto the brass pad throws you up to the low apple. With both in, stop turning on the roof, brake, and fall up through the hole to the door.',
     spawn: p((track.padFrom.x + track.padTo.x) / 2, track.bottom + .72), initialAngle: 0,
     bounds: { min: p(Math.min(...xs) - 3, Math.min(...ys) - 3), max: p(Math.max(...xs) + 3, Math.max(...ys) + 3) },
     surfaces: [
@@ -154,7 +154,9 @@ const track0 = keplerTrackFor(KEPLER_SHAPE);
 /** Perihelion: over the middle of the pad, higher than any rolling rider reaches, so only the pad's
  *  throw of a fast dive into the tight end collects it. Roof: on the run before the hole, taken on
  *  every lap. Aphelion: just inside the hole's mouth, out of reach of a rider thrown across it, so
- *  only a rider slow enough to fall up through the hole collects it, on the way to the door. */
+ *  only a rider who falls up through the hole collects it, on the way to the door. Riders cross the
+ *  hole only while the world is turned well past roof-upright (the pilot holds 1 rad); anyone who
+ *  stops turning on the roof falls in, and without both loop apples crashes in the alcove. */
 export const KEPLER_APPLES: Apple[] = [
   { id: 'kepler-perihelion', x: (track0.padFrom.x + track0.padTo.x) / 2, y: track0.bottom + 2.4 },
   { id: 'kepler-roof', x: track0.broadRight.x - 2.2, y: track0.roofY - 1 },
@@ -162,7 +164,8 @@ export const KEPLER_APPLES: Apple[] = [
 ];
 export const KEPLER_HINTS: RouteHint[] = [
   { x: track0.padTo.x + 1.2, y: track0.bottom + 2.4, angle: Math.PI / 4, label: 'ROUND', spin: 1 },
-  { x: track0.tip.x + 1.2, y: track0.roofY - 2.4, angle: Math.PI / 2, label: 'OUT' },
+  // Under the hole, pointing up through it to the door.
+  { x: track0.door.x, y: track0.roofY - 2.2, angle: Math.PI / 2, label: 'OUT' },
 ];
 const built = buildKepler(KEPLER_SHAPE, KEPLER_APPLES, KEPLER_HINTS);
 export const keplerTrack = built.track;
