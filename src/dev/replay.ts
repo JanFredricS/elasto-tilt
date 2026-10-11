@@ -10,6 +10,7 @@ import { createClockworkWedgePilot } from '../levels/clockwork-wedge';
 import { createSpringboardPilot } from '../levels/springboard';
 import { createHuygensPilot } from '../levels/huygens-return';
 import { createPistonWorksPilot } from '../levels/piston-works';
+import { createAmperePilot } from '../levels/amperes-loop';
 import type { Controls, Snapshot } from '../types';
 
 type Pilot = (state: Snapshot) => Controls;
@@ -34,11 +35,12 @@ const pilots: (() => Pilot)[] = [
   () => createFlipSpiralPilot(0),   // 14 underside-return
   () => createHuygensPilot(),       // 15 huygens-return
   () => createFlipSpiralPilot(1),   // 16 spiral-sanctuary
-  () => createTowerChasmPilot(0),   // 17 switchback-scaffold
-  () => createTowerChasmPilot(1),   // 18 the-hidden-way-home
-  () => createSpringboardPilot(),   // 19 hookes-springboard
-  () => createPistonWorksPilot(),   // 20 piston-works
-  createStairwayPilot,              // 21 stairway-to-heaven
+  createAmperePilot,                // 17 amperes-loop
+  () => createTowerChasmPilot(0),   // 18 switchback-scaffold
+  () => createTowerChasmPilot(1),   // 19 the-hidden-way-home
+  () => createSpringboardPilot(),   // 20 hookes-springboard
+  () => createPistonWorksPilot(),   // 21 piston-works
+  createStairwayPilot,              // 22 stairway-to-heaven
 ];
 
 /** Input-only campaign pilot. Call once before each fixed 1/120 s physics step. */
