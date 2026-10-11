@@ -1,9 +1,9 @@
 import { expect, it } from 'vitest';
 import { createPhysics } from '../src/physics';
-import { CEILING, createHookesCeilingPilot, hookesCeilingLevel as level } from '../src/levels/hookes-ceiling';
+import { CEILING, CEILING_FILLER, createHookesCeilingPilot, hookesCeilingLevel as level } from '../src/levels/hookes-ceiling';
 import { levels } from '../src/levels';
 import { createReplayPilot } from '../src/dev/replay';
-import type { Controls, Level, Snapshot } from '../src/types';
+import type { Controls, Level, Snapshot, Surface } from '../src/types';
 
 const frameOf = (state: Snapshot) => state.bodies.find(body => body.kind === 'frame')!;
 async function ride(pilot: (state: Snapshot) => Controls, seconds = 50, map: Level = level, watch?: (state: Snapshot) => void) {
@@ -119,4 +119,37 @@ it('without the brass pads (plain stone in their place) the same pilot never lea
 it.each<Controls>([{ tilt: 0, brake: false }, { tilt: 1, brake: false }, { tilt: -1, brake: false }])('is not completed by fixed controls (%o)', async control => {
   const state = await ride(() => control, 30);
   expect(state.status).not.toBe('complete');
+});
+
+// The nose (radius 3 since the second audit) at keyboard rate: the pace and how exactly gravity tracks the frame.
+it.each([1, 3])('rounds the nose at keyboard rate from a %f m/s approach', async speed => {
+  const state = await ride(createHookesCeilingPilot(.6, .6, .6, 2.5, speed), 55);
+  expect(state.status).toBe('complete');
+});
+it.each([-.25, .25])('rounds the nose with gravity %f rad off the frame’s heading', async bias => {
+  const state = await ride(createHookesCeilingPilot(.6, .6, .6, 2.5, 1.8, bias), 55);
+  expect(state.status).toBe('complete');
+});
+it('flies off the top of the nose when taken at a run (3.6 m/s)', async () => {
+  let topSide = false;
+  const state = await ride(createHookesCeilingPilot(.6, .6, .6, 2.5, 3.6), 30, level, s => { if (s.bike.y > CEILING.top.y) topSide = true; });
+  expect(state.status).toBe('crashed');
+  expect(topSide).toBe(true);
+  expect(state.collected).not.toContain('ceiling-arc-3');
+});
+
+it('its filler stone (inside the nose and between the slides) is cosmetic: the ride is the same without it', async () => {
+  expect(CEILING_FILLER.length).toBeGreaterThan(40);
+  const bare: Level = { ...level, surfaces: level.surfaces.filter(s => !CEILING_FILLER.includes(s.id)) };
+  const [full, without] = [await ride(createHookesCeilingPilot(), 50), await ride(createHookesCeilingPilot(), 50, bare)];
+  expect(without.status).toBe('complete');
+  expect(full.elapsed).toBeCloseTo(without.elapsed, 1);
+  // And no filler corner lies on, or within a metre outside, any ridden face.
+  const corners = (s: Surface) => { const c = Math.cos(s.angle ?? 0), n = Math.sin(s.angle ?? 0);
+    return [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([u, v]) => ({ x: s.x + u * s.w / 2 * c - v * s.h / 2 * n, y: s.y + u * s.w / 2 * n + v * s.h / 2 * c })); };
+  for (const filler of level.surfaces.filter(s => CEILING_FILLER.includes(s.id))) for (const point of corners(filler)) for (const face of bare.surfaces) {
+    const c = Math.cos(face.angle ?? 0), n = Math.sin(face.angle ?? 0), dx = point.x - face.x, dy = point.y - face.y;
+    const along = dx * c + dy * n, out = -dx * n + dy * c - face.h / 2;
+    if (Math.abs(along) <= face.w / 2 + .05) expect(out <= -.03 || out >= 1, `${filler.id} near ${face.id}`).toBe(true);
+  }
 });

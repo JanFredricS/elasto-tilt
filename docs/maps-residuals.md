@@ -11,3 +11,4 @@ Remaining design work:
 - Escher is a readable planar spiral through four gravity faces, with a shared ceiling/floor and an inner reversal. It has no impossible topology or portal transition.
 - Long controlled replay times are not minimum completion times. More human playtesting is needed to tune difficulty and discover shortcuts.
 - Physical phone comfort, orientation changes and sustained frame pacing still need hardware validation.
+- Hooke’s Ceiling is the first map to start with the world turned over (`initialAngle` and `spawnAngle` π). On a phone that means starting half turned or recalibrating. Its nose (radius 3 m) is keyboard-rate limited to about 3.3 m/s, but a phone has no rate limit, so the map plays differently on the two inputs. See [hookes-ceiling.md](hookes-ceiling.md#residuals--known-issues).
