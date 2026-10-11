@@ -66,15 +66,15 @@ describe('authored campaign', () => {
       { x: 1, y: 0, w: 2, h: 0.2, angle: Math.PI / 4 })).toBe(true);
   });
 
-  it('orders the twenty-two campaign maps by rising difficulty', () => {
+  it('orders the twenty-three campaign maps by rising difficulty', () => {
     expect(levels.map((level) => level.id)).toEqual([
       'newtons-first-lesson', 'newtons-orchard', 'one-wheel-wonder', 'room-on-its-side', 'newtons-attic',
-      'pendulum-mill', 'eschers-orchard', 'newtons-cannonball', 'newtons-ouroboros', 'contrary-conservatory',
+      'pendulum-mill', 'eschers-orchard', 'newtons-cannonball', 'newtons-ouroboros', 'contrary-conservatory', 'torricellis-well',
       'gravity-engine', 'hanging-garden', 'clockwork-apple', 'clockwork-wedge', 'underside-return',
       'huygens-return', 'spiral-sanctuary', 'switchback-scaffold', 'the-hidden-way-home', 'hookes-springboard',
       'piston-works', 'stairway-to-heaven',
     ]);
-    expect(levels.map((level) => level.difficulty)).toEqual([.5, 1, 2, 5, 6, 6.5, 7, 7.25, 7.5, 8, 9, 9.5, 10, 10.5, 11, 11.5, 12, 13, 14, 14.5, 14.75, 15]);
+    expect(levels.map((level) => level.difficulty)).toEqual([.5, 1, 2, 5, 6, 6.5, 7, 7.25, 7.5, 8, 8.25, 9, 9.5, 10, 10.5, 11, 11.5, 12, 13, 14, 14.5, 14.75, 15]);
     expect(new Set(levels.map((level) => level.id)).size).toBe(levels.length);
   });
 
@@ -161,7 +161,7 @@ describe('authored campaign', () => {
   });
 
   it('has a moving clockwork lift and a return route after the high apple', () => {
-    const clock = levels[12];
+    const clock = levels[13];
     expect(clock.timeAxis).toEqual({ x: 1, y: 0 });
     expect(clock.timeTravel).toBeGreaterThan(0);
     expect(clock.timePlatforms!.length).toBeGreaterThan(0);
