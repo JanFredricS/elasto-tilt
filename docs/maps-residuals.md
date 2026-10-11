@@ -11,3 +11,11 @@ Remaining design work:
 - Escher is a readable planar spiral through four gravity faces, with a shared ceiling/floor and an inner reversal. It has no impossible topology or portal transition.
 - Long controlled replay times are not minimum completion times. More human playtesting is needed to tune difficulty and discover shortcuts.
 - Physical phone comfort, orientation changes and sustained frame pacing still need hardware validation.
+
+## Pascal’s Presses
+
+- A crate-less rider braked on press A’s top can tilt the world about 1–1.6 rad and tumble across the pit (35 of 2,592 open-loop runs end upright on the ledge). Every such run also collects the step apple, so the skip wins the map. Accepted as a rare advanced skip because the legitimate crossing and the tumble share the same airspace; pinned by a test. Details in [pascals-presses.md](pascals-presses.md#residuals--known-issues).
+- The A-to-ledge crossing uses unchained blocks (plate, face, sill, crate, ledge). Probed at .6–5 m/s with no ghost bump beyond .29 m/s of extra vertical jitter.
+- Phone timing for the 12 s presses and 7 s crush presses is untested. The latest ram-entry variant clears the head by only 9 mm.
+- docs/DELIVERY.md still says “twenty actual Rapier routes”; the campaign now has twenty-three. Not updated here.
+

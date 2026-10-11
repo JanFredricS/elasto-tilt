@@ -34,8 +34,8 @@ const block = (id: string, x0: number, x1: number, top: number, bottom: number):
  *     edge, and it locks there only once it lies LEVEL (socket `angle`), flush with the floor:
  *     the gold step from A's top to the ledge. A sinks before it settles; ride A down and back
  *     up, and roll over it. Without it the pit is a 2.2 m gap the rider cannot roll across.
- *     (Tilting the world ~1–1.5 rad braked on A's top can still tumble a crate-less rider across
- *     it; see tests/pascals-presses.test.ts.)
+ *     (Tilting the world ~1–1.6 rad, braking, on A's top can still tumble a crate-less rider across
+ *     it, through the step apple; a rare, accepted skip: see docs/pascals-presses.md, Residuals.)
  *   - The ledge ends at B's shaft. WAIT for B to rest at the bottom, ride it up to the press
  *     hall floor (top 6), and roll off east.
  *   - The press hall: a 2.6 m tunnel whose ceiling holds three crush presses (rams). Each
@@ -126,6 +126,8 @@ export const pascalsPressesLevel: Level = {
   routeHints: [
     { x: -2.5, y: 1.6, angle: 0, label: 'WAIT' },
     { x: (P.pressA.x0 + P.pressA.x1) / 2, y: 1.6, angle: 0, label: 'LOAD' },
+    // Nothing else says where the crate goes: point from A's top, over the sill, into the pit.
+    { x: P.sill.x0 - .4, y: P.ledge.y + 2.3, angle: -.6, label: 'TIP IN' },
     { x: P.ceiling.x0 + 1.2, y: P.hall.y + 1.4, angle: 0, label: 'UNDER' },
   ],
   exit: P.exit, difficulty: 13.5, accent: '#c8a060',

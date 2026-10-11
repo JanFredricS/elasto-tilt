@@ -38,7 +38,7 @@ A hydraulic workshop. It is the first campaign map to use a `'box'` prop and the
 | --- | --- |
 | Start floor | y 0, x −16…0. Spawn (−13, .72). The crate is at x −6. **WAIT**: park the crate short of A’s lip and wait for A to come down. |
 | Press A | Ram x .1…5.7, tops −.1 → 3.1. **LOAD**: as A bottoms out, shove the crate across it to the shaft’s far wall and follow it on (apple *pascal-rise* on the way up). |
-| Sill and pit | Sill x 5.8…6 at y 3. Pit x 6…8.2, floor 2.5 (hazard). As A tops out, push the crate over the sill until it tips in. A sinks before the crate settles, so ride A down and back up, then roll over the seated crate (apple *pascal-step*). |
+| Sill and pit | Sill x 5.8…6 at y 3. Pit x 6…8.2, floor 2.5 (hazard). **TIP IN** (arrow from A’s top over the sill): as A tops out, push the crate over the sill until it tips in. A sinks before the crate settles, so ride A down and back up, then roll over the seated crate (apple *pascal-step*). |
 | Ledge and press B | Ledge y 3 to x 12. B’s ram x 12.1…14.7, tops 2.9 → 6.1. Wait at the shaft for B to rest low, then ride it up (apple *pascal-crest*). |
 | Press hall | Floor y 6, ceiling 8.6 from x 19 to 37. **UNDER**: the rams are at x 23, 28.5 and 34. Apples are under the middle ram and at x 38.5. Door at (41.5, 6.8). |
 
@@ -56,9 +56,9 @@ Validation at 120 Hz:
 
 - The route completes with all five apples in 78.7 s over 64.9 m.
 - The crate seats level 19.3 s in.
-- The smallest gap between a ram and the top of the head while the bike is under a ram is .29 m.
+- The smallest gap between a ram and the top of the head, measured only while the head itself is under the ram, is .63 m. (An earlier frame-centred window, ±1.84 m, also counted rams still low ahead of the rider, which is why some variants reported gaps below zero without crashing.)
 
-Timing variants complete: lead .8–1.5 s, push 1–2.5 s, under .8–3 s.
+Timing variants complete: lead .6–2.2 s, push 1–2.5 s, under .8–3 s. Head-under ram clearance per variant: .35 m (under .8), .83 m (under 1.8), but only .009 m at under 3: setting off 3 s before a ram rests up is the late edge of the window, not a comfortable margin.
 
 ## Counterfactuals (tests)
 
@@ -70,7 +70,14 @@ Timing variants complete: lead .8–1.5 s, push 1–2.5 s, under .8–3 s.
 - **Lingering under a ram.** A rider braked under the first ram crashes while the ram is still descending, as it reaches the helmet. The rider stays upright where they stopped and is not shoved down. Setting off for the rams 5 s early also crashes in the hall.
 - **Fixed controls.** Holding no tilt, full right tilt or full left tilt does not complete the map.
 
-## Residuals
+## Residuals / known issues
 
-- Holding the world at about 1 rad or more on A’s top can fling a crate-less rider over the 2.2 m pit.
-- Human timing on a phone is unmeasured.
+- **Tumble skip (accepted).** A crate-less rider on A’s top who tilts the world about 1–1.6 rad, braking, can fall east almost sideways, tumble across the 2.2 m pit and land upright on the ledge.
+  - Evidence: 2,592 open-loop tilt/hold/brake runs from A’s top (spawn x 1.5–4.4, A near its top). 98 end alive east of the pit, 35 of them upright. All 98 pass through the step apple (*pascal-step*, 1.3 m above the pit). The rise apple is taken on the ride up anyway, and nothing downstream needs the crate. So the skip wins the whole map, not just the crossing.
+  - Why it stays: the legitimate roll over the seated crate and the tumble use the same airspace above the pit. With gravity turned ~1.2 rad, the tumble is a near-horizontal fall east, so a low apple, a lintel or a roof cannot tell the two apart. A roof added an inverted route and a pinch (cycle 1). Running B in phase loses the map’s theme. The skip needs A near its top, a ~70–90° tilt held for the right time and a full ride back up A after every failure; a miss drops the rider into the hazard pit and crashes. That makes it a rare advanced trick, comparable to other undiscovered shortcuts, not a default route.
+  - Pinned by the test “documented residual: a crate-less rider can tumble…”, so any change that closes or widens it is noticed.
+- **Unchained crossing.** A’s plate, the slick face, the sill, the seated crate and the ledge are separate colliders with .05–.1 m seams. Cruising across at .6–5 m/s (A frozen at the top) adds at most .29 m/s of upward frame speed over a single continuous block (.05) and no extra pitch (max .074 rad in both). With A moving the two are indistinguishable. No ghost bump was found. Riding off A late, after it starts down, crashes on the shaft wall in both geometries: a timing failure, not a seam.
+- **Late ram entry.** The `under` 3 s variant clears a ram by only .009 m (see Validation).
+- **Crate pushed too late.** Setting off as A has already bottomed out (lead .2 s) crashes the rider at the lip as A rises; the crate itself stays on A. Earlier pushes (lead .6–6.6 s) all seat the crate.
+- **Human timing on a phone is unmeasured.** The 12 s press cycle and the 7 s ram cycle were validated only by scripted pilots.
+- **Discoverability.** The TIP IN arrow and the step apple are the only on-screen cues that the crate belongs in the pit; untested on players.

@@ -37,7 +37,7 @@ it('sits between Switchback Scaffold and The Hidden Way Home at difficulty 13.5,
   expect(level.difficulty).toBe(13.5);
   expect(paletteFor(level.id)).toBe(paletteFor('newtons-attic'));
   expect(level.subtitle).toBe('Press here, rise there.');
-  expect(level.routeHints!.map(hint => hint.label)).toEqual(['WAIT', 'LOAD', 'UNDER']);
+  expect(level.routeHints!.map(hint => hint.label)).toEqual(['WAIT', 'LOAD', 'TIP IN', 'UNDER']);
 });
 
 it('two press plates run in antiphase on one 12 s cycle; A meets the sill as B meets the ledge', () => {
@@ -132,10 +132,12 @@ it('completes Pascal’s Presses with player controls: load the crate at A’s l
     if (c.settled && seatedAt < 0) { seatedAt = s.elapsed; seatedAngle = c.angle; }
     if (Number.isNaN(crossedAtTop) && s.bike.x > P.sill.x1) crossedAtTop = top(body(s, 'pascal-press-a'));
     if (Math.abs(s.bike.x - (P.pressB.x0 + P.pressB.x1) / 2) < .5) onBTop = Math.max(onBTop, s.bike.y);
-    // How far above the rider's head is every ram the bike is passing under?
-    for (const [i, ram] of P.rams.entries()) if (Math.abs(s.bike.x - ram.x) < P.ram.w / 2 + 1.04) {
+    // How far above the rider's head is every ram while the head is actually under it? (Measured
+    // from the head itself: a frame-centred window also counts a ram still low ahead of the rider.)
+    const head = body(s, 'head');
+    for (const [i, ram] of P.rams.entries()) if (Math.abs(head.x - ram.x) < P.ram.w / 2 + head.w / 2) {
       const view = body(s, `pascal-ram-${i}`);
-      minClearance = Math.min(minClearance, view.y - view.h / 2 - (s.bike.y + HEAD_TOP));
+      minClearance = Math.min(minClearance, view.y - view.h / 2 - (head.y + head.h / 2));
     }
   });
   expect(state.status).toBe('complete');
@@ -148,7 +150,7 @@ it('completes Pascal’s Presses with player controls: load the crate at A’s l
   expect(Math.abs(c.x - CRATE_SEAT.x)).toBeLessThan(.13); expect(c.y).toBeCloseTo(CRATE_SEAT.y, 2);
   expect(crossedAtTop).toBeGreaterThan(P.ledge.y - .1); // rolled off A onto the step at the top of its stroke
   expect(onBTop).toBeGreaterThan(P.hall.y + .5); // carried up to the hall on B
-  expect(minClearance).toBeGreaterThan(0); // never under a ram that was low enough to touch the head
+  expect(minClearance).toBeGreaterThan(.3); // never under a ram that was low enough to touch the head
   expect(Math.hypot(state.bike.x - level.exit.x, state.bike.y - level.exit.y)).toBeLessThan(2);
 }, 60000);
 
@@ -228,4 +230,21 @@ it('the campaign replay table drives Pascal’s Presses at its own index', async
   const index = levels.indexOf(level);
   expect(index).toBeGreaterThan(0);
   expect((await ride(createReplayPilot(index), 120)).status).toBe('complete');
+}, 60000);
+
+it('documented residual: a crate-less rider can tumble from A’s top across the pit, through the step apple', async () => {
+  // Accepted as a rare advanced skip (docs/pascals-presses.md, Residuals): about 35 of 2,592
+  // open-loop tilt/hold/brake runs from A's top end upright east of the pit, and every one of
+  // them passes through the step apple, so the skip wins the whole map. This pins one known case
+  // so a physics or geometry change that closes (or widens) it is noticed and the docs updated.
+  const bare: Level = { ...level, id: 'pascal-tumble', props: [], spawn: { x: 1.5, y: P.pressA.high + P.over.high + .72 },
+    timePlatforms: level.timePlatforms!.map(p => p.id === 'pascal-press-a' ? { ...p, offset: .45 } : p) };
+  const hold = 1.5, theta = 1.6;
+  const state = await ride(s => ({ tilt: clamp(((s.elapsed < hold ? theta : 0) - s.worldAngle) * 8, -1, 1),
+    brake: s.elapsed < hold / 2 || s.elapsed >= hold }), hold + 6, bare);
+  expect(state.status).toBe('playing');
+  expect(state.bike.x).toBeGreaterThan(P.pit.x1);
+  expect(state.bike.y).toBeGreaterThan(P.ledge.y + .4);
+  expect(Math.abs(body(state, 'frame').angle)).toBeLessThan(.4); // upright, riding on
+  expect(state.collected).toContain('pascal-step');
 }, 60000);
