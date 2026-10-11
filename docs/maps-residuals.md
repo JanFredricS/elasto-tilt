@@ -11,3 +11,11 @@ Remaining design work:
 - Escher is a readable planar spiral through four gravity faces, with a shared ceiling/floor and an inner reversal. It has no impossible topology or portal transition.
 - Long controlled replay times are not minimum completion times. More human playtesting is needed to tune difficulty and discover shortcuts.
 - Physical phone comfort, orientation changes and sustained frame pacing still need hardware validation.
+
+Leibniz’s Counterweight (see [leibniz-counterweight.md](leibniz-counterweight.md#residuals--known-issues)):
+
+- Plug speed: a fairing east of the well now carries westbound inverted riders onto the plug at any tested speed (to 15 m/s; 9 m/s used to crash). Riding east over the plug upside down needs a run-up of about 6 m/s, or the rider stalls in the dip beyond the crown and must back out.
+- Saturation drain: a hard brake on a kerb top leaves the bridge a small step up: .10 m from 4 m/s, .19 m from 5 m/s. It is climbed from a standstill. Knee hops up to 12 m/s leave none. Larger losses need a trip through the cellar or the hall; none is a soft-lock.
+- From the pit edge the raised bridge is out of view. A BRIDGE arrow points up at it, untested on phones.
+- The LEDGER timeline shows ↑/↓ (vertical `timeAxis`), but its bar still fills left to right.
+- Phone feel is untested, and the map is not yet in the browser e2e replays.

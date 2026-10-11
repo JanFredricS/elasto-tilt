@@ -67,6 +67,14 @@ it('sits between The Clockwork Apple and The Clockwork Wedge, a sand-palette LED
   expect(prop.socket!.y).toBeGreaterThan(LEIBNIZ.corridor.ceiling);
   // Over the east kerb the ball cannot fit under the ceiling, so it cannot drift over the pit.
   expect(LEIBNIZ.corridor.ceiling - kerbTop).toBeLessThan(prop.h - .2);
+  // Nor under the fairing east of the well, so it cannot be pushed past the well; and the fairing
+  // hangs no lower than the seated plug, so it leaves an upright rider the plug's headroom.
+  expect(LEIBNIZ.corridor.ceiling - LEIBNIZ.fairing.drop).toBeLessThan(prop.h);
+  expect(LEIBNIZ.fairing.drop).toBeLessThan(LEIBNIZ.well.crown);
+  expect(Math.atan2(LEIBNIZ.fairing.drop, LEIBNIZ.fairing.run)).toBeLessThan(10 * Math.PI / 180);
+  // From the pit edge the raised bridge is out of view, so an arrow points up at it.
+  expect(level.routeHints!.some(hint => hint.label === 'BRIDGE' && hint.angle === Math.PI / 2 &&
+    hint.x > LEIBNIZ.pit.x0 && hint.x < LEIBNIZ.pit.x1)).toBe(true);
 });
 
 it('completes the cellar, bridge, ball, loop and inverted ceiling route (campaign replay), never braking', async () => {
@@ -144,35 +152,67 @@ it('a hard stop on the tower floor (the frame pitches up, which the full ledger 
 
 it('no alive-but-stuck state: a rider who skipped the cellar apple rides back from the door, re-parks the bridge from the east and finishes', async () => {
   // Turn back on the cellar ramp above the apple (the ledger still fills), ride the whole route
-  // to the door, then reverse: ceiling, loop, hall (which empties and refills the ledger),
-  // corridor, bridge, cellar apple, and back to the door.
-  let stage: 'west' | 'east' | 'push' | 'ride' | 'back' | 'home' = 'west';
-  let crossedBack = false;
-  const state = await ride(follower(s => {
+  // to the door, then reverse: ceiling, plug, loop, hall (which empties and refills the ledger),
+  // corridor, bridge, cellar apple, and back to the door. Riding east upside down, a slow rider
+  // stalls in the dip between the plug and the fairing; they back out west and take a run at it.
+  let stage: 'west' | 'east' | 'push' | 'ride' | 'back' | 'retreat' | 'run' | 'return' | 'home' = 'west';
+  let crossedBack = false, stalled = false, backAt = 0;
+  const state = await ride(follower((s, speed) => {
     const plug = ball(s);
     if (stage === 'west' && s.bike.y < LEIBNIZ.floor.y + .72 - 5.7) stage = 'east';
     if (stage === 'east' && s.bike.x > LEIBNIZ.pit.x1 - 1) stage = 'push';
     if (stage === 'push' && plug?.settled) stage = 'ride';
-    if (stage === 'ride' && s.worldAngle > 2.5 && s.bike.x < 33) stage = 'back';
-    if (stage === 'back' && s.collected.includes('ledger-apple-cellar')) stage = 'home';
-    crossedBack ||= stage === 'back' && s.bike.x < LEIBNIZ.pit.x0 - 2;
-    return stage === 'west' || stage === 'back' ? { speed: -2.5 } : stage === 'push' ? { speed: 3, lean: .6 } : { speed: 2.5 };
-  }), 220);
+    if (stage === 'ride' && s.worldAngle > 2.5 && s.bike.x < 33) { stage = 'back'; backAt = s.elapsed; }
+    if (stage === 'back' && s.elapsed > backAt + 8 && Math.abs(speed) < .2) { stalled = Math.abs(s.bike.x - LEIBNIZ.well.x) < 1; stage = 'retreat'; }
+    if (stage === 'retreat' && s.bike.x < 33.5) stage = 'run';
+    if (stage === 'run' && s.bike.y < LEIBNIZ.floor.y) stage = 'return';
+    if (stage === 'return' && s.collected.includes('ledger-apple-cellar')) stage = 'home';
+    crossedBack ||= stage === 'return' && s.bike.x < LEIBNIZ.pit.x0 - 2;
+    switch (stage) {
+      case 'west': case 'back': case 'return': return { speed: -2.5 };
+      case 'retreat': return { speed: 2.5 };
+      case 'run': return { speed: -6, lean: .6 };
+      case 'push': return { speed: 3, lean: .6 };
+      default: return { speed: 2.5 };
+    }
+  }), 240);
+  expect(stalled).toBe(true);
   expect(crossedBack).toBe(true);
   expect(state.status).toBe('complete');
 }, 20000);
 
-it('the ball cannot be lost: pushed or floated past the well into the hall, an east-down tilt floats it back to seat', async () => {
-  const map: Level = { ...level, props: [{ ...level.props![0], x: 66 }] };
-  let stage: 'west' | 'east' | 'wait' | 'ride' = 'west';
+it('the fairing: an upside-down rider rides onto the plug at any speed, where its bare 50° flank threw them off', async () => {
+  // The demonstrated route, but riding the ceiling as fast as the rider likes (up to 15 m/s).
+  for (const fast of [9, 12, 15]) {
+    let stage: 'west' | 'east' | 'push' | 'ride' | 'ceiling' = 'west', top = 0;
+    const state = await ride(follower((s, speed) => {
+      if (stage === 'west' && s.collected.includes('ledger-apple-cellar')) stage = 'east';
+      if (stage === 'east' && s.bike.x > LEIBNIZ.pit.x1 - 1) stage = 'push';
+      if (stage === 'push' && ball(s)!.settled) stage = 'ride';
+      if (stage === 'ride' && s.worldAngle > 2.6 && s.bike.y > 1) stage = 'ceiling';
+      if (stage === 'ceiling' && s.bike.x > LEIBNIZ.well.x && s.bike.x < LEIBNIZ.well.x + 2) top = Math.max(top, speed);
+      return stage === 'west' ? { speed: -2.5 } : stage === 'push' ? { speed: 3, lean: .6 } : stage === 'ceiling' ? { speed: fast, lean: .6 } : { speed: 2.5 };
+    }), 150);
+    expect(top).toBeGreaterThan(fast - 1);
+    expect(state.status).toBe('complete');
+  }
+}, 30000);
+
+it('the ball cannot be lost: pushed hard, it stops under the well against the fairing and seats', async () => {
+  // Ram the ball east at up to 5 m/s, leaning hard, then stop under the ceiling east of the well.
+  let stage: 'west' | 'east' | 'push' | 'wait' = 'west', farthest = 0;
   const state = await ride(follower(s => {
+    farthest = Math.max(farthest, ball(s)!.x);
     if (stage === 'west' && s.collected.includes('ledger-apple-cellar')) stage = 'east';
-    if (stage === 'east' && s.bike.x > 36) stage = 'wait';
-    if (stage === 'wait' && ball(s)!.settled) stage = 'ride';
-    if (stage === 'wait') return { tilt: clamp((.35 - s.worldAngle) * 4, -1, 1), brake: true };
-    return { speed: stage === 'west' ? -2.5 : 2.5 };
-  }), 150, map);
-  expect(state.status).toBe('complete');
+    if (stage === 'east' && s.bike.x > LEIBNIZ.pit.x1 - 1) stage = 'push';
+    if (stage === 'push' && s.bike.x > LEIBNIZ.well.x + 3) stage = 'wait';
+    return stage === 'wait' ? { speed: 0, lean: .8 } : stage === 'push' ? { speed: 5, lean: .8 } : { speed: stage === 'west' ? -2.5 : 2.5 };
+  }), 60);
+  expect(state.status).toBe('playing');
+  // Without the fairing this push carries it a metre past its seat, and a harder one (8 m/s) to
+  // x ≈ 47, past the well, where it is lost and the inverted rider falls into the open well.
+  expect(farthest).toBeLessThan(LEIBNIZ.well.x + .6);
+  expect(ball(state)!.settled).toBe(true);
   expect(ball(state)!.x).toBeCloseTo(LEIBNIZ.well.x, 1);
 }, 20000);
 

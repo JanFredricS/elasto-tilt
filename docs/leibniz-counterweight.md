@@ -50,18 +50,22 @@ Campaign map 14 (index 13), difficulty 10.25, between The Clockwork Apple (10) a
 - **Contrary drift.** Tilting the world moves the ball opposite to the rider: tilt east and it rolls west.
   - Drifting west, it wedges against the east kerb, where there is only 2.1 m under the ceiling. It cannot float away over the pit. In the demonstrated route, the climb out of the cellar rolls it back there (x ≈ 32.9).
   - Tilting west for a while (−.3 to −.6 rad) floats it east into the well before the rider arrives, where it seats just the same.
-  - A harder or longer tilt can carry it past the well, as far as the hall's ceiling. It is still enclosed, and any east-down tilt floats it back into the well. A test starts it in the hall: the cellar ride alone brings it back to seat.
+- **The fairing.** East of the well, the ceiling's underside slopes down 7.6° over 3 m, ending .4 m below the ceiling at the well's east lip (.05 m short of the plug's crown).
+  - The ball fills the corridor, so it cannot duck under the fairing. However hard it is pushed or floated east, it stops under the well and rises. Before audit 2 a hard push (8 m/s) carried it to x ≈ 47, past the well; the inverted rider then fell into the open well.
+  - An upright rider has the same headroom under the fairing as under the plug.
 
 **The hall and the ceiling.**
 
 - The corridor ends at a knee and a 22° ramp down into a hall (floor −6.4). The hall's east end is a half loop (radius 4.5) up onto the underside of the corridor's ceiling.
-- Upside down, the rider rides the ceiling back west over the seated ball to the last apple and the door, at the corridor's west end.
+- Upside down, the rider rides the ceiling back west, down the fairing onto the seated ball, to the last apple and the door, at the corridor's west end.
+- **Why the fairing (audit 2).** Without it, the plug's east flank met the ceiling at 50°. To an inverted rider that is a kicker. Above about 8.5 m/s it threw the bike off the ceiling, helmet first into the corridor floor. That speed is easy to reach on the way out of the loop. With the fairing, riders cross the plug at every speed tested, up to 15 m/s, including with the world tilted a full radian off the heading.
+- **Riding east over the plug, upside down** (only needed to go back). Between the crown and the fairing's lip there is a dip about .28 m deep. A rider slower than about 5 m/s stalls in it. They back out west over the plug and take a run at it (6 m/s from the door is enough). This is tested.
 - The last apple hangs .4 m below the ceiling, out of reach of an upright rider.
 - Without the plug, the inverted rider falls up into the open well, whose top is a hazard. This is the second counterfactual.
 - Riding through the hall moves the bridge again: down to the hall raises it, the loop lowers it. By then the rider is far east of it.
 - **The hall is a second cellar.** Its floor is 6.4 m below the corridor's, deeper than the ledger. A rider back on the corridor floor from the ceiling has spent the 1.2 m between ceiling and floor, so the bridge stands above the kerb.
   - With a hall only 5.4 m deep, the best the east side could do was leave it .6 m high. A rider who had skipped the cellar apple then reached the door with four apples and could never get back west. They were alive but stuck.
-  - Now, riding down into the hall and back up fills the ledger from empty, and the bridge is flush again. A test skips the cellar apple, rides the whole route to the door, rides back (ceiling, loop, hall, corridor, bridge), collects it and finishes.
+  - Now, riding down into the hall and back up fills the ledger from empty, and the bridge is flush again. A test skips the cellar apple, rides the whole route to the door, rides back (ceiling, plug, loop, hall, corridor, bridge), collects it and finishes. On the way back it stalls in the dip east of the plug, backs out and takes a run at it.
 
 ## Apples
 
@@ -84,16 +88,32 @@ There are five apples:
 - **Partial cellar.** Turning back 3 m down the cellar leaves the bridge at 6.5 − (altitude climbed).
 - **Negative.** Riding straight east with an empty ledger crashes in the pit under the raised bridge.
 - **Hard stop.** Braking from 5 m/s on the tower floor pitches the frame up more than .25 m; the kerb pays it back and the rider crosses.
-- **No stuck state.** Skipping the cellar apple, riding to the door and back through the hall to collect it completes the map.
-- **Lost ball.** A ball started in the hall drifts back and seats, and the route completes.
+- **No stuck state.** Skipping the cellar apple, riding to the door and back through the hall to collect it completes the map. This includes the stall in the dip east of the plug and the run-up out of it.
+- **Fast plug.** Riding the ceiling at 9, 12 and 15 m/s crosses the plug and completes. Without the fairing all three crash.
+- **Ball cannot be lost.** Rammed east at 5 m/s with a hard lean, the ball never passes x 42.6. It seats in the well.
 - **Counterfactuals.** These use the same pilot, which treats a missing ball as already seated:
   - with the bridge frozen at its top stop, the pilot falls into the pit;
   - without the ball, the inverted rider falls into the open well.
 
 The campaign ordering test in `tests/levels.test.ts` includes the map. The Clockwork Wedge's neighbour assertion now expects this map before it.
 
-## Residuals
+## Route hints and HUD
 
-- The ledger reads the frame centre, so in practice wheel compression and bumps move the bridge a few centimetres. The level floors keep that negligible.
-- The ball's damping limits the push to about 2.3 m/s. A loose prop is harmless to the helmet, so the push itself cannot crash the rider.
-- Route hints (DESCEND, CLIMB, PUSH, LOOP) have not yet been checked against the LEDGER panel at every screen size, as was done for the Clockwork Wedge.
+- The hints are DESCEND, CLIMB, BRIDGE, PUSH and LOOP. BRIDGE (audit 2) is an upward arrow over the pit's west edge. At its top stop the bridge is 6 m above the kerb, outside the view from the pit edge (about ±4.5 m vertically).
+- The LEDGER timeline shows ↑ while the ledger fills and ↓ while it drains. This is a small change in `src/ui.ts`: any map whose `timeAxis` is more vertical than horizontal gets ↑/↓ instead of →/←. Every other map keeps →/←.
+
+## Residuals / known issues
+
+- **Plug speed window: closed for westbound riders.** The fairing lets a westbound inverted rider cross at any tested speed (to 15 m/s; 9 m/s used to crash). The cost is the eastbound dip: a slow eastbound inverted rider stalls and needs a run-up. Only a rider going back for a missed apple rides that way, and backing out works. A rider who instead rotates the world to drop off the ceiling mid-corridor usually crashes, as anywhere on this ceiling.
+- **Saturation drain corner cases.** A full ledger still forgets height lost after the kerb pays it back:
+  - A hard brake on a kerb top leaves the bridge a step above it: .07 m from 3 m/s, .10 m from 4 m/s, .19 m from 5 m/s. Measured: the rider climbs onto it from a standstill and crosses in every case. From 6 m/s the stoppie itself crashes on the bridge, as it would anywhere.
+  - A hop over the cellar's knee leaves no step up to 12 m/s (measured 0). The kerb pays back the whole hop. At 14 m/s the hop crashes.
+  - Any larger loss (riding back down the kerb, a crash-free tumble) is recoverable through the cellar or the hall. Every alive state can re-park the bridge.
+- **Bridge visibility.** Only the BRIDGE arrow tells a rider at the pit edge that the bridge is above them. When the bridge is parked, the arrow points at empty air above it. It has not been checked on a phone.
+- **HUD.** The timeline bar still fills left to right; only the direction glyph is vertical-aware. The bar has not been checked against the route hints at every screen size, as was done for the Clockwork Wedge.
+- **Exit sensor.** The door's sensor (radius .8 at x 31, y 1.8) reaches down to an upright rider on the east kerb's slope. This is harmless: the map completes only with all five apples, and the ceiling apple needs the upside-down ride.
+- **Unseated ball under an inverted world.** If the world is turned upside down before the ball seats, the ball falls to the corridor floor and blocks an inverted rider. Turning the world back floats it up into the well. This happened only with a scripted pilot leaning more than a radian during the push.
+- **Ledger noise.** The ledger reads the frame centre, so wheel compression and bumps move the bridge a few centimetres. The level floors keep that negligible.
+- **Push speed.** The ball's damping limits the push to about 2.3 m/s. A loose prop is harmless to the helmet, so the push itself cannot crash the rider.
+- **Phone feel untested.** No one has ridden the map on a phone yet: the ledger's feel, the inverted ceiling ride, and the readability of the BRIDGE hint and the ↑/↓ glyph.
+- **Not in the browser e2e suites.** The map is covered by the Vitest replay only. It is not in `e2e/expansion.spec.ts` or `e2e/gameplay-validation.spec.ts`.

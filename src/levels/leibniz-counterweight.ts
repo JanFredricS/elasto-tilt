@@ -79,12 +79,15 @@ const shift = (surfaces: Surface[], by: Vec) => surfaces.map(s => ({ ...s, x: s.
  *     well, a round pocket up into the ceiling as wide as the ball (plus .1 m). There it rises,
  *     seats against the pocket's round top (socket) and becomes fixed stone, crowning .45 m
  *     below the ceiling. Drifting west, the ball wedges against the east kerb under the
- *     ceiling (2.1 m of headroom there); drifting east past the well, it stays under the
- *     ceiling of the corridor or the hall, and any east-down tilt floats it back into the well.
+ *     ceiling (2.1 m of headroom there). It cannot pass the well eastward: the FAIRING east of
+ *     the well hangs .4 m below the ceiling, and a ball that fills the corridor cannot duck
+ *     under it, so however hard it is pushed or floated it stops under the well and rises.
  *   - The corridor runs on east over a knee and a 22° ramp into a hall whose east end is a
  *     half loop (radius 4.5) up onto the ceiling's underside. Upside down, the rider rides the
- *     ceiling back west, over the seated ball, to the last apple and the door at the
- *     corridor's west end. Without the plug the inverted rider falls up into the well, whose
+ *     ceiling back west, down the fairing's gentle 7.6° slope and over the seated ball, to the
+ *     last apple and the door at the corridor's west end. Without the fairing the ball's flank
+ *     was a 50° kicker that threw a rider faster than ~8.5 m/s off the ceiling, helmet first
+ *     into the corridor floor; with it, the plug is ridden at any speed tested (to 15 m/s). Without the plug the inverted rider falls up into the well, whose
  *     top is a hazard.
  *   - The hall floor is 6.4 m below the corridor's, deeper than the ledger: a rider east of the
  *     pit (back from the ceiling, say, for a missed cellar apple) refills the ledger by riding
@@ -102,6 +105,9 @@ export const LEIBNIZ = {
   corridor: { x0: 28, x1: 56, ceiling: 2.6, roof: 5.2 },
   ball: { r: 1.25, x: 34, density: .3, damping: 4, friction: .9 },
   well: { x: 42, half: 1.3, crown: .45 },
+  /** East of the well the ceiling's underside slopes down over 3 m to .05 m short of the plug's
+   * crown: the ramp an inverted rider rides onto the plug, and the stop a pushed ball cannot pass. */
+  fairing: { run: 3, drop: .4 },
   hall: { knee: 3, ramp: 22 * deg, valley: 4, floor: 3, loop: 4.5 },
   exit: p(31, 1.8),
 };
@@ -129,7 +135,7 @@ const cellar = (() => {
 export const CELLAR = { wallX: cellar.wallX, bottomX0: cellar.bottomX0, bottomX1: cellar.bottomX1, floor: -L.cellar.depth };
 
 /** The corridor's east end: knee, ramp, hall floor, half loop and the ceiling's underside back
- * west to the well's east lip, one run. */
+ * west to the well's east lip, ending on the fairing, one run. */
 const hall = (() => {
   const H = L.hall, ceiling = L.corridor.ceiling, floorY = ceiling - 2 * H.loop;
   const drop = (r: number) => r * (1 - Math.cos(H.ramp));
@@ -141,8 +147,10 @@ const hall = (() => {
     { chain: 'ledger-hall', heading: 0, length: H.floor },
     { chain: 'ledger-hall', h0: 0, h1: Math.PI, radius: H.loop, pieces: 16 },
   ]);
+  const F = L.fairing, slope = Math.atan2(F.drop, F.run);
   const ceilingRun = run('ledger-ceiling', loop.end, [
-    { chain: 'ledger-hall', heading: Math.PI, length: loop.end.x - (L.well.x + L.well.half) },
+    { chain: 'ledger-hall', heading: Math.PI, length: loop.end.x - (L.well.x + L.well.half) - F.run },
+    { chain: 'ledger-hall', heading: Math.PI + slope, length: Math.hypot(F.run, F.drop) },
   ]);
   const floorX0 = loop.surfaces.find(s => s.id === 'ledger-hall-9')!;
   return { surfaces: [...loop.surfaces, ...ceilingRun.surfaces], floorY, top: loop.end, floorX0: floorX0.x - floorX0.w / 2 };
@@ -202,6 +210,8 @@ export const leibnizCounterweightLevel: Level = {
   routeHints: [
     { x: -2, y: 1.6, angle: Math.PI, label: 'DESCEND' },
     { x: -14, y: -2, angle: L.cellar.ramp, label: 'CLIMB' },
+    // From the pit edge the raised bridge is above the view: point at it.
+    { x: L.pit.x0 + 1, y: 3, angle: Math.PI / 2, label: 'BRIDGE' },
     { x: 30.5, y: 1.4, angle: 0, label: 'PUSH' },
     { x: 66, y: -1, angle: 0, label: 'LOOP' },
   ],
