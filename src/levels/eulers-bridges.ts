@@ -29,12 +29,19 @@ const slab = (id: string, from: Vec, to: Vec, h = .6): Surface => {
  *   - Each bridge lies flush with its banks at one clock reading. An upper bridge rises as the
  *     clock fills, so ridden east it comes up to meet the rider (both of its steps are down
  *     steps); a river bridge sinks as the clock fills, so ridden west (draining) it rises to
- *     meet the rider. Each is therefore crossable one way only, and the route crosses each once.
+ *     meet the rider. Ridden back the other way each exit edge is a step up (up to about .3 m):
+ *     a soft one-way that a fast rider can sometimes climb, which is harmless, because riding
+ *     back and forth never moves L. The route crosses each bridge once.
+ *   - The water lies only `water.depth` below the banks, so a bridge that has not come up far
+ *     enough is still under it: riding onto it is a splash (a crash and a restart card with the
+ *     hint), never an alive-but-stuck rider on a sunken deck.
  *   - The puzzle is where to pin the window. The upper bridges line up only if the rider first
- *     ebbs (backs west) all the way to the wall behind the spawn; set off from the spawn and
- *     the first canal bridge is still down. The river bridges line up only if, after the drop,
- *     the rider floods the clock all the way into the far east wall before heading home; turn
- *     back early and the first river bridge is still down.
+ *     ebbs (backs west) to within about 2.5 m of the wall behind the spawn; set off from the
+ *     spawn and the first canal bridge (the most sensitive, `travel` 3.4) is still under water.
+ *     The river bridges line up only if, after the drop, the clock is flooded to within about
+ *     2 m of the far east wall. The drop lands at 7-9 m/s and its momentum always carries the
+ *     rider into that wall (even tilting a full radian back), so the FLOOD half is execution,
+ *     not a decision: the hint asks the rider to ease off before the wall, not to find it.
  *   - The upper town ends in a knee-and-slide chute and a level lip 2.4 m above the river
  *     quay (as in the Clockwork Wedge), leaving headroom to ride back west beneath it.
  */
@@ -45,8 +52,8 @@ export const EULER = {
   river: { y: 0, west: -1.4, wall: 52 },
   /** Canal/channel width; a bridge leaves 2 cm either side. */
   gap: 3,
-  /** Water surface below the banks, and its thickness. */
-  water: { depth: .75, h: .3 },
+  /** Water surface below the banks (shallow, so a bridge that is still down is under water), and its thickness. */
+  water: { depth: .4, h: .3 },
   /** The rider's frame centre when a wheel rests against a wall (wheel radius + half wheelbase). */
   reach: 1.04,
   /** Canal bridges (thin: the river rider passes beneath them) and river bridges (deep piers). */
@@ -71,7 +78,7 @@ const upperBridge = (id: string, m: number, travel: number): Bridge =>
 const riverBridge = (id: string, m: number, travel: number): Bridge =>
   ({ id, m, flush: Math.max(0, (m - FLOOD_L + lead) / E.T), travel, rise: false, deck: E.river.y, h: E.riverBridge.h });
 export const BRIDGES: Bridge[] = [
-  upperBridge('euler-b1', 10.5, 2.4),
+  upperBridge('euler-b1', 10.5, 3.4), // the gate: most sensitive to an incomplete ebb
   upperBridge('euler-b2', 16.5, 2.2),
   upperBridge('euler-b3', 22.5, 2),
   upperBridge('euler-b4', 28.5, 1.8),
@@ -123,7 +130,7 @@ const upper = BRIDGES.filter(b => b.rise), river = BRIDGES.filter(b => !b.rise);
 export const eulersBridgesLevel: Level = {
   id: 'eulers-bridges', name: 'Euler’s Bridges', subtitle: 'Cross each bridge only once.',
   mechanic: 'Seven bridge lifts share one RIVER clock: riding east fills it, riding west drains it, and once full or empty it stops. Each bridge lies flush only at its own reading.',
-  hint: 'The clock stops at full and at empty, so where you turn sets every bridge ahead. Ebb back to the wall before you set out over the canals; after the drop, flood all the way into the far wall before you ride home over the river.',
+  hint: 'Riding east fills the RIVER clock and riding west drains it, but it stops at full and at empty, so where you turn sets every bridge ahead. Ebb west into the wall before you set out over the canals. Tilt a little right as you fly off the chute, ease off before the far wall, then ride home over the river.',
   spawn: p(E.upper.spawn, E.upper.y + .72), bounds: { min: p(-3, -5.5), max: p(55, 10) },
   surfaces: [
     // The upper town: the wall behind the spawn, the canal banks, and the chute down to the river.
@@ -148,11 +155,12 @@ export const eulersBridgesLevel: Level = {
 /**
  * Input-only demonstration (fixed 1/120 s steps, tilt only, never brakes). It ebbs back into
  * the upper wall and waits until still, rides east over the four canal bridges heading-relative
- * like the late pilots, lets gravity take it down the chute with the world level, floods east
- * along the river quay into the far wall and waits there until still, then rides home west over
- * the three river bridges to the door. The options exist for the tests' counterfactuals: `ebb:
- * false` sets off east from the spawn at once, `river` starts at the flood stage (for a rider
- * placed on the river quay), and `floodTo` turns home at that x instead of the far wall.
+ * like the late pilots, lets gravity take it down the chute, leans the world forward in the
+ * flight, floods east along the river quay into the far wall and waits there until still, then
+ * rides home west over the three river bridges to the door. The options exist for the tests'
+ * counterfactuals: `ebb: false` sets off east from the spawn at once, `river` starts at the
+ * flood stage, and `floodTo` turns home at that x instead of the far wall (the drop's momentum
+ * still carries it into the wall).
  */
 export function createEulersBridgesPilot({ ebb = true, floodTo, river = false }: { ebb?: boolean; floodTo?: number; river?: boolean } = {}): (state: Snapshot) => Controls {
   let previous: Vec | undefined, angle = 0, lastRawAngle = 0, still = 0;
@@ -174,7 +182,8 @@ export function createEulersBridgesPilot({ ebb = true, floodTo, river = false }:
     switch (stage) {
       case 'ebb': return follow(-1.2);
       case 'upper': return follow(2.5);
-      // Past the knee, tilt the world back so the bike flies off the lip nose-up and lands on its wheels.
+      // Past the knee, lean the world .3 rad right (forward, as on Hooke's Springboard) so the
+      // bike lands on its wheels: about .24-.4 survives; level, it pitches over and crashes.
       case 'chute': return level(x > E.upper.end + 1 ? .3 : 0);
       case 'flood': return follow(x < E.river.wall - 5 ? 2 : .8);
       case 'home': return follow(-2.5);
