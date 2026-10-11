@@ -11,3 +11,13 @@ Remaining design work:
 - Escher is a readable planar spiral through four gravity faces, with a shared ceiling/floor and an inner reversal. It has no impossible topology or portal transition.
 - Long controlled replay times are not minimum completion times. More human playtesting is needed to tune difficulty and discover shortcuts.
 - Physical phone comfort, orientation changes and sustained frame pacing still need hardware validation.
+
+## Bernoulli’s Updraft (map 18)
+
+Full write-up: [bernoulli-updraft.md](bernoulli-updraft.md), "Residuals / known issues".
+
+- The 90°-per-flight concept is physically impossible: each crossing would need half a turn through straight up and add about 20 m/s. The chimney sway is free; only turning over and turning gravity back up within about .6 s of the launch are enforced.
+- There is a release cliff at the lintel. The world must turn to at least 4.1 rad; 4.05 or earlier crashes, and 4.05–4.15 is chaotic. It is telegraphed by KEEP TURNING, not widened. Loop, lintel and lip variants were all rejected with data.
+- The map is short (85 m / 16 s) for slot 12.75. That is accepted as a short precision map, like Hooke’s Springboard.
+- At 1/60 s, one grid run that completes at 1/120 s crashes at the roof’s end. The game's fixed 1/120 s step makes this test-only.
+- The map has not been played on a phone.

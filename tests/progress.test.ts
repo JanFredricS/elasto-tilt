@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applySkip, canSkip, MAX_SKIPS, parseProgress, skipCosts, skipsLeft } from '../src/progress';
 
-const LEVELS = 22;
+const LEVELS = 23;
 
 describe('progress saves', () => {
   it('starts fresh with one open map and all skips', () => {

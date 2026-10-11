@@ -15,13 +15,15 @@ const pad = (id: string, from: Vec, to: Vec, h = .5): Surface => {
 };
 /** A ground slab whose ridden face runs from `from` to `to`. */
 const slab = (id: string, from: Vec, to: Vec, h = .6): Surface => ({ ...pad(id, from, to, h), kind: 'ground' });
-/** An arc of chained slabs turning the ridden heading from h0 to h1 (radians) on `radius`. */
-const arc = (id: string, from: Vec, h0: number, h1: number, radius: number, pieces = 6): { surfaces: Surface[]; end: Vec } => {
+/** An arc of chained slabs turning the ridden heading from h0 to h1 (radians) on `radius`;
+ * `thick` gives each piece's depth behind its face (default .6). */
+const arc = (id: string, from: Vec, h0: number, h1: number, radius: number, pieces = 6,
+  thick: (heading: number, at: Vec, to: Vec) => number = () => .6): { surfaces: Surface[]; end: Vec } => {
   const step = (h1 - h0) / pieces, chord = 2 * radius * Math.sin(Math.abs(step) / 2);
   let at = from;
   const surfaces = Array.from({ length: pieces }, (_, i) => {
     const heading = h0 + (i + .5) * step, to = p(at.x + chord * Math.cos(heading), at.y + chord * Math.sin(heading));
-    const piece = { ...slab(`${id}-${i}`, at, to), chain: id };
+    const piece = { ...slab(`${id}-${i}`, at, to, thick(heading, at, to)), chain: id };
     at = to; return piece;
   });
   return { surfaces, end: at };
@@ -87,7 +89,11 @@ const hoodEnd = p(HOOD_X - HOOD_R * Math.tan((Math.PI - HOOD) / 2), ROOF);
 const hoodStart = p(hoodEnd.x + HOOD_R * Math.sin(HOOD), ROOF - HOOD_R * (1 + Math.cos(HOOD)));
 const capY = (x: number) => hoodStart.y - (x - hoodStart.x) * Math.tan(Math.PI - HOOD);
 const capFoot = p(lintelTop.x, capY(lintelTop.x));
-const hood = arc('bernoulli-hood', hoodStart, HOOD, Math.PI, HOOD_R, 8);
+// The cap and hood are deep enough to close the stone behind them (no sky
+// between the stepped fill and the ridden face) without rising past the roof's top.
+const CAP_DEPTH = 2, BACK = ROOF + .6;
+const hood = arc('bernoulli-hood', hoodStart, HOOD, Math.PI, HOOD_R, 8,
+  (heading, at, to) => clamp((BACK - Math.max(at.y, to.y)) / -Math.cos(heading), .6, CAP_DEPTH));
 export const BERNOULLI = {
   loopX: LOOP_X, loopR: LOOP_R, lintelTilt: LINTEL_TILT, lintelTop, roof: ROOF, leftTop: LEFT_TOP, far: FAR, cornerR: CORNER_R,
   /** Chimney walls: the left pad's face (x 0) and the right pad's face (the lintel's top end). */
@@ -120,7 +126,7 @@ export const bernoulliUpdraftLevel: Level = {
     pad('bernoulli-pad-right', ...B.pads.right),
     // The start room's ceiling is the gallery's lower side.
     block('bernoulli-gallery-shelf', FAR + 3, -.5, LEFT_TOP, LEFT_TOP - .6),
-    { ...slab('bernoulli-cap', capFoot, hoodStart), chain: 'bernoulli-roof' },
+    { ...slab('bernoulli-cap', capFoot, hoodStart, CAP_DEPTH), chain: 'bernoulli-roof' },
     ...hood.surfaces.map(s => ({ ...s, chain: 'bernoulli-roof' })),
     { ...slab('bernoulli-roof-run', hood.end, p(FAR + CORNER_R, ROOF)), chain: 'bernoulli-roof' },
     ...corner.surfaces,
@@ -135,8 +141,9 @@ export const bernoulliUpdraftLevel: Level = {
     a('bernoulli-gallery', -6, 29.3),
   ],
   routeHints: [
-    { x: LOOP_X - 3, y: 2.5, angle: 0, label: 'FOLLOW', spin: 1 },
-    { x: 10.5, y: 5.2, angle: Math.PI - LINTEL_TILT, label: 'KEEP TURNING', spin: 1 },
+    { x: 14.8, y: 1.8, angle: 0, label: 'FOLLOW', spin: 1 },
+    // Seen through the whole loop turn and clear of the rider's head as it passes.
+    { x: 11.8, y: 3.4, angle: Math.PI - LINTEL_TILT, label: 'KEEP TURNING', spin: 1 },
     { x: 5, y: 5, angle: Math.PI, label: 'UP' },
     { x: -3, y: ROOF - 2, angle: Math.PI, label: 'ROOF' },
     { x: FAR + 2.5, y: ROOF - 5, angle: 3 * Math.PI / 2, label: 'DOWN', spin: 1 },

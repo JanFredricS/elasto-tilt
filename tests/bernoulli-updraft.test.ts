@@ -27,6 +27,12 @@ it('sits between Spiral Sanctuary and Switchback Scaffold, a chimney 6 to 9 m wi
   expect(BERNOULLI.right - BERNOULLI.left).toBeGreaterThan(6);
   expect(BERNOULLI.right - BERNOULLI.left).toBeLessThan(9);
   expect(BERNOULLI.roof).toBeGreaterThanOrEqual(28);
+  // The deep cap and hood close the stone behind them without poking above the roof's top.
+  for (const s of level.surfaces.filter(surface => /^bernoulli-(cap|hood-\d)/.test(surface.id))) {
+    const c = Math.cos(s.angle ?? 0), n = Math.sin(s.angle ?? 0);
+    const top = Math.max(...[[-1, -1], [-1, 1], [1, -1], [1, 1]].map(([u, v]) => s.y + u * s.w / 2 * n + v * s.h / 2 * c));
+    expect(top).toBeLessThan(BERNOULLI.roof + .6 + 1e-6);
+  }
 });
 
 it('completes Bernoulli’s Updraft with actual Rapier controls, bouncing off alternating walls upside down', async () => {
