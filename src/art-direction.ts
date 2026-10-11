@@ -22,7 +22,7 @@ const sand: Palette = {
   stone: 0xd3bda0, light: 0xffead0, shade: 0xa891a4, edge: 0x776877, shadow: 0xd5cdd0,
 };
 export function paletteFor(id: string): Palette {
-  if (['eschers-orchard', 'one-wheel-wonder'].includes(id)) return rose;
+  if (['eschers-orchard', 'one-wheel-wonder', 'keplers-orbit'].includes(id)) return rose;
   if (['room-on-its-side', 'gravity-engine', 'stairway-to-heaven'].includes(id)) return blue;
   if (['newtons-attic', 'clockwork-apple', 'pendulum-mill'].includes(id)) return sand;
   return jade;

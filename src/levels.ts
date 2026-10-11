@@ -9,6 +9,7 @@ import { hiddenWayHomeLevel, switchbackScaffoldLevel } from './levels/tower-chas
 import { stairwayLevel } from './levels/stairway';
 import { cannonballLevel } from './levels/cannonball';
 import { ouroborosLevel } from './levels/ouroboros';
+import { keplersOrbitLevel } from './levels/kepler';
 import { firstLessonLevel } from './levels/first-lesson';
 import { clockworkWedgeLevel } from './levels/clockwork-wedge';
 import { springboardLevel } from './levels/springboard';
@@ -27,20 +28,21 @@ export const levels: Level[] = [
   roomOnItsSideLevel,         // 3
   newtonsAtticLevel,          // 4
   pendulumMillLevel,          // 5
-  eschersOrchardLevel,        // 6
-  cannonballLevel,            // 7
-  ouroborosLevel,             // 8
-  contraryConservatoryLevel,  // 9
-  gravityEngineLevel,         // 10
-  hangingGardenLevel,         // 11
-  clockworkAppleLevel,        // 12
-  clockworkWedgeLevel,        // 13
-  undersideReturnLevel,       // 14
-  huygensReturnLevel,         // 15
-  spiralSanctuaryLevel,       // 16
-  switchbackScaffoldLevel,    // 17
-  hiddenWayHomeLevel,         // 18
-  springboardLevel,           // 19
-  pistonWorksLevel,           // 20
-  stairwayLevel,              // 21
+  keplersOrbitLevel,          // 6
+  eschersOrchardLevel,        // 7
+  cannonballLevel,            // 8
+  ouroborosLevel,             // 9
+  contraryConservatoryLevel,  // 10
+  gravityEngineLevel,         // 11
+  hangingGardenLevel,         // 12
+  clockworkAppleLevel,        // 13
+  clockworkWedgeLevel,        // 14
+  undersideReturnLevel,       // 15
+  huygensReturnLevel,         // 16
+  spiralSanctuaryLevel,       // 17
+  switchbackScaffoldLevel,    // 18
+  hiddenWayHomeLevel,         // 19
+  springboardLevel,           // 20
+  pistonWorksLevel,           // 21
+  stairwayLevel,              // 22
 ];
