@@ -107,6 +107,7 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
         <div class="state-actions">
           <button type="button" class="primary-btn" data-action="state-primary"><span data-ui="state-primary-label">KEEP RIDING</span><span aria-hidden="true">↗</span></button>
           <button type="button" class="secondary-btn" data-action="state-secondary">RESTART ROOM</button>
+          <button type="button" class="secondary-btn" data-action="skip" data-ui="skip-button" hidden>SKIP MAP</button>
           <button type="button" class="secondary-btn" data-action="menu">CHOOSE MAP</button>
         </div>
       </div>
@@ -173,6 +174,7 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
       }
       case 'debug': callbacks.debug(!current?.debug); break;
       case 'survey': callbacks.survey(); break;
+      case 'skip': callbacks.skip(); break;
       case 'state-primary': primaryAction?.(); break;
       case 'state-secondary': callbacks.restart(); break;
       case 'menu': callbacks.menu(); break;
@@ -375,6 +377,22 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
       text('state-title', title);
       text('state-copy', copy);
       text('state-primary-label', action);
+      // A stuck rider may move on from the pause/crash card: opening a locked map spends one
+      // of the limited skips, returning to an already-open map is free.
+      const skipButton = get('skip-button') as HTMLButtonElement;
+      const nextIndex = state.levelIndex + 1;
+      const costsSkip = nextIndex >= state.unlocked;
+      const showSkip = (state.status === 'paused' || state.status === 'crashed')
+        && nextIndex < levels.length && (!costsSkip || state.skipsLeft > 0);
+      skipButton.hidden = !showSkip;
+      if (showSkip) {
+        text('skip-button', costsSkip
+          ? `SKIP MAP · ${state.skipsLeft} ${state.skipsLeft === 1 ? 'SKIP' : 'SKIPS'} LEFT`
+          : 'SKIP MAP');
+        skipButton.setAttribute('aria-label', costsSkip
+          ? `Skip to the next map, ${state.skipsLeft} of 3 skips left`
+          : 'Skip to the next map');
+      }
     }
 
     get('debug-panel').hidden = !state.debug;

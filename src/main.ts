@@ -5,6 +5,7 @@ import { createRenderer } from './renderer';
 import { createUI } from './ui';
 import { createOrientationHold } from './orientation-hold';
 import { levels } from './levels';
+import { applySkip, parseProgress, skipsLeft } from './progress';
 import type { Controls, Snapshot, UIState } from './types';
 
 const FIXED_DT = 1 / 120;
@@ -21,11 +22,8 @@ async function boot() {
   // the renderer reads #game's (logical, rotated) client size on resize.
   const hold = createOrientationHold(root, () => renderer.resize());
   let levelIndex = 0;
-  let unlocked = 1;
-  try {
-    const saved = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
-    if (saved && Number.isInteger(saved.unlocked)) unlocked = Math.max(1, Math.min(levels.length, saved.unlocked));
-  } catch { /* Private mode or malformed saves should not prevent play. */ }
+  let progress = parseProgress(storage?.getItem(SAVE_KEY) ?? null, levels.length);
+  const save = () => { try { storage?.setItem(SAVE_KEY, JSON.stringify(progress)); } catch { /* Saves are optional. */ } };
   let status: UIState['status'] = 'menu';
   let surveying = false;
   let developmentPilot: ((state: Snapshot) => Controls) | undefined;
@@ -75,7 +73,7 @@ async function boot() {
   }
   ui = createUI(document.querySelector<HTMLElement>('#ui')!, levels, {
     start: () => load(levelIndex),
-    selectLevel: index => { if (index >= 0 && index < unlocked) load(index); },
+    selectLevel: index => { if (index >= 0 && index < progress.unlocked) load(index); },
     restart: () => load(levelIndex),
     menu: () => { status = 'menu'; input.reset(); accumulator = 0; },
     pause, resume,
@@ -86,6 +84,13 @@ async function boot() {
     tilt: value => input.setTouchTilt(status === 'playing' && !surveying ? value : 0),
     debug: enabled => { debug = enabled; },
     survey,
+    skip: () => {
+      if (status !== 'paused' && status !== 'crashed') return;
+      const advanced = applySkip(progress, levelIndex, levels.length);
+      if (!advanced) return;
+      if (advanced !== progress) { progress = advanced; save(); }
+      load(levelIndex + 1);
+    },
   });
   load(0, 'menu');
   document.querySelector('#loading')?.remove();
@@ -116,8 +121,8 @@ async function boot() {
           input.reset();
           accumulator = 0;
           if (status === 'complete') {
-            unlocked = Math.max(unlocked, Math.min(levels.length, levelIndex + 2));
-            try { localStorage.setItem(SAVE_KEY, JSON.stringify({ unlocked })); } catch { /* Saves are optional. */ }
+            progress = { ...progress, unlocked: Math.max(progress.unlocked, Math.min(levels.length, levelIndex + 2)) };
+            save();
           }
           break;
         }
@@ -126,7 +131,7 @@ async function boot() {
     hold.update(status === 'playing' && !surveying && input.mode.startsWith('Motion — '), renderState.worldAngle);
     renderer.render(renderState, elapsed);
     ui.update({
-      levelIndex, unlocked, apples: renderState.collected.length,
+      levelIndex, unlocked: progress.unlocked, skipsLeft: skipsLeft(progress), apples: renderState.collected.length,
       totalApples: levels[levelIndex].apples.length, elapsed: renderState.elapsed,
       status, fps: Math.round(1000 / frameMs), frameMs, physicsMs: renderState.physicsMs,
       worldAngle: renderState.worldAngle, timeline: renderState.timeline,
@@ -141,7 +146,7 @@ async function boot() {
   if (import.meta.env.DEV) {
     Object.assign(window, { __NEWTON__: {
       snapshot: () => structuredClone(renderState),
-      state: () => ({ status, levelIndex, unlocked }),
+      state: () => ({ status, levelIndex, unlocked: progress.unlocked, skipsUsed: progress.skipsUsed }),
       load: (index: number) => load(index),
       tilt: (value: number) => input.setTouchTilt(value),
       brake: (value: boolean) => input.setBrake(value),

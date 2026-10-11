@@ -104,9 +104,12 @@ export interface UICallbacks {
   calibrate(): void; setSteering(mode: SteeringMode): void; brake(pressed: boolean): void; tilt(value: number): void;
   debug(enabled: boolean): void;
   survey(): void;
+  /** Move on past the current map from the pause/crash card. Opening a locked map spends
+   *  one of the limited skips; returning to an already-open map is free. */
+  skip(): void;
 }
 export interface UIState {
-  levelIndex: number; unlocked: number; apples: number; totalApples: number;
+  levelIndex: number; unlocked: number; skipsLeft: number; apples: number; totalApples: number;
   elapsed: number; status: 'menu' | 'playing' | 'paused' | 'crashed' | 'complete';
   fps: number; frameMs: number; physicsMs: number; worldAngle: number;
   timeline: number; timeDirection: number; inputMode: string; debug: boolean;

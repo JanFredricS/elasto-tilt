@@ -35,6 +35,7 @@ With the development server running, use `pnpm test:browser` for the Chrome/Chro
 - **Multiple phone turns:** pause, hold the phone in a comfortable pose, and resume to reanchor motion while preserving the world angle. Advanced routes explain this in their pause hints.
 - **MAP:** inspect the complete route, remaining apples, and your position while physics is paused; tap RIDE to continue.
 - Collect every apple before reaching the exit. Touching an obstacle with Newton’s head ends the attempt.
+- **Stuck on a map?** Pause (or crash) and tap **SKIP MAP** to continue to the next one. Up to three skips per save can open still-locked maps; moving on to a map you have already opened is always free.
 
 Progress saves locally on the current browser. There is no account or server requirement. The game pauses when the tab loses focus. The development build exposes `window.__NEWTON__` for diagnostics and map testing; production builds do not expose it.
 
