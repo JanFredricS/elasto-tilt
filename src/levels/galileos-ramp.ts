@@ -86,11 +86,14 @@ const T3 = { x0: s2.kick.x, x1: s2.kick.x + TERRACE, y: s2.kick.y };
 const s3 = stage('galileo-stage-3', T3.x1, T3.y);
 /** The gallery floor, and the underside of the hillside above it (2.8 m of headroom). */
 const FLOOR = Math.floor(s3.kick.y - 3.8), ROOF = FLOOR + 2.8;
-const LANDING = { x0: s3.kick.x, x1: s3.kick.x + 14 };
-/** The catcher: a radius-4 bend up to 55°, then a straight 55° run-up to 6 m above the floor.
+/** 20 m of landing: a rider who holds the world tilted down the hill (up to about .3 rad) leaves
+ *  pad 3 fast and long, and must still come down on the flat rather than onto the catcher's bend. */
+const LANDING = { x0: s3.kick.x, x1: s3.kick.x + 20 };
+/** The catcher: a radius-4 bend up to 55°, then a straight 55° run-up to 9 m above the floor
+ *  (tall enough for the 11–12 m/s an over-tilted rider brings, who would fly off a shorter one).
  *  It never reaches vertical, so a rider who tilts left (home) while high on it is still
  *  pressed onto the face instead of peeling off backwards. */
-const CATCH = 55 * DEG, CATCH_TOP = FLOOR + 6;
+const CATCH = 55 * DEG, CATCH_TOP = FLOOR + 9;
 const bend = arc('galileo-catch', p(LANDING.x1, FLOOR), 0, CATCH, 4, 8, 'galileo-catch');
 const catchTop = p(bend.end.x + (CATCH_TOP - bend.end.y) / Math.tan(CATCH), CATCH_TOP);
 const catcher = { start: p(LANDING.x1, FLOOR), end: catchTop,
@@ -108,7 +111,7 @@ const toss = (kick: Vec, ahead: number, high: number) => p(kick.x + ahead, kick.
 export const galileosRampLevel: Level = {
   id: 'galileos-ramp', name: 'Galileo’s Ramp', subtitle: 'All bodies fall alike',
   mechanic: 'Roll down three inclined planes. A soft brass pad at the foot of each tosses you gently on to the next; the gallery below brings you home.',
-  hint: 'Tilt right to roll and let each slope run. Never brake in the air: let the brass toss you, land, then roll on. At the bottom, tilt left to ride home. Missed an apple? Press ↺ to try again.',
+  hint: 'Tilt right to roll and let each slope run. Never brake in the air: let the brass toss you, land, then roll on. At the bottom, tilt left to ride home. Missed an apple? Press ↺ to restart the room.',
   spawn: p(0, .72), initialAngle: 0,
   bounds: { min: p(-8, FLOOR - 3), max: p(catcher.end.x + 4, 4) },
   surfaces: [

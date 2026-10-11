@@ -58,6 +58,10 @@ it('brings the rider home through a gallery with real headroom to a door below t
   // The catcher stops short of vertical, so tilting home while high on it keeps the rider on its face.
   const catcher = level.surfaces.filter(surface => surface.chain === 'galileo-catch');
   expect(Math.max(...catcher.map(surface => surface.angle ?? 0))).toBeLessThanOrEqual(55 * Math.PI / 180 + 1e-9);
+  // An over-tilted rider leaves pad 3 fast: 20 m of landing before the catcher's bend, and a
+  // catcher 9 m tall, so they neither land on the bend nor fly off its top.
+  expect(GALILEO.landing.x1 - GALILEO.landing.x0).toBeGreaterThanOrEqual(20);
+  expect(GALILEO.catchTop.y - GALILEO.floor).toBeGreaterThanOrEqual(9);
   // The whole gallery is roofed, door end included, and every part of the map lies inside its bounds.
   expect(level.surfaces.some(surface => surface.id === 'galileo-hill-west')).toBe(true);
   for (const surface of level.surfaces) {
@@ -68,7 +72,7 @@ it('brings the rider home through a gallery with real headroom to a door below t
 
 it('completes Galileo’s Ramp with actual Rapier controls: three tosses, never braking', async () => {
   const t = tally();
-  const state = await ride(createGalileoPilot(), 45, level, t.watch);
+  const state = await ride(createGalileoPilot(), 55, level, t.watch);
   expect(state.status).toBe('complete');
   expect([...state.collected].sort()).toEqual(level.apples.map(apple => apple.id).sort());
   expect(t.tosses).toBeGreaterThanOrEqual(3);
@@ -94,10 +98,13 @@ it.each<Controls>([
   expect(state.status).not.toBe('complete');
 });
 
-it('without the pads’ toss (brass replaced by stone) the same pilot misses every toss apple and cannot finish', async () => {
+it.each([2, 3.2, 5])('without the pads’ toss (brass replaced by stone) the same pilot at a %f m/s cruise misses every toss apple and cannot finish', async cruise => {
+  // The pilot levels the world from each incline on, so it reaches every kicker at the slide's own
+  // speed (about 6 m/s) whatever its terrace cruise. A rider who HOLDS the world tilted down the
+  // hill arrives faster and can reach the toss apples off bare stone: see docs/galileos-ramp.md.
   const stone: Level = { ...level, surfaces: level.surfaces.map(surface => surface.kind === 'spring' ? { ...surface, kind: 'ground' } : surface) };
   const t = tally();
-  const state = await ride(createGalileoPilot(), 45, stone, t.watch);
+  const state = await ride(createGalileoPilot(cruise), 45, stone, t.watch);
   expect(state.status).not.toBe('complete');
   expect(t.tosses).toBe(0);
   for (const id of tossApples) expect(state.collected).not.toContain(id);
@@ -131,7 +138,7 @@ function holder(lean: number, home: number, brakeWhen?: (state: Snapshot) => boo
   };
 }
 
-it.each([[.05, .15], [.12, .4], [.2, .15], [.2, .4]])('forgives a held lean: world held at %f rad down the hill, then %f rad home', async (lean, home) => {
+it.each([[.05, .15], [.12, .4], [.2, .15], [.2, .4], [.26, .15], [.28, .4], [.3, .15]])('forgives a held lean: world held at %f rad down the hill, then %f rad home', async (lean, home) => {
   const state = await ride(holder(lean, home));
   expect(state.status).toBe('complete');
   expect(state.collected).toHaveLength(level.apples.length);

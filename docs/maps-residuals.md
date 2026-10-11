@@ -11,3 +11,4 @@ Remaining design work:
 - Escher is a readable planar spiral through four gravity faces, with a shared ceiling/floor and an inner reversal. It has no impossible topology or portal transition.
 - Long controlled replay times are not minimum completion times. More human playtesting is needed to tune difficulty and discover shortcuts.
 - Physical phone comfort, orientation changes and sustained frame pacing still need hardware validation.
+- Galileo’s Ramp (difficulty 1.5) forgives a held lean up to about .3 rad, with one narrow exception near .22 rad where pad 3 keeps a nose-down spin. A held lean above .3 rad still crashes in the gallery, and braking for .2 s or more in the gallery fall crashes on purpose. Its stone-kicker counterfactual holds only at the pilot’s speed. It runs about 46 s, longer than Orchard. Details in [galileos-ramp.md](galileos-ramp.md#residuals--known-issues).
