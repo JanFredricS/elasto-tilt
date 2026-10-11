@@ -11,3 +11,5 @@ Remaining design work:
 - Escher is a readable planar spiral through four gravity faces, with a shared ceiling/floor and an inner reversal. It has no impossible topology or portal transition.
 - Long controlled replay times are not minimum completion times. More human playtesting is needed to tune difficulty and discover shortcuts.
 - Physical phone comfort, orientation changes and sustained frame pacing still need hardware validation.
+- The Ice House (difficulty 8.5) probably rates high. Audit probes suggest about 7.5–8: careful tilt play has wide margins and there are six rest mats, though the map is sensitive to reaction delay. Its final-slide kicker enforces only a small (about .1 rad) tilt-back. See [ice-house.md](ice-house.md#residuals--known-issues).
+- The README's "Map 15 — Stairway to Heaven" line is stale. Stairway is now map 23, and the README does not list the later inserted maps.
