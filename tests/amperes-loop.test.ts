@@ -87,6 +87,25 @@ it.each<[string, Partial<AmperePilotTuning>]>([
   expect(state.collected).toHaveLength(6);
 }, 30_000);
 
+it('stopping upside down under the runway is not a soft-lock: brake, hold the world, then ride on home', async () => {
+  const pilot = createAmperePilot() as (state: Snapshot) => Controls & { phase: string };
+  let from = -1, held = 0, a: { x: number; y: number } | undefined, crept = 9;
+  const state = await ride(s => {
+    const c = pilot(s);
+    if (from < 0 && c.phase === 'home' && s.bike.y < ampereTrack.underY && s.bike.x > 14 && s.bike.x < 15) { from = s.elapsed; held = s.worldAngle; }
+    if (from >= 0 && s.elapsed - from < 4) {
+      // Over the last second of the hold the bike hangs still under the stone.
+      if (s.elapsed - from > 3) { a ??= s.bike; crept = Math.hypot(s.bike.x - a.x, s.bike.y - a.y); }
+      return { tilt: Math.max(-1, Math.min(1, (held - s.worldAngle) * 8)), brake: true };
+    }
+    return c;
+  }, 80);
+  expect(from).toBeGreaterThan(0);
+  expect(crept).toBeLessThan(.2);
+  expect(state.status).toBe('complete');
+  expect(state.collected).toHaveLength(6);
+}, 30_000);
+
 it.each<Controls>([{ tilt: 0, brake: false }, { tilt: 1, brake: false }, { tilt: -1, brake: false }, { tilt: 1, brake: true }])('is not completed by fixed controls (%o)', async control => {
   const state = await ride(() => control, 30);
   expect(state.status).not.toBe('complete');

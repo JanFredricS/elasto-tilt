@@ -70,8 +70,9 @@ Measured replay: about 120 m in 43 s, with all six apples.
 
 - **Positive:** the replay completes with every apple. It rides more than 1.85π round the ring (about 1.95π measured), touches the tower top and rides the underside with the world inverted. The campaign replay table drives the map at index 17.
 - **Tolerance:** at 120 Hz, charge 75° and 85°, floor tip 45°, 55° and 65°, and a home creep of 1.5 and 2.5 m/s all complete. Each run must finish at a different time from the replay, so none of them is the replay saturated onto the same line.
-- **60 Hz:** the replay, both compound corners (charge 85°, tip 55°, creep 2.5 m/s; charge 75°, tip 45°, creep 1.5 m/s) and a 60° tip all complete. The tip window is narrower at 60 Hz (about 45°–62°) than at 120 Hz (45°–70°).
+- **60 Hz:** the replay, both compound corners (charge 85°, tip 55°, creep 2.5 m/s; charge 75°, tip 45°, creep 1.5 m/s) and a 60° tip all complete. The tip window is narrower at 60 Hz (about 40°–62°) than at 120 Hz (45°–70°).
 - **Pilot:** the creep starts only once the bike sits level on the tower top. The landing's impact can briefly dip its speed while it is still pitched nose-down, and following that pitch would roll it over.
+- **No soft-lock:** braking for 4 s upside down mid-underside, with the world held, leaves the bike hanging still. Releasing then completes with every apple.
 - **Negatives:**
   - idle, full tilt either way, and full tilt with the brake held do not complete;
   - holding gravity fixed at the charge angle does not complete.
@@ -79,3 +80,39 @@ Measured replay: about 120 m in 43 s, with all six apples.
   - Without the forward tip on the floor (20° instead of 50°), the rider crashes into the tower’s nose.
   - With a 3 m tower top instead of 10 m, the rider is flung off.
   - With the gap closed (the ring 1 m further left), the jump clips the ring.
+
+## Residuals / known issues
+
+Measured in the second audit with the replay pilot, tilt and brake only. "Fails" means the run did not reach the ring's floor.
+
+- **Throw spin variance.**
+  - On a fine grid of the throw (charge 72°–88° in 2° steps, start of the turn 4.5–8 m before the curl in 0.5 m steps), 122 of 144 throws reach the floor.
+  - At 120 Hz: 33/35 in the core (charge 74°–86°, turn 5–7 m) and 31/37 at the edges. At 60 Hz: 30/35 in the core and 28/37 at the edges.
+  - The failures are scattered rather than grouped at one edge. Most are the front wheel catching the ring's square end at −30° after the lip throws the bike off with too little spin.
+  - Levers tried without a gain beyond noise:
+    - a rounded half-disc cap on the ring's start;
+    - the ring's start angle from −44° to −25°;
+    - the right wall from 1.25 m to 1.7 m past the lip;
+    - combinations of these. On the coarse grid one combination looked better (3/50 failures against 9/50), but it was 122/144 on the fine grid, the same as the shipped ring.
+  - Cycle one had already tried the lip's length and heading, the nose radius and the ring's start. The shipped geometry is kept, and a player can expect roughly one throw in seven to clip the ring at an otherwise correct angle.
+- **Head clearance on the lip climb.**
+  - The rider's head passes 0.03–0.28 m under the end of the ring's floor (0.03 m at 120 Hz with charge 85° and the turn 7 m early, 0.05 m at 60 Hz with charge 72° and 5 m).
+  - No tested throw clips the head at 120 Hz or 60 Hz. The crashes in that sweep are wheel catches on the ring's end, not head strikes.
+- **Drop geometry is a knife-edge for editors, not players.**
+  - With the floor's end 1.9 m left of the lip and 1.8 m above it, every tip from 45° to 60° lands at both rates.
+  - Moving the end 0.1 m left fails the landing at 120 Hz with tips up to 50°. Moving it 0.1 m right blocks the throw at 60 Hz with charge 85°. Changing the rise by 0.2 m either way also breaks cells.
+  - No more robust variant was found, so the floor's end must not be moved without the full sweep.
+- **60 Hz windows are narrower.**
+  - Charge: about 72°–90° at 60 Hz against 65°–95° at 120 Hz.
+  - Floor tip: about 40°–62° at 60 Hz against 45°–70° at 120 Hz.
+  - Fastest creep home that completes: 3.3 m/s at 60 Hz, 3.0 m/s at 120 Hz.
+  - The game steps at 1/120 s, so this only affects the tests.
+- **No soft-locks on the way home.** Braking for 4 s at six points (tower face, mid-underside, under the S, outer bowl, outer wall, crown) resumes and completes at both rates.
+  - Letting go of the tilt while upside down drops the rider, which is a crash rather than a stall.
+  - Letting gravity trail the bike by 35° on the tower face, mid-underside or outer wall also drops the rider.
+  - Leaning back less than about 30° on the tower top lets the rider run off the far end.
+- **Late failures are harsh for difficulty 12.5.** The inverted creep takes about 25 s and needs the world to keep turning throughout. A slip on the outer wall at about 40 s restarts a 43 s run. There are no checkpoints or springs.
+- **The sketch's top-left lobe is compressed.** The large lobe at the top left of the sketch is not built. The outer perimeter is reduced to a 3 m outer wall and a radius-2.5 crown over into the bowl. This is deliberate, and the player has not asked for the lobe.
+- **Untested:**
+  - physical phone play;
+  - the e2e spec. `amperes-loop` is registered by id in `e2e/expansion.spec.ts`, but that spec was not run in either audit. A local browser replay of the campaign build completed in 43.02 s with all six apples and no page errors.
