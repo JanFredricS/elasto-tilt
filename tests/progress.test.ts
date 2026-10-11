@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { applySkip, canSkip, MAX_SKIPS, parseProgress, skipCosts, skipsLeft } from '../src/progress';
+import { levels } from '../src/levels';
 
-const LEVELS = 22;
+/** The campaign's own length (twenty-three maps), so the final-map checks stay on the final map. */
+const LEVELS = levels.length;
 
 describe('progress saves', () => {
   it('starts fresh with one open map and all skips', () => {

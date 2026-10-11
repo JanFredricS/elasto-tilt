@@ -207,7 +207,8 @@ export const noetherLevel: Level = {
   mechanic: 'One monument, the same under a half turn. Ride its top face out — swing, spring, lift and wedge — round the far nose, and ride its underside home with the world turned halfway round, meeting every mechanic again upside down.',
   hint: 'Out along the top: brake on the plank and turn the world to swing it up, lean forward in the spring’s throw, board the lift as it rests low, and tilt to push the wedge into its seat. Round the far nose and turn the world with you: the underside is the same ride again. The door is beside the start. On phone, pause and resume to recenter your grip between turns.',
   spawn: N.spawn, exit: N.exit, initialAngle: 0, difficulty: 15.5, accent: '#9fb4d8',
-  bounds: { min: p(XL - NOSE_R - 6, -(E + 6)), max: p(XR + NOSE_R + 6, E + 6) },
+  // Wide enough that the overview frames the spin arrows' TURN UNDER / TURN HOME labels outside each nose.
+  bounds: { min: p(XL - NOSE_R - 12, -(E + 6)), max: p(XR + NOSE_R + 12, E + 6) },
   surfaces: [...topSurfaces, ...topSurfaces.map(twinSurface)],
   swings: [swing, { ...swing, id: twinId(swing.id), anchor: twinPoint(swing.anchor), angle: Math.PI - .006 }],
   props: [wedge, { ...wedge, id: twinId(wedge.id), ...twinPoint(wedge), angle: Math.PI,
@@ -289,6 +290,9 @@ export function createHalfPilot(options: HalfOptions = {}): (state: Snapshot) =>
       if (!holdFrom) holdFrom = state.elapsed;
       if (due(lift.toHigh, .9) && state.elapsed - holdFrom > .3) { stage = 6; holdFrom = 0; }
     }
+    // Missed the roll-off and riding the lift back down: wait on it, braked and level, for the
+    // next cycle instead of pushing (tilted) off a descending piston.
+    if (stage === 6 && y < N.T1 - .5 && Math.abs(N.lift.x - x) < 1.2) stage = 5;
     if (stage === 6 && seated) stage = 7;
     switch (stage) {
       case 0: return !aboard ? steer(cruise(0, board)) : steer(0, true);

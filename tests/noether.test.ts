@@ -254,3 +254,19 @@ it.each<HalfOptions>([{ board: 2.8 }, { board: 3.3 }, { lean: .5 }, { lean: .7 }
   'also completes the circuit with the pilot changed to %o on both halves', async options => {
     expect((await ride(createNoetherPilot(options))).status).toBe('complete');
   }, 60_000);
+
+it('waits on the lift again after missing the roll-off instead of pushing off a descending piston', async () => {
+  // Hold the rider braked and level for a while once the lift has carried it to the deck, so it
+  // misses the roll-off and rides the pistons back down; the pilot then boards the next cycle.
+  for (const hold of [2, 4]) {
+    const pilot = createHalfPilot();
+    let from: number | undefined;
+    const state = await ride(s => {
+      const input = pilot(s);
+      if (from === undefined && Math.abs(s.bike.x - N.lift.x) < .6 && s.bike.y > N.T1 - .3 && s.bike.y < N.T1 + 1.2) from = s.elapsed;
+      return from !== undefined && s.elapsed - from < hold ? { tilt: Math.max(-1, Math.min(1, -s.worldAngle * 8)), brake: true } : input;
+    }, 70);
+    expect(state.status, `hold ${hold}`).not.toBe('crashed');
+    expect(state.collected, `hold ${hold}`).toContain('noether-apple-step');
+  }
+}, 60_000);
