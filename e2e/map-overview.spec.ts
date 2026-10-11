@@ -1,4 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { levels } from '../src/levels';
+
+// Looked up by id, so inserting a map does not shift this test onto a neighbour.
+const ESCHER = levels.findIndex(level => level.id === 'eschers-orchard');
 
 test.use({ hasTouch: true });
 
@@ -31,7 +35,7 @@ for (const [width, height] of [[390, 844], [844, 390], [1280, 800]]) {
 test('Escher overview shows the nested route without covering controls', async ({ page }) => {
   await page.goto('/');
   await page.waitForFunction(() => Boolean((window as any).__NEWTON__));
-  await page.evaluate(() => (window as any).__NEWTON__.load(6));
+  await page.evaluate(index => (window as any).__NEWTON__.load(index), ESCHER);
   await page.getByRole('button', { name: 'View whole map' }).click();
   await page.screenshot({ path: 'docs/evidence/v2-escher-overview.png' });
   await page.keyboard.press('Escape');

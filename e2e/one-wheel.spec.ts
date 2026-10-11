@@ -1,4 +1,8 @@
 import { expect, test } from '@playwright/test';
+import { levels } from '../src/levels';
+
+// Looked up by id, so inserting a map does not shift this test onto a neighbour.
+const ONE_WHEEL = levels.findIndex(level => level.id === 'one-wheel-wonder');
 
 // Drive only the game's normal control path; inspect the rendered simulation.
 test('One Wheel Wonder completes with a braked single-wheel pivot', async ({ page }) => {
@@ -7,13 +11,13 @@ test('One Wheel Wonder completes with a braked single-wheel pivot', async ({ pag
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/?debug');
   await page.waitForFunction(() => Boolean((window as any).__NEWTON__));
-  await page.evaluate(async () => {
+  await page.evaluate(async index => {
     const replayPath = '/src/dev/replay.ts', levelPath = '/src/levels/early.ts';
     const { createReplayPilot } = await import(/* @vite-ignore */ replayPath);
     const { earlyLevels } = await import(/* @vite-ignore */ levelPath);
     const api = (window as any).__NEWTON__;
-    api.load(2);
-    const pilot = createReplayPilot(2), level = earlyLevels[1];
+    api.load(index);
+    const pilot = createReplayPilot(index), level = earlyLevels[1];
     const trace = { singleWheelFrames: 0, pivotRotation: 0, witnessed: false, highApple: null as null | { supportedWheels: number; onCatch: boolean; angle: number } };
     let segmentFrames = 0, segmentRotation = 0, previousAngle = 0;
     (window as any).__wheelTrace = trace;
@@ -47,7 +51,7 @@ test('One Wheel Wonder completes with a braked single-wheel pivot', async ({ pag
       } else { segmentFrames = 0; segmentRotation = 0; }
       return controls;
     });
-  });
+  }, ONE_WHEEL);
   await page.waitForFunction(() => (window as any).__wheelTrace.witnessed ||
     (window as any).__NEWTON__.snapshot().status !== 'playing', undefined, { timeout: 120_000 });
   expect(await page.evaluate(() => (window as any).__wheelTrace.witnessed)).toBe(true);

@@ -1,4 +1,8 @@
 import { expect, test } from '@playwright/test';
+import { levels } from '../src/levels';
+
+// Looked up by id, so inserting a map does not shift this test onto a neighbour.
+const MILL = levels.findIndex(level => level.id === 'pendulum-mill');
 
 test.use({ hasTouch: true, viewport: { width: 844, height: 390 } });
 test('Mill carries the braked rider on both cradles before the ceiling return', async ({ page }) => {
@@ -7,11 +11,11 @@ test('Mill carries the braked rider on both cradles before the ceiling return', 
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');
   await page.waitForFunction(() => Boolean((window as any).__NEWTON__));
-  await page.evaluate(async () => {
+  await page.evaluate(async index => {
     const { createReplayPilot } = await import('/src/dev/replay.ts');
     const api = (window as any).__NEWTON__;
-    api.load(5);
-    const pilot = createReplayPilot(5);
+    api.load(index);
+    const pilot = createReplayPilot(index);
     const trace = Object.fromEntries(['mill-short', 'mill-long'].map(id => [id,
       { start: null as number | null, travel: 0, brakeSeconds: 0 }]));
     (window as any).__millTrace = trace;
@@ -33,7 +37,7 @@ test('Mill carries the braked rider on both cradles before the ceiling return', 
       }
       return controls;
     });
-  });
+  }, MILL);
   for (const id of ['mill-short', 'mill-long']) {
     await page.waitForFunction(id => (window as any).__millTrace[id].brakeSeconds > .3 ||
       (window as any).__NEWTON__.state().status !== 'playing', id, { timeout: 90_000 });
