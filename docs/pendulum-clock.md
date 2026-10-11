@@ -43,15 +43,17 @@ Four apples: `clock-seam`, `clock-jaws`, `clock-hand-face`, `clock-crest`.
 2. It crosses to E2 one second before E1 crests.
 3. It leaves E2 .9 s before E2 tops out.
 4. It waits braked short of the pallet and sets off 1.5 s before the bar is fully raised.
-5. It stops braked on the plank and leads the world angle .55 rad ahead of the hand until the hand is against the tower.
-6. It follows its own heading up the wall, round the crown at 1.6 m/s, and along the 12 ledge to the door.
+5. It stops braked in the middle of the plank and leads the world angle .55 rad ahead of the hand until the hand is against the tower.
+6. It rides briskly (1.4 m/s) off the plank onto the tower face, then follows its own heading up the wall, round the crown at 1.6 m/s, and along the 12 ledge to the door.
+
+The climb off the hand must not dawdle. A rider on the parked plank's upper half (above the anchor) levers the light, heavily damped hand down off its stop at about .08 rad/s. At .4 m/s the hand sags a few degrees, and the front wheel wedges in the gap that opens under the tower's foot. At .6 m/s or faster the climb is reliable. The hint says so.
 
 The demonstrated route covers 49 m in 40 s and collects all apples. The campaign replay is at index 16.
 
 Tests in `tests/pendulum-clock.test.ts`:
 
 - **Positive.** The full replay completes. It crosses the seam with the tops within .35 m of each other. It stays under the bar only while the bar clears 1.9 m. It swings the hand to at least 90° − .05 and rides the wall.
-- **Timing tolerance.** Lead, leave, cross and pallet timings are varied, and the crown is rounded at 1.3 and 2 m/s.
+- **Timing tolerance.** Lead, leave, cross and pallet timings are set near the early and late ends of their windows (each alone works over about lead .6–2.1 s, cross .6–1.5 s, leave .3–2.1 s, pallet .3–2.7 s). The hand technique is varied: parking −.4 to +1.2 m from the anchor, leading the swing .35–.8 rad, climbing off at .8–2.5 m/s. The crown is rounded at 1.3 and 2 m/s.
 - **Negative.** A pilot that sets off for the pallet 4.5 s early meets the bar as it drops, and crashes at the bar.
 - **Moving hazard.** The bench test above shows that a hazard bar kills and a plain bar only shoves.
 - **Counterfactual.** With the escapement frozen (period 1e9), the rider never reaches the dial floor.

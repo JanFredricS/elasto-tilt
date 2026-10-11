@@ -81,8 +81,15 @@ it('completes the Pendulum Clock: up the escapement, beneath the pallet, up on t
   expect(state.elapsed).toBeLessThan(60);
 }, 20_000);
 
-it.each([[1.1, .6, .6, 1.2], [1.4, 1.2, 1.4, 1.9]])('tolerates the pilot’s timing (lead %f s, leave %f s, cross %f s, pallet %f s)', async (lead, leave, cross, go) => {
+// Early and late ends of each window (each alone spans about lead .6–2.1, cross .6–1.5, leave .3–2.1, pallet .3–2.7 s).
+it.each([[.7, .4, .7, .5], [2, 2, 1.4, 2.6]])('tolerates the pilot’s timing (lead %f s, leave %f s, cross %f s, pallet %f s)', async (lead, leave, cross, go) => {
   const state = await ride(createPendulumClockPilot({ lead, leave, cross, pallet: go }), 90);
+  expect(state.status).toBe('complete');
+}, 20_000);
+
+// Where the rider parks on the plank, how far it leads the swing and how fast it climbs off.
+it.each([[-.4, .8, .8], [1.2, .8, 2.5], [.4, .35, 1.4]])('tolerates the hand technique (park %f m, lead %f rad, climb %f m/s)', async (park, swing, climb) => {
+  const state = await ride(createPendulumClockPilot({ park, swing, climb }), 90);
   expect(state.status).toBe('complete');
 }, 20_000);
 

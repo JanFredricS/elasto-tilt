@@ -87,7 +87,7 @@ const crownApple = p(westFace + R - (R + .9) * Math.cos(45 * DEG), crownY + (R +
 export const pendulumClockLevel: Level = {
   id: 'pendulum-clock', name: 'The Pendulum Clock', subtitle: 'Tick, tock, and a time to cross.',
   mechanic: 'Inside a giant clock: ride the escapement’s antiphase lifts, slip beneath a red pallet bar that drops across the dial on its own beat, then brake on the pendulum’s hand and turn the world a quarter turn to ride it up to the 12.',
-  hint: 'Roll onto the first lift as it rests low and brake. Cross to the second only as their tops meet. Wait short of the red pallet; go as it starts to rise and pass beneath it while it hangs at the top. Brake on the hand and turn the world to swing it up, then ride up the wall and round onto the 12.',
+  hint: 'Roll onto the first lift as it rests low and brake. Cross to the second only as their tops meet. Wait short of the red pallet; go as it starts to rise and pass beneath it while it hangs at the top. Brake in the middle of the hand and turn the world to swing it up, then ride briskly off it up the wall (lingering levers it down) and round onto the 12.',
   spawn: p(-5, .72), initialAngle: 0,
   bounds: { min: p(-12, -4), max: p(CLOCK_FACE.ledgeEnd + 3, ledgeY + 5) },
   surfaces: [
@@ -143,13 +143,20 @@ export function palletSchedule(time: number) {
  * the pallet's cycles off the clock, as a player watching them would: it waits braked short of
  * the shaft, sets off so it arrives as E1 rests low, brakes on it, crosses to E2 `cross` s before
  * E1 crests and leaves E2 `leave` s before it tops out. It waits braked short of the pallet and
- * sets off `pallet` s before the bar is fully raised. On the hand it brakes and leads the world
- * ahead of the swing until it stands against the tower, then follows the bike's own heading up
- * the wall, round the crown at `rounding` m/s and along the 12 to the door.
+ * sets off `pallet` s before the bar is fully raised. It stops braked on the hand's plank `park` m
+ * east of the anchor and leads the world `swing` rad ahead of the swing until it stands against
+ * the tower, then follows the bike's own heading up the wall at `climb` m/s, round the crown at
+ * `rounding` m/s and along the 12 to the door.
+ *
+ * The climb must not dawdle: a rider standing on the parked plank's upper half (above the
+ * anchor) levers the light, heavily damped hand down off its stop at about .08 rad/s, opening a
+ * gap under the tower's foot that a slow wheel wedges into.
  */
-export function createPendulumClockPilot(options: { lead?: number; leave?: number; cross?: number; pallet?: number; rounding?: number } = {}): (state: Snapshot) => Controls {
+export function createPendulumClockPilot(options: { lead?: number; leave?: number; cross?: number; pallet?: number;
+  park?: number; swing?: number; climb?: number; rounding?: number } = {}): (state: Snapshot) => Controls {
   const lead = options.lead ?? 1.1, leave = options.leave ?? .9, cross = options.cross ?? 1;
   const go = options.pallet ?? 1.5, rounding = options.rounding ?? 1.6;
+  const park = options.park ?? 0, swing = options.swing ?? .55, climb = options.climb ?? 1.4;
   let previous: Vec | undefined, lastTime = 0, stage = 0, holdFrom = 0, bike = 0, lastRaw = 0;
   type Stage = { x: number; go?: (t: number) => boolean; speed?: number };
   const E1 = P.escapeLow, E2 = P.escapeHigh;
@@ -161,7 +168,7 @@ export function createPendulumClockPilot(options: { lead?: number; leave?: numbe
     { x: E2.x, go: t => due(escapeSchedule(E2, t).toHigh, leave) },
     { x: P.pallet.x - 2.5, go: t => due(palletSchedule(t).toOpen, go) },
     // Onto the hand's plank, and stop there.
-    { x: anchor.x, speed: 2.5, go: () => true },
+    { x: anchor.x + park, speed: 2.5, go: () => true },
   ];
   return state => {
     const dt = state.elapsed - lastTime, raw = state.bodies.find(body => body.id === 'frame')!.angle;
@@ -189,10 +196,10 @@ export function createPendulumClockPilot(options: { lead?: number; leave?: numbe
     // On the hand: lead the loaded swing until it stands against the tower.
     if (stage === stages.length) {
       if (theta > Math.PI / 2 - .012) stage++;
-      return steer(Math.min(theta + .55, Math.PI / 2 + .25), true);
+      return steer(Math.min(theta + swing, Math.PI / 2 + .25), true);
     }
-    // Ease off the plank (pushing off swings it back), climb the face, round the crown, ride the 12.
-    const speed = y < footY + .5 ? .4 : y < crownY - 1 ? 2 : rounding;
+    // Ride briskly off the plank onto the face, climb it, round the crown, ride the 12.
+    const speed = y < footY + .5 ? climb : y < crownY - 1 ? 2 : rounding;
     return steer(cruise(speed, y < footY + 2 && x < westFace ? 0 : -.35, .35));
   };
 }
