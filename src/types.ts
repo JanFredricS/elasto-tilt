@@ -33,7 +33,9 @@ export interface TimePlatform { id: string; from: Vec; to: Vec; via?: Vec; w: nu
   /** Seconds per round trip. A platform with a period ignores the route clock and runs on its
    *  own: from → to → from, eased like a pendulum (it dwells at both ends), starting `offset` of
    *  a cycle along (0 at `from`, .5 at `to`). */
-  period?: number; offset?: number }
+  period?: number; offset?: number;
+  /** 'hazard': a moving red bar. Touching it with any part of the bike ends the ride, like a hazard surface. */
+  kind?: 'hazard' }
 export interface Portal extends Vec { id: string; target: Vec; rotation: number; radius: number }
 /** Visual guidance only. Angles are map-space radians: 0 points right, positive turns counterclockwise. */
 /** `spin` swaps the straight arrow for a circular one showing which way to rotate

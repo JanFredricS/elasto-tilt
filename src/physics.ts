@@ -250,7 +250,7 @@ export async function createPhysics(): Promise<PhysicsGame> {
       const start = platform.period ? pathPoint(platform, cyclePhase(0, platform.period, platform.offset)) : platform.from;
       const body = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(start.x, start.y));
       register(RAPIER.ColliderDesc.cuboid(platform.w / 2, platform.h / 2).setFriction(1.3).setCollisionGroups(ENV_GROUP),
-        body, { kind: 'time', id: platform.id });
+        body, { kind: platform.kind === 'hazard' ? 'hazard' : 'time', id: platform.id });
       temporal.push({ body, path: platform, lastTravel: 0 });
       renderBodies.push({ body, view: { id: platform.id, w: platform.w, h: platform.h, shape: 'box', kind: 'time' } });
     }
