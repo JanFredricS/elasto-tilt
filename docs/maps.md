@@ -24,6 +24,7 @@ This replaces the short original routes. Coordinates are metres, positive y up. 
 | Hooke’s Springboard | Spring pads: slide into a brass pad, lean gravity forward in the throw to clear a spike pit, scrub the landing speed, then repeat over a wider pit to the door. The first throw forgives any lean from ≈ .35 to .8 rad; the second needs ≥ .5. See [hookes-springboard.md](hookes-springboard.md). | 4 | 59 m / 12 s |
 | The Piston Works | Self-running lifts (pairs of tyre-wide pistons on their own periods): board lift A as it rests low, ride up, drop through a half-pipe, ride B1 up and cross to B2 only as their tops meet, then ride lift C down its shaft for a mandatory apple and back up to the door. | 5 | 72 m / 63 s |
 | Stairway to Heaven | Four giant steps: turn onto each vertical riser, ease over each crest, collect the summit apple, and descend home. | 8 | 197 m / 160 s |
+| Noether’s Symmetry | One monument, the same under a half turn: swing a plank, spring a pit, ride a lift and seat a wedge along the top, round the far nose, and meet every mechanic again on the underside, then return to the door beside the start. | 10 | 215 m / 117 s |
 
 The map 2 correction and measured one-wheel apple collection are documented in [one-wheel-fix.md](one-wheel-fix.md).
 
@@ -39,4 +40,6 @@ Expansion route details and control coverage: [flip and spiral](flip-spiral.md),
 
 [Stairway to Heaven](stairway.md) adds demonstrated contact on every riser, tread and local corner, including the return descent.
 
-Campaign order (22 maps): First Lesson; Orchard; One Wheel Wonder; Room on Its Side; Attic; Pendulum Mill; Escher’s Orchard; Cannonball; Ouroboros; Contrary Conservatory; Gravity Engine; Hanging Garden; Clockwork Apple; Clockwork Wedge; The Other Side; Huygens’ Return; Spiral Sanctuary; Switchback Scaffold; The Hidden Way Home; Hooke’s Springboard; The Piston Works; Stairway to Heaven. Saves store only an unlocked count, so inserting the First Lesson at the front shifts an existing save's unlocked set by one map. Inserting Huygens’ Return (16th) and the Piston Works (21st) likewise moves every later map one or two places down, so an existing save may need those maps replayed.
+[Noether’s Symmetry](noether.md) is a 180° palindrome. Its return half is ridden by the same pilot fed a half-turned snapshot, and counterfactuals remove each mechanic and each of its twins.
+
+Campaign order (23 maps): First Lesson; Orchard; One Wheel Wonder; Room on Its Side; Attic; Pendulum Mill; Escher’s Orchard; Cannonball; Ouroboros; Contrary Conservatory; Gravity Engine; Hanging Garden; Clockwork Apple; Clockwork Wedge; The Other Side; Huygens’ Return; Spiral Sanctuary; Switchback Scaffold; The Hidden Way Home; Hooke’s Springboard; The Piston Works; Stairway to Heaven; Noether’s Symmetry. Saves store only an unlocked count, so inserting the First Lesson at the front shifts an existing save's unlocked set by one map. Inserting Huygens’ Return (16th) and the Piston Works (21st) likewise moves every later map one or two places down, so an existing save may need those maps replayed.

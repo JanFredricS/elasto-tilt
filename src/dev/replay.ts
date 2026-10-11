@@ -10,6 +10,7 @@ import { createClockworkWedgePilot } from '../levels/clockwork-wedge';
 import { createSpringboardPilot } from '../levels/springboard';
 import { createHuygensPilot } from '../levels/huygens-return';
 import { createPistonWorksPilot } from '../levels/piston-works';
+import { createNoetherPilot } from '../levels/noether';
 import type { Controls, Snapshot } from '../types';
 
 type Pilot = (state: Snapshot) => Controls;
@@ -39,6 +40,7 @@ const pilots: (() => Pilot)[] = [
   () => createSpringboardPilot(),   // 19 hookes-springboard
   () => createPistonWorksPilot(),   // 20 piston-works
   createStairwayPilot,              // 21 stairway-to-heaven
+  () => createNoetherPilot(),       // 22 noethers-symmetry
 ];
 
 /** Input-only campaign pilot. Call once before each fixed 1/120 s physics step. */

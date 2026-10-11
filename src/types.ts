@@ -16,6 +16,8 @@ export interface Apple extends Vec { id: string }
 export interface Prop extends Vec {
   /** 'wedge' is a right triangle in its w×h box: right angle bottom-right, slope rising to the right (◢). */
   id: string; shape: 'box' | 'ball' | 'wedge'; w: number; h: number; inverted?: boolean;
+  /** Initial rotation (radians, default 0): a wedge turned by π is ◤. A socket's `angle` is measured from it. */
+  angle?: number;
   /** 'wedge' only: height of a vertical bumper face at the slope's foot (default 0, a sharp toe). */
   toe?: number;
   /** Collider density (default 1.5) and friction (default .9). */
