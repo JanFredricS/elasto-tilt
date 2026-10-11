@@ -116,6 +116,14 @@ it('keeps each float behind its lip when the ferry is tipped hard, and each stil
   }
 }, 120_000);
 
+it.each([1.1, 1.5])('an extreme ferry tilt of %s rad ends in a crash on beam B’s lip, not a soft lock', async carry => {
+  // Tipped this hard the rider leaves the deck in a hop and its helmet meets the .9 m lip. That is a
+  // restart, which is acceptable; with the old .5 m lip, 1.2 rad instead stranded float B in socket A.
+  const state = await ride(torricelliPilotFor(level, G, S, { ...TORRICELLI_PILOT, carry }), 30);
+  expect(state.status).toBe('crashed');
+  expect(state.bike.x).toBeGreaterThan(G.pool[1]); expect(state.bike.x).toBeLessThan(S.beams[1][0]);
+}, 60_000);
+
 /** Ride the pilot onto the far bank, stop with float B pushed out, hold the world tipped back by
  *  `angle` for 15 s with the brake on, level it for 15 s, and return the floats. */
 async function backTilt(map: Level, geometry: typeof G, angle: number) {
