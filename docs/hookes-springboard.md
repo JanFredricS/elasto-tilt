@@ -1,6 +1,6 @@
 # Hooke’s Springboard
 
-Campaign map 19 (index 18), difficulty 14.5, between The Hidden Way Home and Stairway to Heaven. Code: `src/levels/springboard.ts`. Tests: `tests/springboard.test.ts`.
+Campaign map 21 (index 20), difficulty 14.5, between The Hidden Way Home and The Piston Works. Code: `src/levels/springboard.ts`. Tests: `tests/springboard.test.ts`.
 
 ## Mechanic: spring pads (`kind: 'spring'`)
 

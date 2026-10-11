@@ -59,6 +59,12 @@ it('two press plates run in antiphase on one 12 s cycle; A meets the sill as B m
   expect(B.from.y + B.h / 2).toBeCloseTo(P.pressB.low - .1, 9); expect(B.to.y + B.h / 2).toBeCloseTo(P.pressB.high + .1, 9);
   // A's plate holds the crate and the bike end to end.
   expect(A.w).toBeGreaterThan(P.crate.w + 2.08 + 1);
+  // Each press is a solid ram: risen, its column still reaches below the floor it left, so its
+  // shaft is never open, and the slots beside it are too narrow for the crate or a wheel.
+  expect(A.to.y - A.h / 2).toBeLessThan(P.start.y); expect(B.to.y - B.h / 2).toBeLessThan(P.ledge.y);
+  expect(A.from.y - A.h / 2).toBeGreaterThan(P.shaftA.floor); expect(B.from.y - B.h / 2).toBeGreaterThan(P.shaftB.floor);
+  for (const gap of [P.pressA.x0 - P.start.x1, P.shaftA.face.x0 - P.pressA.x1, P.pressB.x0 - P.ledge.x1, P.hall.x0 - P.pressB.x1])
+    expect(gap).toBeLessThan(Math.min(P.crate.h, .68) / 2);
 });
 
 it('the crate is a box that seats only level in a pit beside A’s shaft, flush with the floor', () => {
@@ -71,9 +77,37 @@ it('the crate is a box that seats only level in a pit beside A’s shaft, flush 
   expect(prop.socket!.tolerance).toBeGreaterThanOrEqual((P.pit.x1 - P.pit.x0 - P.crate.w) / 2);
   // ...and keeps a seated crate clear of the sill and of A's shaft.
   expect(CRATE_SEAT.x - P.crate.w / 2 - prop.socket!.tolerance).toBeGreaterThan(P.sill.x0);
-  // Without the crate the pit is a gap far longer than the bike's wheelbase.
+  // Without the crate the pit is a gap far longer than the bike's wheelbase, floored with a hazard.
   expect(P.pit.x1 - P.sill.x1).toBeGreaterThan(2);
+  const floor = level.surfaces.find(surface => surface.id === 'pascal-pit-floor')!;
+  expect(floor.kind).toBe('hazard');
+  expect(floor.y + floor.h / 2).toBeCloseTo(P.pit.floor, 9);
+  expect(floor.w).toBeCloseTo(P.pit.x1 - P.pit.x0, 9);
 });
+
+it('a rider who drops into the empty pit crashes; nobody is stranded alive in it', async () => {
+  const inPit: Level = { ...level, id: 'pascal-in-pit', spawn: { x: (P.pit.x0 + P.pit.x1) / 2, y: P.ledge.y + .5 } };
+  for (const control of [{ tilt: 0, brake: false }, { tilt: 0, brake: true }, { tilt: .5, brake: true }, { tilt: -.5, brake: true }]) {
+    const state = await ride(held(control), 5, inPit);
+    expect(state.status).toBe('crashed');
+    expect(state.elapsed).toBeLessThan(1.5);
+  }
+}, 60000);
+
+it.each([[(P.pressA.x0 + P.pressA.x1) / 2], [P.shaftA.face.x0 - P.crate.w / 2]])('a crate left on A rides six full cycles without creeping, tipping or lifting off (crate at x %f)', async x => {
+  const parked: Level = { ...level, id: 'pascal-idle', props: level.props!.map(prop => ({ ...prop, x, y: P.pressA.low - P.over.low + P.crate.h / 2 })) };
+  let lift = 0, tip = 0, west = Infinity, east = -Infinity;
+  const state = await ride(held({ tilt: 0, brake: true }), 6 * P.pressA.period, parked, s => {
+    if (s.elapsed < .5) return;
+    const c = crate(s);
+    lift = Math.max(lift, Math.abs(c.y - c.h / 2 - top(body(s, 'pascal-press-a'))));
+    tip = Math.max(tip, Math.abs(c.angle)); west = Math.min(west, c.x); east = Math.max(east, c.x);
+  });
+  expect(state.status).toBe('playing');
+  expect(lift).toBeLessThan(.02);
+  expect(tip).toBeLessThan(.01);
+  expect(east - west).toBeLessThan(.02);
+}, 60000);
 
 it('the crush presses bottom out above the frame but well into the helmet; the hall is tunnel height', () => {
   const floor = P.hall.y, frameTop = .72 + .12;
@@ -149,11 +183,20 @@ it('no crate: the pit is impassable, and the pilot never reaches the ledge', asy
   expect(reached).toBeLessThan(P.pit.x1);
 }, 60000);
 
-it('shoving the crate on while A is still up loses it down the shaft', async () => {
-  const state = await ride(createPascalsPressesPilot({ lead: 4 }), 60);
-  expect(state.status).not.toBe('complete');
-  expect(crate(state).settled).toBeFalsy();
-  expect(crate(state).y).toBeLessThan(P.start.y);
+it('shoving the crate on while A is still up cannot lose it: A’s risen column stops it at the lip', async () => {
+  let lowest = Infinity, againstColumn = false;
+  const state = await ride(createPascalsPressesPilot({ lead: 4 }), 120, level, s => {
+    const c = crate(s);
+    lowest = Math.min(lowest, c.y - c.h / 2);
+    // Pushed while A is up, it rests on the start floor against the risen column.
+    if (c.x + c.w / 2 > P.start.x1 - .05 && Math.abs(c.y - c.h / 2 - P.start.y) < .05 && top(body(s, 'pascal-press-a')) > 1) againstColumn = true;
+  });
+  expect(againstColumn).toBe(true);
+  expect(lowest).toBeGreaterThan(P.start.y - P.over.low - .05); // never below A's lowest plate
+  // ...and is loaded at the next low, carried up and seated after all. (This pilot's `lead` also
+  // sets it off early for B, so it is judged on the crate, not on the rest of the run.)
+  expect(crate(state).settled).toBe(true);
+  expect(state.collected).toContain('pascal-step');
 }, 60000);
 
 it('lingering under a descending ram crashes the rider: the helmet is struck, the rider is not pinned alive', async () => {

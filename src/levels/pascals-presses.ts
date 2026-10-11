@@ -13,24 +13,29 @@ const block = (id: string, x0: number, x1: number, top: number, bottom: number):
  * up and down for ever, eased so it dwells at both ends, whatever the rider does. Geometry
  * (metres, y up):
  *
- *   - The start floor (top y = 0) ends at press A's shaft (x .1 … 5.7). A wooden crate (a 2 × .8
- *     box, slick underneath: friction .5) waits on the floor west of it. Press A is one wide
- *     plate: it rises from the floor to the upper floor (top 3) and back every 12 s. Its partner,
- *     press B, a plate a bike long in a second shaft further east, runs the same stroke a floor
- *     higher (3 → 6) in antiphase: B rests at the bottom exactly as A rests at the top. Press
- *     here, rise there.
+ *   - The start floor (top y = 0) ends at press A's shaft (x .1 … 5.7). A wooden crate (a 2 × .5
+ *     box, slick underneath: friction .5) waits on the floor west of it. Press A is a hydraulic
+ *     ram, its plate the top of a solid column: it rises from the floor to the upper floor (top 3)
+ *     and back every 12 s. Its partner, press B, a ram a bike long in a second shaft further east,
+ *     runs the same stroke a floor higher (3 → 6) in antiphase: B rests at the bottom exactly as A
+ *     rests at the top. Press here, rise there.
+ *   - Each ram's column is tall enough that, risen, it still fills its shaft up to the floor it
+ *     left: neither shaft is ever open. Nothing (crate or rider) can fall in and be lost.
  *   - WAIT at A's lip with the crate parked short of it; as A comes down, LOAD: shove the crate
  *     on across the plate until it stops against the far wall of the shaft, and follow it on.
  *     The shaft's east wall is faced with a slick plate, so the crate rides up against it
- *     without dragging. Push it early and it drops into the empty shaft (its floor, 2.2 below,
- *     is lost for good); a rider who drops in after it is crushed as A comes down.
+ *     without dragging. Push it early and it stops against A's risen column, at the lip, to be
+ *     loaded at the next low.
  *   - East of A's shaft a narrow sill (.2 m, at the upper floor's height) and then a pit (2.2
- *     long, floor 2.2): the crate's socket. Only as A rests at the top (its plate .1 above the
- *     sill) can the crate be pushed east off the plate, over the sill, until it tips into the
- *     pit. The pit's floor is slick, so it slides down flat instead of leaning on the sill's
+ *     long, .5 deep, its floor a hazard strip): the crate's socket. A rider who drops in crashes,
+ *     so a rider can never be stranded in it, nor climb out of it to the far side. Only as A
+ *     rests at the top (its plate .1 above the sill) can the crate be pushed east off the plate,
+ *     over the sill, until it tips into the pit. The pit's floor is slick, so it slides down flat instead of leaning on the sill's
  *     edge, and it locks there only once it lies LEVEL (socket `angle`), flush with the floor:
  *     the gold step from A's top to the ledge. A sinks before it settles; ride A down and back
  *     up, and roll over it. Without it the pit is a 2.2 m gap the rider cannot roll across.
+ *     (Tilting the world ~1–1.5 rad braked on A's top can still tumble a crate-less rider across
+ *     it; see tests/pascals-presses.test.ts.)
  *   - The ledge ends at B's shaft. WAIT for B to rest at the bottom, ride it up to the press
  *     hall floor (top 6), and roll off east.
  *   - The press hall: a 2.6 m tunnel whose ceiling holds three crush presses (rams). Each
@@ -38,26 +43,27 @@ const block = (id: string, x0: number, x1: number, top: number, bottom: number):
  *     top (.84) but far below the helmet's (1.75), so a rider caught under a ram is always
  *     struck on the head (a crash), never pinned alive. Go UNDER each one only while it
  *     rests up; the gaps between them are wide enough to stop and wait in.
- *   - Every shaft is wider than its plate (.1 m each side) and deep enough that a rider who
- *     falls in is struck on the head by the descending plate rather than trapped below it.
+ *   - Every shaft is wider than its ram by only .1 m each side (.05 at A's slick face): too narrow
+ *     for the crate (.5 thick) or a wheel.
  */
 export const PASCAL = {
   /** Every lift over-travels its floors by .1, so a rider always steps DOWN onto a press and off it. */
   over: { low: .1, high: .1 },
   start: { x0: -16, x1: 0, y: 0 },
-  crate: { x: -6, w: 2, h: .8, friction: .5, density: 1.5 },
-  /** Press A: one plate across the whole shaft (x0 … x1), from the start floor to the upper floor. */
-  pressA: { x0: .1, x1: 5.7, low: 0, high: 3, period: 12, offset: 0, h: .5 },
+  crate: { x: -6, w: 2, h: .5, friction: .5, density: 1.5 },
+  /** Press A: one ram across the whole shaft (x0 … x1), from the start floor to the upper floor. Risen, its column
+   *  (h, plate and all) still reaches below the start floor, so the shaft is never open. */
+  pressA: { x0: .1, x1: 5.7, low: 0, high: 3, period: 12, offset: 0, h: 3.3 },
   /** The shaft's floor, and the slick facing (x0 … x1) on its east wall. */
-  shaftA: { floor: -2.2, face: { x0: 5.75, x1: 5.8 } },
+  shaftA: { floor: -3.5, face: { x0: 5.75, x1: 5.8 } },
   /** A narrow stone sill at the upper floor's height between A's shaft and the pit. */
   sill: { x0: 5.8, x1: 6 },
-  /** The crate's socket: a pit in the upper floor, .2 m longer than the crate, so it lies flat. */
-  pit: { x0: 6, x1: 8.2, floor: 2.2 },
+  /** The crate's socket: a pit in the upper floor, .2 m longer than the crate, so it lies flat. Its floor is a hazard. */
+  pit: { x0: 6, x1: 8.2, floor: 2.5 },
   ledge: { x1: 12, y: 3 },
-  /** Press B: a bike-long plate, the next floor up, in antiphase with A. */
-  pressB: { x0: 12.1, x1: 14.7, low: 3, high: 6, period: 12, offset: .5, h: .5 },
-  shaftB: { floor: 1 },
+  /** Press B: a bike-long ram, the next floor up, in antiphase with A; risen, its column still reaches below the ledge. */
+  pressB: { x0: 12.1, x1: 14.7, low: 3, high: 6, period: 12, offset: .5, h: 3.3 },
+  shaftB: { floor: -.5 },
   hall: { x0: 14.8, x1: 44, y: 6 },
   ceiling: { x0: 19, x1: 37, y: 8.6, top: 10.6 },
   /** Crush presses: bottom face from `up` (just inside the ceiling slot) down to `down`. */
@@ -96,11 +102,12 @@ export const pascalsPressesLevel: Level = {
   surfaces: [
     block('pascal-start', P.start.x0, P.start.x1, P.start.y, -3),
     g('pascal-back-wall', P.start.x0 - .3, 2.4, .6, 4.8),
-    block('pascal-shaft-a', P.start.x1, P.shaftA.face.x0, P.shaftA.floor, -3),
+    block('pascal-shaft-a', P.start.x1, P.shaftA.face.x0, P.shaftA.floor, -4),
     // The shaft's east wall is faced with a slick plate: the crate rides up against it freely.
     { ...block('pascal-shaft-a-face', P.shaftA.face.x0, P.shaftA.face.x1, P.ledge.y, P.shaftA.floor), friction: 0 },
     block('pascal-sill', P.sill.x0, P.sill.x1, P.ledge.y, -3),
-    { ...block('pascal-pit', P.pit.x0, P.pit.x1, P.pit.floor, -3), friction: .05 },
+    block('pascal-pit', P.pit.x0, P.pit.x1, P.pit.floor - .15, -3),
+    { ...block('pascal-pit-floor', P.pit.x0, P.pit.x1, P.pit.floor, P.pit.floor - .15), kind: 'hazard' as const, friction: .05 },
     block('pascal-ledge', P.pit.x1, P.ledge.x1, P.ledge.y, -3),
     block('pascal-shaft-b', P.ledge.x1, P.hall.x0, P.shaftB.floor, -3),
     block('pascal-hall', P.hall.x0, P.hall.x1, P.hall.y, -3),
