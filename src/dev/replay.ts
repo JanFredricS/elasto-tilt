@@ -10,6 +10,7 @@ import { createClockworkWedgePilot } from '../levels/clockwork-wedge';
 import { createSpringboardPilot } from '../levels/springboard';
 import { createHuygensPilot } from '../levels/huygens-return';
 import { createPistonWorksPilot } from '../levels/piston-works';
+import { createGalileoPilot } from '../levels/galileos-ramp';
 import type { Controls, Snapshot } from '../types';
 
 type Pilot = (state: Snapshot) => Controls;
@@ -19,26 +20,27 @@ type Pilot = (state: Snapshot) => Controls;
 const pilots: (() => Pilot)[] = [
   createFirstLessonPilot,           // 0 newtons-first-lesson
   () => createEarlyReplayPilot(0),  // 1 newtons-orchard
-  () => createEarlyReplayPilot(1),  // 2 one-wheel-wonder
-  () => createEarlyReplayPilot(4),  // 3 room-on-its-side
-  () => createLateReplayPilot(0),   // 4 newtons-attic
-  () => createEarlyReplayPilot(3),  // 5 pendulum-mill
-  () => createLateReplayPilot(1),   // 6 eschers-orchard
-  createCannonballPilot,            // 7 newtons-cannonball
-  createOuroborosPilot,             // 8 newtons-ouroboros
-  () => createLateReplayPilot(2),   // 9 contrary-conservatory
-  () => createLateReplayPilot(3),   // 10 gravity-engine
-  () => createEarlyReplayPilot(2),  // 11 hanging-garden
-  () => createLateReplayPilot(4),   // 12 clockwork-apple
-  createClockworkWedgePilot,        // 13 clockwork-wedge
-  () => createFlipSpiralPilot(0),   // 14 underside-return
-  () => createHuygensPilot(),       // 15 huygens-return
-  () => createFlipSpiralPilot(1),   // 16 spiral-sanctuary
-  () => createTowerChasmPilot(0),   // 17 switchback-scaffold
-  () => createTowerChasmPilot(1),   // 18 the-hidden-way-home
-  () => createSpringboardPilot(),   // 19 hookes-springboard
-  () => createPistonWorksPilot(),   // 20 piston-works
-  createStairwayPilot,              // 21 stairway-to-heaven
+  createGalileoPilot,               // 2 galileos-ramp
+  () => createEarlyReplayPilot(1),  // 3 one-wheel-wonder
+  () => createEarlyReplayPilot(4),  // 4 room-on-its-side
+  () => createLateReplayPilot(0),   // 5 newtons-attic
+  () => createEarlyReplayPilot(3),  // 6 pendulum-mill
+  () => createLateReplayPilot(1),   // 7 eschers-orchard
+  createCannonballPilot,            // 8 newtons-cannonball
+  createOuroborosPilot,             // 9 newtons-ouroboros
+  () => createLateReplayPilot(2),   // 10 contrary-conservatory
+  () => createLateReplayPilot(3),   // 11 gravity-engine
+  () => createEarlyReplayPilot(2),  // 12 hanging-garden
+  () => createLateReplayPilot(4),   // 13 clockwork-apple
+  createClockworkWedgePilot,        // 14 clockwork-wedge
+  () => createFlipSpiralPilot(0),   // 15 underside-return
+  () => createHuygensPilot(),       // 16 huygens-return
+  () => createFlipSpiralPilot(1),   // 17 spiral-sanctuary
+  () => createTowerChasmPilot(0),   // 18 switchback-scaffold
+  () => createTowerChasmPilot(1),   // 19 the-hidden-way-home
+  () => createSpringboardPilot(),   // 20 hookes-springboard
+  () => createPistonWorksPilot(),   // 21 piston-works
+  createStairwayPilot,              // 22 stairway-to-heaven
 ];
 
 /** Input-only campaign pilot. Call once before each fixed 1/120 s physics step. */
