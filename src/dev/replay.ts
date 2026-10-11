@@ -10,6 +10,7 @@ import { createClockworkWedgePilot } from '../levels/clockwork-wedge';
 import { createSpringboardPilot } from '../levels/springboard';
 import { createHuygensPilot } from '../levels/huygens-return';
 import { createPistonWorksPilot } from '../levels/piston-works';
+import { createIceHousePilot } from '../levels/ice-house';
 import type { Controls, Snapshot } from '../types';
 
 type Pilot = (state: Snapshot) => Controls;
@@ -27,18 +28,19 @@ const pilots: (() => Pilot)[] = [
   createCannonballPilot,            // 7 newtons-cannonball
   createOuroborosPilot,             // 8 newtons-ouroboros
   () => createLateReplayPilot(2),   // 9 contrary-conservatory
-  () => createLateReplayPilot(3),   // 10 gravity-engine
-  () => createEarlyReplayPilot(2),  // 11 hanging-garden
-  () => createLateReplayPilot(4),   // 12 clockwork-apple
-  createClockworkWedgePilot,        // 13 clockwork-wedge
-  () => createFlipSpiralPilot(0),   // 14 underside-return
-  () => createHuygensPilot(),       // 15 huygens-return
-  () => createFlipSpiralPilot(1),   // 16 spiral-sanctuary
-  () => createTowerChasmPilot(0),   // 17 switchback-scaffold
-  () => createTowerChasmPilot(1),   // 18 the-hidden-way-home
-  () => createSpringboardPilot(),   // 19 hookes-springboard
-  () => createPistonWorksPilot(),   // 20 piston-works
-  createStairwayPilot,              // 21 stairway-to-heaven
+  createIceHousePilot,              // 10 ice-house
+  () => createLateReplayPilot(3),   // 11 gravity-engine
+  () => createEarlyReplayPilot(2),  // 12 hanging-garden
+  () => createLateReplayPilot(4),   // 13 clockwork-apple
+  createClockworkWedgePilot,        // 14 clockwork-wedge
+  () => createFlipSpiralPilot(0),   // 15 underside-return
+  () => createHuygensPilot(),       // 16 huygens-return
+  () => createFlipSpiralPilot(1),   // 17 spiral-sanctuary
+  () => createTowerChasmPilot(0),   // 18 switchback-scaffold
+  () => createTowerChasmPilot(1),   // 19 the-hidden-way-home
+  () => createSpringboardPilot(),   // 20 hookes-springboard
+  () => createPistonWorksPilot(),   // 21 piston-works
+  createStairwayPilot,              // 22 stairway-to-heaven
 ];
 
 /** Input-only campaign pilot. Call once before each fixed 1/120 s physics step. */
