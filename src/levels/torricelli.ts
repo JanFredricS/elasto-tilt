@@ -43,8 +43,17 @@ export interface TorricelliShape {
   /** Floats: radius, crown (how far a seated float stands proud of the vault), density and damping. */
   float: { radius: number; crown: number; density: number; damping: number };
   /** Sockets' x along the vault (A down-slope, B up-slope), and the float beams beneath them:
-   *  [lip x, open end x]; the beam's underside height above the far bank, and its lip's depth. */
+   *  [lip x, open end x]; the beam's underside height above the far bank, and its lip's depth. The lip
+   *  reaches almost to a resting float's centre: a shallower one lets a float that the ferry's forward
+   *  tilt throws against it squeeze underneath and escape toward the wrong socket. */
   sockets: [number, number]; beams: [[number, number], [number, number]]; beamHeight: number; beamLip: number;
+  /** A sill between the sockets: from socket A's up-slope edge it ramps out of the vault to a step
+   *  `height` deep at x = `step`. The rider, inverted and heading home, climbs the gentle ramp (an
+   *  inverted rider stalls on one much over 13° to the vault) and drops off the step. Neither float has
+   *  to cross it, but with the world tipped back a loose float B rolling down-slope meets the step's
+   *  face instead of rolling on into socket A's recess, where it would never seat and would hold float A
+   *  out for good. A flat vault does that at a back-tilt of only .25 rad; the sill holds to about .6. */
+  sill: { height: number; step: number };
 }
 export const TORRICELLI_SHAPE: TorricelliShape = {
   deck: -9,
@@ -55,7 +64,8 @@ export const TORRICELLI_SHAPE: TorricelliShape = {
   crestRadius: 6, slope: 8,
   stub: 7.6, pocketLength: 3.4, pocketBend: 3, backRadius: 1.2, lip: 2.2,
   float: { radius: 1, crown: .4, density: .1, damping: 2 },
-  sockets: [31.5, 25], beams: [[28, 31.5], [21.5, 25]], beamHeight: 2.95, beamLip: .5,
+  sockets: [31.5, 25], beams: [[28, 31.5], [21.5, 25]], beamHeight: 2.95, beamLip: .9,
+  sill: { height: .4, step: 28.5 },
 };
 
 /** Points along an arc about centre (radians), every ~STEP metres, including both ends. */
@@ -157,7 +167,11 @@ export function buildTorricelli(shape: TorricelliShape = TORRICELLI_SHAPE, apple
   extend(far, arc(turn, T, -Math.PI / 2, Math.PI / 2));
   extend(far, arc(crestCentre, Rc, -Math.PI / 2, -Math.PI / 2 - s));
   extend(far, [edgeOf(0, -1)]);
-  const between = [edgeOf(0, 1), edgeOf(1, -1)];
+  // Between the sockets: the sill ramps out of the vault from socket A's up-slope edge to a step.
+  const out = p(-into.x, -into.y), sillA = edgeOf(0, 1), { height: sh, step } = shape.sill;
+  const stepFoot = p(step, vaultAt(step));
+  if (!(sh / Math.hypot(sillA.x - step, sillA.y - stepFoot.y) < Math.tan(13 * DEG))) throw new RangeError('Torricelli sill ramp is too steep to ride');
+  const between = sh > 0 ? [sillA, p(stepFoot.x + out.x * sh, stepFoot.y + out.y * sh), stepFoot, edgeOf(1, -1)] : [sillA, edgeOf(1, -1)];
   const home: Vec[] = [edgeOf(1, 1), pocketStart];
   extend(home, arc(pocketCentre, Rb, Math.PI / 2 - s, Math.PI / 2));
   const backCentre = p(shape.stub + shape.backRadius, pocketY - shape.backRadius);
@@ -197,7 +211,7 @@ export function buildTorricelli(shape: TorricelliShape = TORRICELLI_SHAPE, apple
     bounds: { min: p(shape.deck - 3, F - shape.poolDepth - 4), max: p(right + 4, 6) },
     surfaces: [
       ...chainOf('torricelli-way', down), ...chainOf('torricelli-vault', far),
-      plank('torricelli-vault-mid', between[0], between[1]), ...chainOf('torricelli-home', home),
+      ...chainOf('torricelli-vault-mid', between), ...chainOf('torricelli-home', home),
       ...socketSurfaces, ...beamSurfaces, ...pool,
       block('torricelli-back', shape.deck - .5, shape.deck, -.5, 3),
       // The well-head over the cistern and the shaft's far wall above the door pocket.

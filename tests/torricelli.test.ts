@@ -1,12 +1,14 @@
 import { expect, it } from 'vitest';
 import { createPhysics } from '../src/physics';
 import {
-  buildTorricelli, createTorricelliPilot, TORRICELLI_APPLES, TORRICELLI_HINTS, TORRICELLI_SHAPE as S, torricelliGeometry as G,
-  torricelliLevel as level, torricelliPilotFor,
+  buildTorricelli, createTorricelliPilot, TORRICELLI_APPLES, TORRICELLI_HINTS, TORRICELLI_PILOT, TORRICELLI_SHAPE as S,
+  torricelliGeometry as G, torricelliLevel as level, torricelliPilotFor,
 } from '../src/levels/torricelli';
 import { levels } from '../src/levels';
 import { createReplayPilot } from '../src/dev/replay';
 import type { Controls, Level, Snapshot } from '../src/types';
+
+const clampTilt = (tilt: number, limit: number) => Math.max(-limit, Math.min(limit, tilt));
 
 async function ride(pilot: (state: Snapshot) => Controls, seconds = 75, map: Level = level, watch?: (state: Snapshot) => void) {
   const game = await createPhysics(); game.load(map);
@@ -53,6 +55,11 @@ it('hangs each float under a beam whose open end is its own socket, both sockets
   // The floor under the beams leaves the rider's head room, but not the float's.
   expect(S.beamHeight - S.beamLip).toBeGreaterThan(1.75 + .1);
   expect(S.beamHeight).toBeLessThan(1.75 + 2 * S.float.radius);
+  // The sill between the sockets: a ramp the inverted rider can climb, to a step clear of both mouths.
+  expect(S.sill.step).toBeGreaterThan(G.sockets[1].mouth.x + G.sockets[1].half + 1);
+  expect(S.sill.step).toBeLessThan(G.sockets[0].mouth.x - G.sockets[0].half - 1);
+  expect(S.sill.height).toBeGreaterThan(.3);
+  expect(S.sill.height / (G.sockets[0].mouth.x - G.sockets[0].half - S.sill.step)).toBeLessThan(Math.tan(13 * Math.PI / 180));
   // The vault is above everything the floats pass and the door pocket sits under the well-head, beside the shaft.
   expect(G.pocketY).toBeLessThan(0);
   expect(G.pocket[0]).toBe(S.stub);
@@ -97,6 +104,54 @@ it('without the floats the vault has two open pits and the inverted climb home f
   expect(minX).toBeGreaterThan(G.sockets[1].mouth.x - 1.5);
   expect(state.collected).toContain('torricelli-wall');
 }, 120_000);
+
+it('keeps each float behind its lip when the ferry is tipped hard, and each still finds its own socket', async () => {
+  // The ferry is tipped well past the .5 rad it needs. The floats, rolled toward their beams' open
+  // ends by the landing's back-tilt, are thrown back against their lips; a lip that stopped short of a
+  // float's centre let float A squeeze under it into socket B's reach, where it never seats.
+  expect(G.bankY + S.beamHeight - S.beamLip).toBeLessThan(G.bankY + S.beamHeight - S.float.radius + .15);
+  for (const carry of [.7, .9]) {
+    const state = await ride(torricelliPilotFor(level, G, S, { ...TORRICELLI_PILOT, carry }), 75);
+    expect(state.status, `carry ${carry}`).toBe('complete');
+  }
+}, 120_000);
+
+/** Ride the pilot onto the far bank, stop with float B pushed out, hold the world tipped back by
+ *  `angle` for 15 s with the brake on, level it for 15 s, and return the floats. */
+async function backTilt(map: Level, geometry: typeof G, angle: number) {
+  const game = await createPhysics(); game.load(map);
+  const pilot = torricelliPilotFor(map, geometry);
+  let state = game.snapshot(), phase = 0, since = 0, lastX = state.bike.x;
+  for (let i = 0; i < 120 * 70 && state.status === 'playing'; i++) {
+    const vx = (state.bike.x - lastX) * 120; lastX = state.bike.x;
+    if (phase === 0 && state.bike.x > geometry.pool[1] + 4.5) { phase = 1; since = state.elapsed; }
+    if (phase === 1 && state.elapsed - since > .2 && Math.abs(vx) < .15) { phase = 2; since = state.elapsed; }
+    if (phase === 2 && state.elapsed - since > 15) { phase = 3; since = state.elapsed; }
+    if (phase === 3 && state.elapsed - since > 15) break;
+    const toward = (target: number, rate = .4) => clampTilt((target - state.worldAngle) * 4, rate);
+    const control: Controls = phase === 0 ? pilot(state) : phase === 1 ? { tilt: toward(-.35 * Math.sign(vx), .6), brake: false }
+      : { tilt: toward(phase === 2 ? angle : 0), brake: true };
+    state = game.step(1 / 120, control);
+  }
+  game.destroy();
+  expect(state.status).toBe('playing');
+  expect(phase).toBe(3);
+  return state.bodies.filter(body => body.kind === 'prop');
+}
+
+it.each([-.25, -.5])('a back-tilt of %s rad held while the floats are loose still leaves each float its own socket', async angle => {
+  // Both floats roll down-slope, B no further than the sill's step; levelled, each rises into its own socket.
+  const floats = await backTilt(level, G, angle);
+  expect(floats.every(body => body.settled)).toBe(true);
+  for (const [i, float] of floats.entries()) expect(float.x).toBeCloseTo(G.sockets[i].seat.x, 0);
+}, 60_000);
+
+it('without the sill, a .25 rad back-tilt rolls float B into socket A’s recess for good', async () => {
+  const flat = buildTorricelli({ ...S, sill: { ...S.sill, height: 0 } }, TORRICELLI_APPLES, TORRICELLI_HINTS);
+  const [a, b] = await backTilt(flat.level, flat.geometry, -.25);
+  expect(a.settled || b.settled).toBeFalsy();
+  expect(b.x).toBeCloseTo(G.sockets[0].seat.x, 0);
+}, 60_000);
 
 it.each<Controls>([{ tilt: 0, brake: false }, { tilt: 1, brake: true }, { tilt: -1, brake: false }])('is not completed by fixed controls (%o)', async control => {
   const state = await ride(() => control, 30);
