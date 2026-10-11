@@ -100,15 +100,15 @@ it('keeps usable amplitude for a minute: every deck left alone still swings out 
 
 it('times every deck, not just the first: on each, a release about a second wide boards it and outside that window the bike drops in', async () => {
   // Measured windows (lead before the deck strikes its stop): deck 0 1.7–2.8 s, deck 1 1.8–2.8 s, deck 2 1.8–2.7 s.
-  // The floor stays level while boarding (boardTilt 0): the stop, not a pinning tilt, is what makes the window.
+  // The pilot keeps the floor level while boarding: the stop, not a pinning tilt, is what makes the window.
   for (const leg of [0, 1, 2]) {
     const lead = (value: number) => [2.3, 2.3, 2.3].map((base, i) => i === leg ? value : base);
     for (const value of [1.9, 2.7]) {
-      const state = await ride(createFoucaultPilot({ lead: lead(value), boardTilt: 0 }), 75);
+      const state = await ride(createFoucaultPilot({ lead: lead(value) }), 75);
       expect(state.status, `deck ${leg}, lead ${value}`).toBe('complete');
     }
     for (const value of [1.5, 3.0]) {
-      const state = await ride(createFoucaultPilot({ lead: lead(value), boardTilt: 0 }), 75);
+      const state = await ride(createFoucaultPilot({ lead: lead(value) }), 75);
       expect(state.status, `deck ${leg}, lead ${value}`).toBe('crashed');
       expect(state.collected, `deck ${leg}, lead ${value}`).toHaveLength(leg);
     }

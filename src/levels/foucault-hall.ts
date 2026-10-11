@@ -159,21 +159,19 @@ export interface FoucaultTuning {
   /** Waiting spot past the top of each ramp (m). */ wait: number;
   /** Release the brake this long (s) before each deck next strikes its stop. */ lead: number[];
   /** Floor-rocking gain and limit (rad) that keep the waited-for deck swinging `target` past its stop. */ pump: number; pumpMax: number; target: number;
-  /** Floor angle that pins the deck against its stop while the bike rolls aboard, once the front wheel passes `boardFrom` (deck-local m). */ boardTilt: number; boardFrom: number;
   /** Resting spot east of the deck's middle (m), and the braking deceleration used to ease there (m/s²). */ seat: number; ease: number;
   /** Servo gains holding the deck at the far bank. */ damp: number; hold: number;
 }
-export const FOUCAULT_TUNING: FoucaultTuning = { wait: .3, lead: [2.4, 2.4, 2.4], pump: 3, pumpMax: .15, target: .03, boardTilt: -.3, boardFrom: -1.9, seat: .6, ease: 1.5, damp: .5, hold: 3 };
+export const FOUCAULT_TUNING: FoucaultTuning = { wait: .3, lead: [2.4, 2.4, 2.4], pump: 3, pumpMax: .15, target: .03, seat: .6, ease: 1.5, damp: .5, hold: 3 };
 export type FoucaultStage = 'approach' | 'wait' | 'board' | 'ride' | 'catch' | 'leave' | 'land' | 'door';
 
 /**
  * Observation-only demonstration. For each deck: rolls to the top of its ramp
  * and brakes, rocking the floor gently to keep the deck swinging just past its
  * stop; reads the deck's phase from its angle and rate and releases the brake
- * `lead` s before the deck next strikes its stop; tilts the floor back to pin
- * the deck while the bike rolls aboard; levels and eases to rest east of the
- * deck's middle; leans the floor so the deck decelerates to rest beside the far
- * bank, holds it there until the bike rolls off, then levels and stops.
+ * `lead` s before the deck next strikes its stop; rolls aboard with the floor
+ * level; eases to rest east of the deck's middle; leans the floor so the deck
+ * decelerates to rest beside the far bank, holds it there until the bike rolls off, then levels and stops.
  */
 export function createFoucaultPilot(tune: Partial<FoucaultTuning> = {}, log?: (stage: FoucaultStage, leg: number) => void): (state: Snapshot) => Controls {
   const T = { ...FOUCAULT_TUNING, ...tune };
@@ -225,9 +223,11 @@ export function createFoucaultPilot(tune: Partial<FoucaultTuning> = {}, log?: (s
         const want = clamp((waitX - x) * 1.2, -1, 1);
         return steer(clamp((want - v.x) * .1, -.08, .08), Math.abs(waitX - x) < .12);
       }
-      // Rock the floor in step with the swing to pump it up (or against it to calm it) to the lip.
+      // Rock the floor in step with the swing to pump it up (or against it to calm it) to the lip:
+      // riding the previous deck can leave this one swinging short of its stop.
       case 'wait': return steer(clamp(T.pump * (F.reach + T.target - amplitude) * omega, -T.pumpMax, T.pumpMax), true);
-      case 'board': return steer(Math.max(...wheels.map(w => w.x)) > T.boardFrom ? T.boardTilt : 0);
+      // Roll down and aboard with the floor level: the stop holds the deck.
+      case 'board': return steer(0);
       // Ease to a stop on the deck, east of its middle, and ride the swing out.
       case 'ride': return steer(0, settle);
       // Turn the floor under the swing as it rises: the deck comes to rest beside the far bank.
