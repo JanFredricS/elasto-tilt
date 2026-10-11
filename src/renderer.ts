@@ -388,10 +388,11 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
       }
       if (!item) {
         // Loose props are warm wood against the cool stone so they read as
-        // movable; seated ones take a pale, stone-like face with a gold rim.
-        const prop = body.kind === 'prop' && !body.inverted;
+        // movable; seated ones take a pale, stone-like face with a gold rim. Loose inverted props are
+        // red; seated, they turn to the same gold-rimmed stone.
+        const prop = body.kind === 'prop' && (!body.inverted || !!body.settled);
         const hazard = body.kind === 'time' && movingHazards.has(body.id);
-        const fill = hazard ? C.red : body.kind === 'time' ? 0xe2ba7d : body.kind === 'swing' ? palette.stone : body.inverted ? C.red
+        const fill = hazard ? C.red : body.kind === 'time' ? 0xe2ba7d : body.kind === 'swing' ? palette.stone : body.inverted && !body.settled ? C.red
           : body.settled ? PROP.settled : PROP.loose;
         const rim = hazard ? C.ink : body.kind === 'time' ? 0xa67a6d : prop ? (body.settled ? C.gold : PROP.rim) : palette.edge;
         item = new Graphics();
