@@ -16,6 +16,8 @@ export interface Apple extends Vec { id: string }
 export interface Prop extends Vec {
   /** 'wedge' is a right triangle in its w×h box: right angle bottom-right, slope rising to the right (◢). */
   id: string; shape: 'box' | 'ball' | 'wedge'; w: number; h: number; inverted?: boolean;
+  /** Initial rotation (radians, default 0): a wedge turned by π is ◤. A socket's `angle` is measured from it. */
+  angle?: number;
   /** 'wedge' only: height of a vertical bumper face at the slope's foot (default 0, a sharp toe). */
   toe?: number;
   /** Collider density (default 1.5) and friction (default .9). */
@@ -23,7 +25,7 @@ export interface Prop extends Vec {
   /** Linear damping (default .12): a high value makes a prop grind along, capping how fast it can be pushed. */
   damping?: number;
   /** When the prop rests within `tolerance` of this point (speed below `speed`, default .2 m/s, and,
-   *  if `angle` is set, turned no more than that from level), it becomes fixed terrain. */
+   *  if `angle` is set, turned no more than that from its starting `angle`), it becomes fixed terrain. */
   socket?: { x: number; y: number; tolerance: number; speed?: number; angle?: number };
 }
 export interface Swing { id: string; anchor: Vec; length: number; width: number; damping?: number; angle?: number; mass?: number }

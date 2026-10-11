@@ -54,6 +54,8 @@ Four additional routes ride around the same platform onto its underside, wind in
 
 **Map 15 — Stairway to Heaven** adds four 11-metre steps. Ride each vertical face, ease over the 90° crest, gather eight apples and descend to the starting door. Its demonstrated route takes about 2 minutes 40 seconds. See [stairway evidence](docs/stairway.md).
 
+**Map 23 — Noether’s Symmetry** closes the campaign with a monument that is the same under a half turn. Swing a plank, spring a pit, ride a lift and seat a wedge along its top, round the far nose, and meet all four again on the underside with the world turned halfway round. Its demonstrated route collects ten apples in about 2 minutes. See [Noether evidence](docs/noether.md).
+
 Time platforms have a reversible target and a speed-limited physical position. After fast travel, a platform may briefly continue catching up when the bicycle stops. The clock saturates at its endpoints.
 
 ## Performance

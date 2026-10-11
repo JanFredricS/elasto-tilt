@@ -13,7 +13,7 @@ const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n
 let initialized: Promise<void> | undefined;
 type RenderBody = { body: RAPIER.RigidBody; view: Omit<BodyView, 'x' | 'y' | 'angle'>; offset?: Vec };
 type Tag = { kind: 'bike' | 'helmet' | 'hazard' | 'apple' | 'exit' | 'time' | 'environment' | 'prop'; id: string };
-type Socketed = { body: RAPIER.RigidBody; colliders: RAPIER.Collider[]; socket: NonNullable<Prop['socket']>; view: RenderBody['view'] };
+type Socketed = { body: RAPIER.RigidBody; colliders: RAPIER.Collider[]; socket: NonNullable<Prop['socket']>; view: RenderBody['view']; rest: number };
 
 /** Closing speed (m/s) the airborne-wheel soft-CCD look-ahead must cover; the
  * distance scales with the step so larger timesteps stay protected too. */
@@ -214,7 +214,7 @@ export async function createPhysics(): Promise<PhysicsGame> {
     register(RAPIER.ColliderDesc.ball(.8).setTranslation(next.exit.x, next.exit.y).setSensor(true)
       .setCollisionGroups(SENSOR_GROUP), undefined, { kind: 'exit', id: 'exit' });
     for (const prop of next.props ?? []) {
-      const body = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(prop.x, prop.y)
+      const body = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(prop.x, prop.y).setRotation(prop.angle ?? 0)
         .setGravityScale(prop.inverted ? -1 : 1).setLinearDamping(prop.damping ?? .12).setCcdEnabled(true));
       const desc = (prop.shape === 'ball' ? RAPIER.ColliderDesc.ball(prop.w / 2)
         : prop.shape === 'wedge' ? wedgeCollider(prop.w, prop.h, prop.toe) : RAPIER.ColliderDesc.cuboid(prop.w / 2, prop.h / 2))
@@ -230,7 +230,7 @@ export async function createPhysics(): Promise<PhysicsGame> {
         .setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min).setCollisionGroups(PROP_GROUP), body, { kind: 'prop', id: prop.id }));
       const view: RenderBody['view'] = { id: prop.id, w: prop.w, h: prop.h, shape: prop.shape, kind: 'prop', inverted: prop.inverted, ...(prop.toe ? { toe: prop.toe } : {}) };
       renderBodies.push({ body, view });
-      if (prop.socket) sockets.push({ body, colliders, socket: prop.socket, view });
+      if (prop.socket) sockets.push({ body, colliders, socket: prop.socket, view, rest: prop.angle ?? 0 });
     }
     for (const swing of next.swings ?? []) {
       // A damped pendulum can fall below Rapier’s sleep-speed threshold before
@@ -379,11 +379,11 @@ export async function createPhysics(): Promise<PhysicsGame> {
     if (springs.size && elapsed >= springReady) bounce(approach, spin);
     // A prop that comes to rest in its socket becomes terrain: fixed, solid
     // to the head like any floor, and no longer movable by later contacts.
-    sockets = sockets.filter(({ body, colliders, socket, view }) => {
+    sockets = sockets.filter(({ body, colliders, socket, view, rest }) => {
       const p = body.translation(), v = body.linvel();
       if (Math.hypot(p.x - socket.x, p.y - socket.y) > socket.tolerance ||
         Math.hypot(v.x, v.y) > (socket.speed ?? .2) || Math.abs(body.angvel()) > 1 ||
-        (socket.angle !== undefined && Math.abs(body.rotation()) > socket.angle)) return true;
+        (socket.angle !== undefined && Math.abs(Math.atan2(Math.sin(body.rotation() - rest), Math.cos(body.rotation() - rest))) > socket.angle)) return true;
       body.setLinvel({ x: 0, y: 0 }, false); body.setAngvel(0, false);
       body.setBodyType(RAPIER.RigidBodyType.Fixed, false);
       for (const collider of colliders) {
