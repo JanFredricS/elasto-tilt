@@ -330,7 +330,9 @@ export function createUI(host: HTMLElement, levels: Level[], callbacks: UICallba
       const value = Math.max(0, Math.min(1, safe(state.timeline)));
       get('timeline-fill').style.width = `${value * 100}%`;
       get('timeline-needle').style.left = `${value * 100}%`;
-      text('timeline-direction', state.timeDirection > .01 ? '→' : state.timeDirection < -.01 ? '←' : '•');
+      // A vertical route axis (altitude) fills upward; a horizontal one fills eastward.
+      const vertical = Math.abs(selected?.timeAxis?.y ?? 0) > Math.abs(selected?.timeAxis?.x ?? 1);
+      text('timeline-direction', state.timeDirection > .01 ? (vertical ? '↑' : '→') : state.timeDirection < -.01 ? (vertical ? '↓' : '←') : '•');
     }
 
     const unlockedCount = Math.max(1, Math.min(levels.length, state.unlocked));
