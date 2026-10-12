@@ -2,8 +2,9 @@ import { levels } from '../src/levels';
 import { expect, test } from '@playwright/test';
 
 // Looked up by id, so inserting a map does not silently shift these onto its neighbours.
-const maps = ['clockwork-wedge', 'underside-return', 'huygens-return', 'spiral-sanctuary', 'switchback-scaffold',
-  'the-hidden-way-home', 'hookes-springboard', 'piston-works', 'stairway-to-heaven'] as const;
+const maps = ['clockwork-wedge', 'underside-return', 'huygens-return', 'pendulum-clock', 'spiral-sanctuary', 'eulers-bridges',
+  'amperes-loop', 'bernoullis-updraft', 'switchback-scaffold', 'the-hidden-way-home', 'hookes-springboard', 'hookes-ceiling', 'piston-works',
+  'stairway-to-heaven', 'noethers-symmetry'] as const;
 const flights: readonly string[] = ['spiral-sanctuary', 'switchback-scaffold', 'the-hidden-way-home'];
 for (const id of maps) {
   const index = levels.findIndex(level => level.id === id);
@@ -97,7 +98,7 @@ test('campaign menu and route instructions fit a phone', async ({ page }) => {
   await expect(page.locator('[data-ui="level-number"]')).toHaveText(`${levels.length} / ${levels.length}`);
   await page.getByRole('button', { name: 'View whole map' }).click();
   await page.waitForTimeout(250);
-  await page.screenshot({ path: 'docs/evidence/stairway-phone-overview.png' });
+  await page.screenshot({ path: `docs/evidence/${levels[levels.length - 1].id}-phone-overview.png` });
   await page.getByRole('button', { name: 'Return to riding' }).click();
   await page.getByRole('button', { name: 'Pause game' }).click();
   await expect(page.locator('[data-ui="state-copy"]')).not.toBeEmpty();

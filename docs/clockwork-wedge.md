@@ -1,6 +1,6 @@
 # The Clockwork Wedge
 
-Campaign map 14 (index 13), difficulty 10.5. It is the second time map, directly after The Clockwork Apple. Code: `src/levels/clockwork-wedge.ts`. Tests: `tests/clockwork-wedge.test.ts`. The HUD timeline label reads COUNTERWEIGHT (`Level.timeLabel`).
+Campaign map 15 (index 14), difficulty 10.5. It is the second time map, directly after The Clockwork Apple. Code: `src/levels/clockwork-wedge.ts`. Tests: `tests/clockwork-wedge.test.ts`. The HUD timeline label reads COUNTERWEIGHT (`Level.timeLabel`).
 
 Redesigned in fix pass 1 (review items M2, M3, M4a, M4b, M7 and the wedge-escape risk). The old layout let a fast rider reach the door before the weight seated, let the wedge be shoved the wrong way from the spawn, and needed the brake for the final drop. Reworked again in fix pass 2: the bend (a head-crash trap over the crossing) is gone and the finale is the catch the design asked for; the wedge holds still under a held tilt but pushes easily; the door bay can no longer strand a rider. Fix pass 3 rebuilt the catch itself so a rider can stop turning anywhere on the way round, moved the wayfinding marks out from under the COUNTERWEIGHT panel, and measured the limits of charging the wedge.
 

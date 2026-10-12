@@ -14,6 +14,19 @@ import { clockworkWedgeLevel } from './levels/clockwork-wedge';
 import { springboardLevel } from './levels/springboard';
 import { huygensReturnLevel } from './levels/huygens-return';
 import { pistonWorksLevel } from './levels/piston-works';
+import { galileosRampLevel } from './levels/galileos-ramp';
+import { iceHouseLevel } from './levels/ice-house';
+import { foucaultHallLevel } from './levels/foucault-hall';
+import { leibnizCounterweightLevel } from './levels/leibniz-counterweight';
+import { pendulumClockLevel } from './levels/pendulum-clock';
+import { eulersBridgesLevel } from './levels/eulers-bridges';
+import { pascalsPressesLevel } from './levels/pascals-presses';
+import { hookesCeilingLevel } from './levels/hookes-ceiling';
+import { noetherLevel } from './levels/noether';
+import { keplersOrbitLevel } from './levels/kepler';
+import { torricelliLevel } from './levels/torricelli';
+import { bernoulliUpdraftLevel } from './levels/bernoulli-updraft';
+import { amperesLoopLevel } from './levels/amperes-loop';
 import type { Level } from './types';
 
 /**
@@ -23,24 +36,37 @@ import type { Level } from './types';
 export const levels: Level[] = [
   firstLessonLevel,           // 0
   newtonsOrchardLevel,        // 1
-  oneWheelWonderLevel,        // 2
-  roomOnItsSideLevel,         // 3
-  newtonsAtticLevel,          // 4
-  pendulumMillLevel,          // 5
-  eschersOrchardLevel,        // 6
-  cannonballLevel,            // 7
-  ouroborosLevel,             // 8
-  contraryConservatoryLevel,  // 9
-  gravityEngineLevel,         // 10
-  hangingGardenLevel,         // 11
-  clockworkAppleLevel,        // 12
-  clockworkWedgeLevel,        // 13
-  undersideReturnLevel,       // 14
-  huygensReturnLevel,         // 15
-  spiralSanctuaryLevel,       // 16
-  switchbackScaffoldLevel,    // 17
-  hiddenWayHomeLevel,         // 18
-  springboardLevel,           // 19
-  pistonWorksLevel,           // 20
-  stairwayLevel,              // 21
+  galileosRampLevel,          // 2
+  oneWheelWonderLevel,        // 3
+  roomOnItsSideLevel,         // 4
+  newtonsAtticLevel,          // 5
+  pendulumMillLevel,          // 6
+  keplersOrbitLevel,          // 7
+  eschersOrchardLevel,        // 8
+  cannonballLevel,            // 9
+  ouroborosLevel,             // 10
+  contraryConservatoryLevel,  // 11
+  torricelliLevel,            // 12
+  iceHouseLevel,              // 13
+  gravityEngineLevel,         // 14
+  hangingGardenLevel,         // 15
+  foucaultHallLevel,          // 16
+  clockworkAppleLevel,        // 17
+  leibnizCounterweightLevel,  // 18
+  clockworkWedgeLevel,        // 19
+  undersideReturnLevel,       // 20
+  huygensReturnLevel,         // 21
+  pendulumClockLevel,         // 22
+  spiralSanctuaryLevel,       // 23
+  eulersBridgesLevel,         // 24
+  amperesLoopLevel,           // 25
+  bernoulliUpdraftLevel,      // 26
+  switchbackScaffoldLevel,    // 27
+  pascalsPressesLevel,        // 28
+  hiddenWayHomeLevel,         // 29
+  springboardLevel,           // 30
+  hookesCeilingLevel,         // 31
+  pistonWorksLevel,           // 32
+  stairwayLevel,              // 33
+  noetherLevel,               // 34
 ];

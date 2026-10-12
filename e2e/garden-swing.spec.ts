@@ -1,4 +1,8 @@
 import { expect, test } from '@playwright/test';
+import { levels } from '../src/levels';
+
+// Looked up by id, so inserting a map does not shift this test onto a neighbour.
+const GARDEN = levels.findIndex(level => level.id === 'hanging-garden');
 
 test('Hanging Garden carries the rider across the widened gap and back', async ({ page }) => {
   test.setTimeout(180_000);
@@ -6,11 +10,11 @@ test('Hanging Garden carries the rider across the widened gap and back', async (
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/?debug');
   await page.waitForFunction(() => Boolean((window as any).__NEWTON__));
-  await page.evaluate(async () => {
+  await page.evaluate(async index => {
     const { createReplayPilot } = await import('/src/dev/replay.ts');
     const api = (window as any).__NEWTON__;
-    api.load(11);
-    const pilot = createReplayPilot(11);
+    api.load(index);
+    const pilot = createReplayPilot(index);
     const trace = { supportedMinX: Infinity, supportedMaxX: -Infinity, brakeSeconds: 0,
       outboundTravel: 0, returnTravel: 0, peakPhysicsMs: 0 };
     (window as any).__gardenTrace = trace;
@@ -38,7 +42,7 @@ test('Hanging Garden carries the rider across the widened gap and back', async (
       trace.peakPhysicsMs = Math.max(trace.peakPhysicsMs, state.physicsMs);
       return controls;
     });
-  });
+  }, GARDEN);
   await page.waitForFunction(() => (window as any).__gardenTrace.brakeSeconds > .3 ||
     (window as any).__NEWTON__.snapshot().status !== 'playing', undefined, { timeout: 90_000 });
   await page.screenshot({ path: 'docs/evidence/garden-swing-crossing.png' });

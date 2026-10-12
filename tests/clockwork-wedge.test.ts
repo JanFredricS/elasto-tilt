@@ -38,9 +38,10 @@ const wedgeSeated = (spawn: { x: number; y: number }, extra: Partial<Level> = {}
 /** The weight already lowered onto the door. */
 const lowered: Partial<Level> = { timePlatforms: [{ ...level.timePlatforms![0], from: WEDGE.door, via: undefined, to: WEDGE.door }] };
 
-it('follows The Clockwork Apple in the campaign; the wedge waits on the floor west of the spawn, under the deck', () => {
+it('follows Leibniz’s Counterweight (after The Clockwork Apple) in the campaign; the wedge waits on the floor west of the spawn, under the deck', () => {
   const index = levels.indexOf(level);
-  expect(levels[index - 1].id).toBe('clockwork-apple');
+  expect(levels[index - 1].id).toBe('leibniz-counterweight');
+  expect(levels[index - 2].id).toBe('clockwork-apple');
   expect(level.timeLabel).toBe('COUNTERWEIGHT');
   expect(prop.shape).toBe('wedge');
   // Light, grippy, heavily damped, with a bumper toe as deep as its seat.

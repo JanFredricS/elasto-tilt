@@ -13,7 +13,7 @@ const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n
 let initialized: Promise<void> | undefined;
 type RenderBody = { body: RAPIER.RigidBody; view: Omit<BodyView, 'x' | 'y' | 'angle'>; offset?: Vec };
 type Tag = { kind: 'bike' | 'helmet' | 'hazard' | 'apple' | 'exit' | 'time' | 'environment' | 'prop'; id: string };
-type Socketed = { body: RAPIER.RigidBody; colliders: RAPIER.Collider[]; socket: NonNullable<Prop['socket']>; view: RenderBody['view'] };
+type Socketed = { body: RAPIER.RigidBody; colliders: RAPIER.Collider[]; socket: NonNullable<Prop['socket']>; view: RenderBody['view']; rest: number };
 
 /** Closing speed (m/s) the airborne-wheel soft-CCD look-ahead must cover; the
  * distance scales with the step so larger timesteps stay protected too. */
@@ -188,7 +188,8 @@ export async function createPhysics(): Promise<PhysicsGame> {
     // Buried chain boxes overlap, so a wheel sinking into them meets several faces at once
     // and their summed depenetration throws it back out. Such levels predict landings.
     predictLandings = chains.size > 0;
-    frame = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(next.spawn.x, next.spawn.y)
+    const turn = next.spawnAngle ?? 0, ct = Math.cos(turn), st = Math.sin(turn);
+    frame = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(next.spawn.x, next.spawn.y).setRotation(turn)
       .setLinearDamping(.08).setAngularDamping(.12).setCcdEnabled(true));
     bikeColliders.push(register(RAPIER.ColliderDesc.cuboid(.58, .12).setMass(2.5).setFriction(.55)
       .setCollisionGroups(BIKE_GROUP), frame, { kind: 'bike', id: 'frame' }));
@@ -198,7 +199,8 @@ export async function createPhysics(): Promise<PhysicsGame> {
     renderBodies.push({ body: frame, view: { id: 'frame', w: 1.4, h: .72, kind: 'frame', shape: 'box' } });
     renderBodies.push({ body: frame, offset: { x: .126126126, y: .795 }, view: { id: 'head', w: .462, h: .462, kind: 'head', shape: 'ball' } });
     for (const [i, x] of [-.7, .7].entries()) {
-      const wheel = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(next.spawn.x + x, next.spawn.y - .36)
+      const wheel = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic()
+        .setTranslation(next.spawn.x + ct * x + st * .36, next.spawn.y + st * x - ct * .36).setRotation(turn)
         .setAngularDamping(.015).setCcdEnabled(true));
       const tyre = register(RAPIER.ColliderDesc.ball(.34).setMass(.65).setFriction(1.5)
         .setCollisionGroups(BIKE_GROUP), wheel, { kind: 'bike', id: `wheel-${i}` });
@@ -212,7 +214,7 @@ export async function createPhysics(): Promise<PhysicsGame> {
     register(RAPIER.ColliderDesc.ball(.8).setTranslation(next.exit.x, next.exit.y).setSensor(true)
       .setCollisionGroups(SENSOR_GROUP), undefined, { kind: 'exit', id: 'exit' });
     for (const prop of next.props ?? []) {
-      const body = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(prop.x, prop.y)
+      const body = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(prop.x, prop.y).setRotation(prop.angle ?? 0)
         .setGravityScale(prop.inverted ? -1 : 1).setLinearDamping(prop.damping ?? .12).setCcdEnabled(true));
       const desc = (prop.shape === 'ball' ? RAPIER.ColliderDesc.ball(prop.w / 2)
         : prop.shape === 'wedge' ? wedgeCollider(prop.w, prop.h, prop.toe) : RAPIER.ColliderDesc.cuboid(prop.w / 2, prop.h / 2))
@@ -228,7 +230,7 @@ export async function createPhysics(): Promise<PhysicsGame> {
         .setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min).setCollisionGroups(PROP_GROUP), body, { kind: 'prop', id: prop.id }));
       const view: RenderBody['view'] = { id: prop.id, w: prop.w, h: prop.h, shape: prop.shape, kind: 'prop', inverted: prop.inverted, ...(prop.toe ? { toe: prop.toe } : {}) };
       renderBodies.push({ body, view });
-      if (prop.socket) sockets.push({ body, colliders, socket: prop.socket, view });
+      if (prop.socket) sockets.push({ body, colliders, socket: prop.socket, view, rest: prop.angle ?? 0 });
     }
     for (const swing of next.swings ?? []) {
       // A damped pendulum can fall below Rapier’s sleep-speed threshold before
@@ -250,7 +252,7 @@ export async function createPhysics(): Promise<PhysicsGame> {
       const start = platform.period ? pathPoint(platform, cyclePhase(0, platform.period, platform.offset)) : platform.from;
       const body = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(start.x, start.y));
       register(RAPIER.ColliderDesc.cuboid(platform.w / 2, platform.h / 2).setFriction(1.3).setCollisionGroups(ENV_GROUP),
-        body, { kind: 'time', id: platform.id });
+        body, { kind: platform.kind === 'hazard' ? 'hazard' : 'time', id: platform.id });
       temporal.push({ body, path: platform, lastTravel: 0 });
       renderBodies.push({ body, view: { id: platform.id, w: platform.w, h: platform.h, shape: 'box', kind: 'time' } });
     }
@@ -377,11 +379,11 @@ export async function createPhysics(): Promise<PhysicsGame> {
     if (springs.size && elapsed >= springReady) bounce(approach, spin);
     // A prop that comes to rest in its socket becomes terrain: fixed, solid
     // to the head like any floor, and no longer movable by later contacts.
-    sockets = sockets.filter(({ body, colliders, socket, view }) => {
+    sockets = sockets.filter(({ body, colliders, socket, view, rest }) => {
       const p = body.translation(), v = body.linvel();
       if (Math.hypot(p.x - socket.x, p.y - socket.y) > socket.tolerance ||
         Math.hypot(v.x, v.y) > (socket.speed ?? .2) || Math.abs(body.angvel()) > 1 ||
-        (socket.angle !== undefined && Math.abs(body.rotation()) > socket.angle)) return true;
+        (socket.angle !== undefined && Math.abs(Math.atan2(Math.sin(body.rotation() - rest), Math.cos(body.rotation() - rest))) > socket.angle)) return true;
       body.setLinvel({ x: 0, y: 0 }, false); body.setAngvel(0, false);
       body.setBodyType(RAPIER.RigidBodyType.Fixed, false);
       for (const collider of colliders) {

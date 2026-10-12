@@ -1,10 +1,14 @@
 import { expect, test } from '@playwright/test';
+import { levels } from '../src/levels';
+
+// Looked up by id, so inserting a map does not shift these tests onto a neighbour.
+const CLOCKWORK = levels.findIndex(level => level.id === 'clockwork-apple');
 
 test('Clockwork timeline and utilities occupy separate rows on narrow landscape', async ({ page }) => {
   await page.setViewportSize({ width: 667, height: 375 });
   await page.goto('/?debug');
   await page.waitForFunction(() => Boolean((window as any).__NEWTON__));
-  await page.evaluate(() => (window as any).__NEWTON__.load(12));
+  await page.evaluate(index => (window as any).__NEWTON__.load(index), CLOCKWORK);
   const timeline = page.locator('[data-ui="timeline-wrap"]');
   const utility = page.locator('[data-ui="utility"]');
   await expect(timeline).toBeVisible();
@@ -30,7 +34,8 @@ test('renderer disposes its canvas after repeated annotated map loads', async ({
     const created = host.querySelectorAll('canvas').length;
     const physics = await createPhysics();
     const spiral = levels.findIndex((level: { id: string }) => level.id === 'spiral-sanctuary');
-    for (const index of [12, spiral, 12]) {
+    const clockwork = levels.findIndex((level: { id: string }) => level.id === 'clockwork-apple');
+    for (const index of [clockwork, spiral, clockwork]) {
       physics.load(levels[index]);
       renderer.load(levels[index]);
       renderer.render(physics.snapshot(), 1 / 60);

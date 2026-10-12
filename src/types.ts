@@ -16,6 +16,8 @@ export interface Apple extends Vec { id: string }
 export interface Prop extends Vec {
   /** 'wedge' is a right triangle in its w×h box: right angle bottom-right, slope rising to the right (◢). */
   id: string; shape: 'box' | 'ball' | 'wedge'; w: number; h: number; inverted?: boolean;
+  /** Initial rotation (radians, default 0): a wedge turned by π is ◤. A socket's `angle` is measured from it. */
+  angle?: number;
   /** 'wedge' only: height of a vertical bumper face at the slope's foot (default 0, a sharp toe). */
   toe?: number;
   /** Collider density (default 1.5) and friction (default .9). */
@@ -23,7 +25,7 @@ export interface Prop extends Vec {
   /** Linear damping (default .12): a high value makes a prop grind along, capping how fast it can be pushed. */
   damping?: number;
   /** When the prop rests within `tolerance` of this point (speed below `speed`, default .2 m/s, and,
-   *  if `angle` is set, turned no more than that from level), it becomes fixed terrain. */
+   *  if `angle` is set, turned no more than that from its starting `angle`), it becomes fixed terrain. */
   socket?: { x: number; y: number; tolerance: number; speed?: number; angle?: number };
 }
 export interface Swing { id: string; anchor: Vec; length: number; width: number; damping?: number; angle?: number; mass?: number }
@@ -33,7 +35,9 @@ export interface TimePlatform { id: string; from: Vec; to: Vec; via?: Vec; w: nu
   /** Seconds per round trip. A platform with a period ignores the route clock and runs on its
    *  own: from → to → from, eased like a pendulum (it dwells at both ends), starting `offset` of
    *  a cycle along (0 at `from`, .5 at `to`). */
-  period?: number; offset?: number }
+  period?: number; offset?: number;
+  /** 'hazard': a moving red bar. Touching it with any part of the bike ends the ride, like a hazard surface. */
+  kind?: 'hazard' }
 export interface Portal extends Vec { id: string; target: Vec; rotation: number; radius: number }
 /** Visual guidance only. Angles are map-space radians: 0 points right, positive turns counterclockwise. */
 /** `spin` swaps the straight arrow for a circular one showing which way to rotate
@@ -45,6 +49,12 @@ export interface Level {
   bounds: { min: Vec; max: Vec }; swings?: Swing[]; props?: Prop[];
   portals?: Portal[]; timePlatforms?: TimePlatform[]; routeHints?: RouteHint[];
   timeAxis?: Vec; timeTravel?: number; initialAngle?: number;
+  /** Bike rotation (radians, counterclockwise) at spawn, about the frame centre (default 0, upright
+   *  in map space). A map that starts with the world turned over sets it so the rider starts upright
+   *  against that gravity: wheels toward the ridden face, head away from it. It is deliberately not
+   *  derived from initialAngle (a slightly banked start keeps an upright rider), but the two must
+   *  agree to within a small bank; tests/levels.test.ts checks every map. */
+  spawnAngle?: number;
   /** Top speed (m/s) of time platforms along their paths; default 2. */
   timeSpeed?: number;
   /** Normal riding view only; verticalOffset is a fraction of viewport height. */

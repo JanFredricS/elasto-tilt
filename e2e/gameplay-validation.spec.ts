@@ -1,10 +1,15 @@
 import { expect, test } from '@playwright/test';
+import { levels } from '../src/levels';
+
+const at = (id: string) => levels.findIndex(level => level.id === id);
 
 // [campaign index, name]. The position in this list (slot) keys the per-map checks below.
 const maps = [
-  [1, 'Newton’s Orchard'], [2, 'One Wheel Wonder'], [11, 'The Hanging Garden'], [5, 'The Pendulum Mill'],
-  [3, 'The Room on Its Side'], [4, 'Newton’s Attic'], [6, 'Escher’s Orchard'],
-  [9, 'The Contrary Conservatory'], [10, 'The Gravity Engine'], [12, 'The Clockwork Apple'],
+  [at('newtons-orchard'), 'Newton’s Orchard'], [at('one-wheel-wonder'), 'One Wheel Wonder'],
+  [at('hanging-garden'), 'The Hanging Garden'], [at('pendulum-mill'), 'The Pendulum Mill'],
+  [at('room-on-its-side'), 'The Room on Its Side'], [at('newtons-attic'), 'Newton’s Attic'],
+  [at('eschers-orchard'), 'Escher’s Orchard'], [at('contrary-conservatory'), 'The Contrary Conservatory'],
+  [at('gravity-engine'), 'The Gravity Engine'], [at('clockwork-apple'), 'The Clockwork Apple'],
 ] as const;
 
 type Trace = {

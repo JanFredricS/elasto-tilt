@@ -220,6 +220,8 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
   const dynamicViews = new Map<string, Graphics>();
   const settledViews = new Set<string>();
   let swingAnchors = new Map<string, Vec>();
+  /** Time platforms of kind 'hazard' (moving red bars), drawn like hazard stone. */
+  let movingHazards = new Set<string>();
   let camera: Vec = { x: 0, y: 0 };
   let cameraReady = false;
   let scale = 48;
@@ -257,6 +259,7 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
     shell.style.setProperty('--scene-bg-bottom', palette.mist);
     shell.style.setProperty('--scene-glow', palette.glow);
     swingAnchors = new Map((nextLevel.swings ?? []).map(swing => [swing.id, swing.anchor]));
+    movingHazards = new Set((nextLevel.timePlatforms ?? []).filter(platform => platform.kind === 'hazard').map(platform => platform.id));
     elapsed = 0;
     camera = { ...nextLevel.spawn };
     cameraReady = false;
@@ -385,11 +388,13 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
       }
       if (!item) {
         // Loose props are warm wood against the cool stone so they read as
-        // movable; seated ones take a pale, stone-like face with a gold rim.
-        const prop = body.kind === 'prop' && !body.inverted;
-        const fill = body.kind === 'time' ? 0xe2ba7d : body.kind === 'swing' ? palette.stone : body.inverted ? C.red
+        // movable; seated ones take a pale, stone-like face with a gold rim. Loose inverted props are
+        // red; seated, they turn to the same gold-rimmed stone.
+        const prop = body.kind === 'prop' && (!body.inverted || !!body.settled);
+        const hazard = body.kind === 'time' && movingHazards.has(body.id);
+        const fill = hazard ? C.red : body.kind === 'time' ? 0xe2ba7d : body.kind === 'swing' ? palette.stone : body.inverted && !body.settled ? C.red
           : body.settled ? PROP.settled : PROP.loose;
-        const rim = body.kind === 'time' ? 0xa67a6d : prop ? (body.settled ? C.gold : PROP.rim) : palette.edge;
+        const rim = hazard ? C.ink : body.kind === 'time' ? 0xa67a6d : prop ? (body.settled ? C.gold : PROP.rim) : palette.edge;
         item = new Graphics();
         if (body.settled) settledViews.add(body.id); else settledViews.delete(body.id);
         if (body.shape === 'ball') {
@@ -417,7 +422,14 @@ export async function createRenderer(host: HTMLElement): Promise<GameRenderer> {
         } else {
           item.rect(-body.w / 2, -body.h / 2, body.w, body.h).fill(fill);
           item.rect(-body.w / 2, -body.h / 2, body.w, body.h).stroke({ color: rim, width: .045 });
-          if (body.kind === 'time') {
+          if (hazard) {
+            // A moving hazard wears the hazard stone's stripes, along its long side.
+            const [long, short] = body.h > body.w ? [body.h, body.w] : [body.w, body.h];
+            for (let t = -long / 2 + .16; t < long / 2; t += .3) {
+              const a = { x: t, y: -short / 2 + .05 }, b = { x: t + .2, y: short / 2 - .05 };
+              line(item, body.h > body.w ? { x: a.y, y: a.x } : a, body.h > body.w ? { x: b.y, y: b.x } : b, C.ivory, .025, .47);
+            }
+          } else if (body.kind === 'time') {
             for (let x = -body.w / 2 + .16; x < body.w / 2; x += .32) {
               line(item, { x, y: -body.h * .24 }, { x: x + .12, y: body.h * .24 }, C.ivory, .028, .8);
             }
