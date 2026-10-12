@@ -26,6 +26,7 @@ import { noetherLevel } from './levels/noether';
 import { keplersOrbitLevel } from './levels/kepler';
 import { torricelliLevel } from './levels/torricelli';
 import { bernoulliUpdraftLevel } from './levels/bernoulli-updraft';
+import { amperesLoopLevel } from './levels/amperes-loop';
 import type { Level } from './types';
 
 /**
@@ -58,13 +59,14 @@ export const levels: Level[] = [
   pendulumClockLevel,         // 22
   spiralSanctuaryLevel,       // 23
   eulersBridgesLevel,         // 24
-  bernoulliUpdraftLevel,      // 25
-  switchbackScaffoldLevel,    // 26
-  pascalsPressesLevel,        // 27
-  hiddenWayHomeLevel,         // 28
-  springboardLevel,           // 29
-  hookesCeilingLevel,         // 30
-  pistonWorksLevel,           // 31
-  stairwayLevel,              // 32
-  noetherLevel,               // 33
+  amperesLoopLevel,           // 25
+  bernoulliUpdraftLevel,      // 26
+  switchbackScaffoldLevel,    // 27
+  pascalsPressesLevel,        // 28
+  hiddenWayHomeLevel,         // 29
+  springboardLevel,           // 30
+  hookesCeilingLevel,         // 31
+  pistonWorksLevel,           // 32
+  stairwayLevel,              // 33
+  noetherLevel,               // 34
 ];

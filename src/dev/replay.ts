@@ -22,6 +22,7 @@ import { createNoetherPilot } from '../levels/noether';
 import { createKeplerPilot } from '../levels/kepler';
 import { createTorricelliPilot } from '../levels/torricelli';
 import { createBernoulliPilot } from '../levels/bernoulli-updraft';
+import { createAmperePilot } from '../levels/amperes-loop';
 import type { Controls, Snapshot } from '../types';
 
 type Pilot = (state: Snapshot) => Controls;
@@ -54,15 +55,16 @@ const pilots: (() => Pilot)[] = [
   () => createPendulumClockPilot(),  // 22 pendulum-clock
   () => createFlipSpiralPilot(1),    // 23 spiral-sanctuary
   () => createEulersBridgesPilot(),  // 24 eulers-bridges
-  () => createBernoulliPilot(),      // 25 bernoullis-updraft
-  () => createTowerChasmPilot(0),    // 26 switchback-scaffold
-  () => createPascalsPressesPilot(), // 27 pascals-presses
-  () => createTowerChasmPilot(1),    // 28 the-hidden-way-home
-  () => createSpringboardPilot(),    // 29 hookes-springboard
-  () => createHookesCeilingPilot(),  // 30 hookes-ceiling
-  () => createPistonWorksPilot(),    // 31 piston-works
-  createStairwayPilot,               // 32 stairway-to-heaven
-  () => createNoetherPilot(),        // 33 noethers-symmetry
+  createAmperePilot,                 // 25 amperes-loop
+  () => createBernoulliPilot(),      // 26 bernoullis-updraft
+  () => createTowerChasmPilot(0),    // 27 switchback-scaffold
+  () => createPascalsPressesPilot(), // 28 pascals-presses
+  () => createTowerChasmPilot(1),    // 29 the-hidden-way-home
+  () => createSpringboardPilot(),    // 30 hookes-springboard
+  () => createHookesCeilingPilot(),  // 31 hookes-ceiling
+  () => createPistonWorksPilot(),    // 32 piston-works
+  createStairwayPilot,               // 33 stairway-to-heaven
+  () => createNoetherPilot(),        // 34 noethers-symmetry
 ];
 
 /** Input-only campaign pilot. Call once before each fixed 1/120 s physics step. */

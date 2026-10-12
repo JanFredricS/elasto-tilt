@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 
 // Looked up by id, so inserting a map does not silently shift these onto its neighbours.
 const maps = ['clockwork-wedge', 'underside-return', 'huygens-return', 'pendulum-clock', 'spiral-sanctuary', 'eulers-bridges',
-  'bernoullis-updraft', 'switchback-scaffold', 'the-hidden-way-home', 'hookes-springboard', 'hookes-ceiling', 'piston-works',
+  'amperes-loop', 'bernoullis-updraft', 'switchback-scaffold', 'the-hidden-way-home', 'hookes-springboard', 'hookes-ceiling', 'piston-works',
   'stairway-to-heaven', 'noethers-symmetry'] as const;
 const flights: readonly string[] = ['spiral-sanctuary', 'switchback-scaffold', 'the-hidden-way-home'];
 for (const id of maps) {
